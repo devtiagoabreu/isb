@@ -1,0 +1,36 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../prisma/generated"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BlingToken {
+  id           Int      @id @default(1)
+  accessToken  String
+  refreshToken String
+  tokenType    String   @default("Bearer")
+  scope        String?
+  expiresAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("bling_tokens")
+}
+
+model BlingTest {
+  id           Int      @id @default(autoincrement())
+  method       String
+  endpoint     String
+  label        String?
+  params       Json?
+  status       Int?
+  durationMs   Int?
+  success      Boolean  @default(false)
+  responseBody String?
+  responseAt   DateTime @default(now())
+
+  @@map("bling_tests")
+}

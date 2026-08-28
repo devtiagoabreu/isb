@@ -1,0 +1,36 @@
+import Link from "next/link";
+
+export default function Home() {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 py-16">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <h1 className="text-4xl font-semibold tracking-tight">
+          Testador de API
+        </h1>
+        <p className="max-w-lg text-lg text-zinc-600 dark:text-zinc-400">
+          Console para testar as integrações do ISB: Bling V3 (em construção) e
+          Systêxtil (em breve).
+        </p>
+      </div>
+
+      <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-2">
+        <Link
+          href="/console"
+          className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+        >
+          <span className="text-lg font-semibold">Bling V3</span>
+          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            OAuth 2.0 (Authorization Code), token de acesso/refresh e console
+            para disparar endpoints de teste.
+          </span>
+        </Link>
+        <div className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-6 opacity-60 dark:border-zinc-800">
+          <span className="text-lg font-semibold">Systêxtil</span>
+          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            Em breve: OAuth2 client credentials via Oracle IDCS.
+          </span>
+        </div>
+      </div>
+    </main>
+  );
+}
