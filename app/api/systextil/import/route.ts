@@ -4,6 +4,7 @@ import {
   buildBlingProdutoPayload,
   type ImportResult,
 } from "@/lib/import";
+import { currentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ interface ImportItemBody {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
+  if (!(await currentUser())) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
   let body: { items?: ImportItemBody[] };
   try {
     body = await request.json();

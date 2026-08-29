@@ -1,15 +1,30 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { currentUser } from "@/lib/auth";
+import LogoutButton from "@/app/components/logout-button";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const user = await currentUser();
+  if (!user) redirect("/login");
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 py-16">
+      <div className="flex w-full max-w-3xl items-center justify-between gap-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Logado como <span className="font-medium">{user.name}</span> (
+          {user.email})
+        </p>
+        <LogoutButton />
+      </div>
+
       <div className="flex flex-col items-center gap-4 text-center">
         <h1 className="text-4xl font-semibold tracking-tight">
           Testador de API
         </h1>
         <p className="max-w-lg text-lg text-zinc-600 dark:text-zinc-400">
-          Console para testar as integrações do ISB: Bling V3 (em construção) e
-          Systêxtil (em breve).
+          Console para testar as integrações do ISB: Bling V3 e Systêxtil.
         </p>
       </div>
 

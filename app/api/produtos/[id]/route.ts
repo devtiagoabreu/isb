@@ -6,10 +6,14 @@ import {
   parseCadastroResponse,
   type BlingProdutoForm,
 } from "@/lib/products";
+import { currentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+const unauthorized = () =>
+  NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
 function badId() {
   return NextResponse.json({ error: "ID inválido." }, { status: 400 });
@@ -19,6 +23,7 @@ export async function GET(
   _request: Request,
   ctx: RouteContext
 ) {
+  if (!(await currentUser())) return unauthorized();
   const { id } = await ctx.params;
   const productId = Number(id);
   if (!Number.isInteger(productId)) return badId();
@@ -35,6 +40,7 @@ export async function GET(
 }
 
 export async function PUT(request: Request, ctx: RouteContext) {
+  if (!(await currentUser())) return unauthorized();
   const { id } = await ctx.params;
   const productId = Number(id);
   if (!Number.isInteger(productId)) return badId();
@@ -67,6 +73,7 @@ export async function PUT(request: Request, ctx: RouteContext) {
 }
 
 export async function DELETE(request: Request, ctx: RouteContext) {
+  if (!(await currentUser())) return unauthorized();
   const { id } = await ctx.params;
   const productId = Number(id);
   if (!Number.isInteger(productId)) return badId();

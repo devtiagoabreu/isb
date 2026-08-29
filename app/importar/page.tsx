@@ -3,10 +3,12 @@ import {
   systextilAuthMethod,
   systextilIsConfigured,
 } from "@/lib/systextil";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function ImportarPage() {
+export default async function ImportarPage() {
+  await requireUser();
   const status = {
     configured: systextilIsConfigured(),
     authMethod: systextilAuthMethod(),

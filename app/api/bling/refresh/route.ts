@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { refreshBlingToken } from "@/lib/bling";
+import { currentUser } from "@/lib/auth";
 
 export async function POST() {
+  if (!(await currentUser())) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
   try {
     const token = await refreshBlingToken();
     return NextResponse.json({
