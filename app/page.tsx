@@ -24,12 +24,16 @@ export default function Home() {
             para disparar endpoints de teste.
           </span>
         </Link>
-        <div className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-6 opacity-60 dark:border-zinc-800">
-          <span className="text-lg font-semibold">Systêxtil</span>
+        <Link
+          href="/importar"
+          className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+        >
+          <span className="text-lg font-semibold">Systêxtil → Bling</span>
           <span className="text-sm text-zinc-600 dark:text-zinc-400">
-            Em breve: OAuth2 client credentials via Oracle IDCS.
+            Importar produtos: buscar na Systêxtil Cloud (API por cliente) e
+            criar como SKUs no Bling V3.
           </span>
-        </div>
+        </Link>
       </div>
     </main>
   );

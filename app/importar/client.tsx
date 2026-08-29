@@ -1,0 +1,385 @@
+"use client";
+
+import { useState } from "react";
+
+interface StatusData {
+  configured: boolean;
+  authMethod: string | null;
+  apiUrl: string | null;
+}
+
+interface ProdutoItem {
+  codigo: string;
+  nome: string;
+  descricaoCurta: string;
+  ncm: string;
+  unidadeId: string;
+  unidadeDescricao: string;
+  grupoDescricao: string;
+  situacao: number | null;
+  origem: number | null;
+  origemBling: number | null;
+}
+
+interface ResultItem {
+  codigo: string;
+  status: number;
+  ok: boolean;
+  payload: unknown;
+}
+
+interface ImportResponse {
+  okCount: number;
+  errorCount: number;
+  results: ResultItem[];
+}
+
+const SITUACAO_LABEL: Record<number, string> = {
+  0: "Ativo",
+  1: "Inativo",
+  2: "Lançamento",
+};
+
+export default function ImportClient({
+  initialStatus,
+}: {
+  initialStatus: StatusData;
+}) {
+  const [status] = useState<StatusData>(initialStatus);
+  const [busca, setBusca] = useState("");
+  const [grupo, setGrupo] = useState("");
+  const [produtos, setProdutos] = useState<ProdutoItem[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
+  const [precos, setPrecos] = useState<Record<string, string>>({});
+  const [importando, setImportando] = useState(false);
+  const [resultado, setResultado] = useState<ImportResponse | null>(null);
+
+  async function buscar() {
+    setBuscando(true);
+    setErro("");
+    setAviso("");
+    setResultado(null);
+    try {
+      const params = new URLSearchParams({ limit: "50" });
+      if (busca.trim()) params.set("q", busca.trim());
+      if (grupo.trim()) params.set("grupo", grupo.trim());
+      const res = await fetch(`/api/systextil/produtos?${params.toString()}`);
+      const data = (await res.json()) as {
+        items?: ProdutoItem[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setErro(data.error ?? `HTTP ${res.status}`);
+        setProdutos([]);
+        return;
+      }
+      setProdutos(data.items ?? []);
+      if ((data.items ?? []).length === 0) {
+        setAviso("Nenhum produto encontrado com esses filtros.");
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  function toggle(codigo: string) {
+    setSelecionados((prev) => ({ ...prev, [codigo]: !prev[codigo] }));
+  }
+
+  function setPreco(codigo: string, value: string) {
+    setPrecos((prev) => ({ ...prev, [codigo]: value }));
+  }
+
+  const selecionadosCount = Object.keys(selecionados).filter(
+    (c) => selecionados[c]
+  ).length;
+
+  async function importar() {
+    const codigos = produtos
+      .filter((p) => selecionados[p.codigo])
+      .map((p) => p.codigo);
+    if (codigos.length === 0) {
+      setErro("Selecione ao menos um produto.");
+      return;
+    }
+    setImportando(true);
+    setErro("");
+    setResultado(null);
+    try {
+      const items = produtos
+        .filter((p) => selecionados[p.codigo])
+        .map((p) => ({
+          codigo: p.codigo,
+          nome: p.nome,
+          descricaoCurta: p.descricaoCurta || null,
+          ncm: p.ncm || null,
+          unidadeId: p.unidadeId || null,
+          origem: p.origemBling,
+          preco: precos[p.codigo]?.trim()
+            ? Number(precos[p.codigo].replace(",", "."))
+            : null,
+        }));
+      const res = await fetch("/api/systextil/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = (await res.json()) as ImportResponse & { error?: string };
+      if (!res.ok) {
+        setErro(data.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      setResultado(data);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  function payloadPreview(p: ProdutoItem): string {
+    const payload: Record<string, unknown> = {
+      nome: p.nome,
+      codigo: p.codigo,
+      tipo: "P",
+      formato: "S",
+      situacao: "A",
+    };
+    if (p.descricaoCurta) payload.descricaoCurta = p.descricaoCurta;
+    if (p.ncm) payload.ncm = p.ncm;
+    if (p.unidadeId) payload.unidade = { id: p.unidadeId };
+    if (p.origemBling != null) payload.origem = p.origemBling;
+    const preco = precos[p.codigo]?.trim()
+      ? Number(precos[p.codigo].replace(",", "."))
+      : null;
+    if (preco && preco > 0) payload.preco = { preco };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  return (
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
+      <div>
+        <h1 className="text-2xl font-semibold">Importar da Systêxtil</h1>
+        <p className="text-sm text-zinc-500">
+          Cada código Systêxtil = 1 SKU no Bling (sem variações). Preço é
+          complementado manualmente no Bling.
+        </p>
+      </div>
+
+      {!status.configured && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+          Systêxtil ainda não configurada. Preencha no <code>.env</code>:{" "}
+          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
+            SYSTEXTIL_API_URL
+          </code>{" "}
+          (ex.: https://api-cliente.systextilapps.com.br) e{" "}
+          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
+            SYSTEXTIL_API_KEY
+          </code>{" "}
+          ou{" "}
+          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
+            SYSTEXTIL_CLIENT_ID
+          </code>+{" "}
+          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
+            SYSTEXTIL_CLIENT_SECRET
+          </code>
+          .
+        </div>
+      )}
+
+      {status.configured && (
+        <p className="text-sm text-zinc-500">
+          Conectando via{" "}
+          <span className="font-mono">
+            {status.authMethod === "apikey" ? "APIKey" : "OAuth (Oracle IDCS)"}
+          </span>{" "}
+          · {status.apiUrl}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          Buscar por descrição
+          <input
+            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && buscar()}
+            placeholder="ex.: malha"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Grupo
+          <input
+            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+            value={grupo}
+            onChange={(e) => setGrupo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && buscar()}
+            placeholder="ex.: K18"
+          />
+        </label>
+        <button
+          onClick={buscar}
+          disabled={buscando}
+          className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          {buscando ? "Buscando…" : "Buscar produtos"}
+        </button>
+      </div>
+
+      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {aviso && <p className="text-sm text-zinc-500">{aviso}</p>}
+
+      {produtos.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
+              {produtos.length} produto(s)
+            </h2>
+            <button
+              onClick={importar}
+              disabled={importando || selecionadosCount === 0}
+              className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {importando
+                ? "Importando…"
+                : `Importar ${selecionadosCount} produto(s) no Bling`}
+            </button>
+          </div>
+
+          <ul className="flex flex-col gap-2">
+            {produtos.map((p) => {
+              const marcado = !!selecionados[p.codigo];
+              const semReferencia =
+                !p.nome.trim() || !p.ncm || !p.unidadeId;
+              return (
+                <li
+                  key={p.codigo}
+                  className={`rounded-lg border p-3 text-sm dark:border-zinc-800 ${
+                    marcado
+                      ? "border-emerald-300 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-900/10"
+                      : "border-zinc-200 dark:border-zinc-800"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      onChange={() => toggle(p.codigo)}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-zinc-500">
+                          {p.codigo}
+                        </span>
+                        <span className="font-medium">{p.nome}</span>
+                        {p.grupoDescricao && (
+                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs dark:bg-zinc-800">
+                            {p.grupoDescricao}
+                          </span>
+                        )}
+                        {p.situacao != null && (
+                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs dark:bg-zinc-800">
+                            {SITUACAO_LABEL[p.situacao] ?? p.situacao}
+                          </span>
+                        )}
+                        {p.unidadeId && (
+                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
+                            {p.unidadeId}
+                            {p.unidadeDescricao
+                              ? ` · ${p.unidadeDescricao}`
+                              : ""}
+                          </span>
+                        )}
+                        {p.ncm && (
+                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
+                            NCM {p.ncm}
+                          </span>
+                        )}
+                        {semReferencia && (
+                          <span className="rounded bg-amber-200 px-1.5 py-0.5 text-xs dark:bg-amber-900">
+                            faltam dados
+                          </span>
+                        )}
+                      </div>
+
+                      {marcado && (
+                        <div className="mt-2 flex flex-col gap-2">
+                          <label className="flex items-center gap-2 text-xs text-zinc-500">
+                            Preço de venda (opcional — se vazio, não envia e
+                            você preenche no Bling)
+                            <input
+                              className="w-32 rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
+                              value={precos[p.codigo] ?? ""}
+                              onChange={(e) => setPreco(p.codigo, e.target.value)}
+                              placeholder="ex.: 39,90"
+                            />
+                          </label>
+                          <details>
+                            <summary className="cursor-pointer text-xs text-zinc-500">
+                              ver payload que será enviado ao Bling
+                            </summary>
+                            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
+                              {payloadPreview(p)}
+                            </pre>
+                          </details>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {resultado && (
+        <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+          <h2 className="text-lg font-semibold">Resultado da importação</h2>
+          <p className="text-sm">
+            <span className="text-emerald-600">{resultado.okCount}</span>{" "}
+            criados ·{" "}
+            <span className="text-red-600">{resultado.errorCount}</span>{" "}
+            com erro
+          </p>
+          <ul className="flex flex-col gap-2">
+            {resultado.results.map((r) => (
+              <li
+                key={r.codigo}
+                className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-2 text-sm dark:border-zinc-800"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
+                      r.ok
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                  <span className="font-mono text-xs">{r.codigo}</span>
+                </div>
+                <details>
+                  <summary className="cursor-pointer text-xs text-zinc-500">
+                    ver resposta
+                  </summary>
+                  <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+                    {JSON.stringify(r.payload, null, 2)}
+                  </pre>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </main>
+  );
+}
