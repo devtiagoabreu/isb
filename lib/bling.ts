@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 
 const TOKEN_URL = "https://www.bling.com.br/Api/v3/oauth/token";
-const AUTHORIZE_URL = "https://www.bling.com.br/Api/v3/authorize";
+const AUTHORIZE_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
 export const BLING_API_BASE = "https://api.bling.com.br/Api/v3";
 
 export type BlingMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
