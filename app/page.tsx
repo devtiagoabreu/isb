@@ -34,6 +34,16 @@ export default function Home() {
             criar como SKUs no Bling V3.
           </span>
         </Link>
+        <Link
+          href="/produtos"
+          className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+        >
+          <span className="text-lg font-semibold">Produtos no Bling</span>
+          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            Cadastro manual (CRUD) de SKUs direto no Bling V3: criar, editar,
+            ativar/inativar e excluir.
+          </span>
+        </Link>
       </div>
     </main>
   );
