@@ -10,14 +10,25 @@ export default async function ConsolePage({
 }) {
   const params = await searchParams;
 
-  const [store, rawTests] = await Promise.all([
+  const [store, rawTests, rawWebhooks] = await Promise.all([
     prisma.blingToken.findUnique({ where: { id: 1 } }),
     prisma.blingTest.findMany({ orderBy: { id: "desc" }, take: 20 }),
+    prisma.blingWebhook.findMany({ orderBy: { id: "desc" }, take: 20 }),
   ]);
 
   const initialTests = rawTests.map((t) => ({
     ...t,
     responseAt: t.responseAt.toISOString(),
+  }));
+
+  const initialWebhooks = rawWebhooks.map((w) => ({
+    id: w.id,
+    eventId: w.eventId,
+    event: w.event,
+    version: w.version,
+    companyId: w.companyId,
+    payload: JSON.stringify(w.payload),
+    receivedAt: w.receivedAt.toISOString(),
   }));
 
   const initialStatus = store
@@ -33,6 +44,7 @@ export default async function ConsolePage({
     <ConsoleClient
       initialStatus={initialStatus}
       initialTests={initialTests}
+      initialWebhooks={initialWebhooks}
       paramConnected={!!params.connected}
       paramError={params.error ?? null}
     />

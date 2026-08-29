@@ -34,3 +34,15 @@ model BlingTest {
 
   @@map("bling_tests")
 }
+
+model BlingWebhook {
+  id         Int      @id @default(autoincrement())
+  eventId    String   @unique
+  event      String
+  version    String?
+  companyId  String?
+  payload    Json
+  receivedAt DateTime @default(now())
+
+  @@map("bling_webhooks")
+}

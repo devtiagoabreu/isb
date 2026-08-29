@@ -30,16 +30,28 @@ interface TestRecord {
   responseAt: string;
 }
 
+interface WebhookRecord {
+  id: number;
+  eventId: string;
+  event: string;
+  version: string | null;
+  companyId: string | null;
+  payload: string;
+  receivedAt: string;
+}
+
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 export default function ConsoleClient({
   initialStatus,
   initialTests,
+  initialWebhooks,
   paramConnected,
   paramError,
 }: {
   initialStatus: StatusData;
   initialTests: TestRecord[];
+  initialWebhooks: WebhookRecord[];
   paramConnected: boolean;
   paramError: string | null;
 }) {
@@ -50,6 +62,7 @@ export default function ConsoleClient({
       : false,
   }));
   const [tests, setTests] = useState<TestRecord[]>(initialTests);
+  const [webhooks, setWebhooks] = useState<WebhookRecord[]>(initialWebhooks);
   const [notice, setNotice] = useState(paramConnected ? "Conectado com sucesso." : "");
   const [error, setError] = useState(paramError ?? "");
 
@@ -73,6 +86,12 @@ export default function ConsoleClient({
     const res = await fetch("/api/tests");
     const data = (await res.json()) as { tests: TestRecord[] };
     setTests(data.tests);
+  }
+
+  async function refreshWebhooks() {
+    const res = await fetch("/api/bling/webhook");
+    const data = (await res.json()) as { events: WebhookRecord[] };
+    setWebhooks(data.events);
   }
 
   async function connect() {
@@ -321,6 +340,60 @@ export default function ConsoleClient({
                       {t.durationMs ?? "—"} ms ·{" "}
                       {new Date(t.responseAt).toLocaleString()}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        <section>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Webhooks recebidos</h2>
+              <button
+                onClick={refreshWebhooks}
+                className="rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                Atualizar
+              </button>
+            </div>
+            {webhooks.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                Nenhum webhook recebido. Configure em: Área do Integrador →
+                app → aba Webhooks → servidor (
+                <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
+                  https://isb-tau.vercel.app/api/bling/webhook
+                </code>
+                ) + recursos/ações.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {webhooks.map((w) => (
+                  <li
+                    key={w.id}
+                    className="rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs font-semibold dark:bg-zinc-800">
+                          {w.event}
+                        </span>
+                        <span className="truncate font-mono text-xs text-zinc-500">
+                          {w.eventId}
+                        </span>
+                      </div>
+                      <span className="shrink-0 font-mono text-xs text-zinc-500">
+                        {new Date(w.receivedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {w.payload && w.payload !== "null" && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs text-zinc-500">
+                          ver payload
+                        </summary>
+                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
+                          {w.payload}
+                        </pre>
+                      </details>
+                    )}
                   </li>
                 ))}
               </ul>
