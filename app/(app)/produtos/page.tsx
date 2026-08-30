@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requirePermission, requireUser } from "@/lib/auth";
 import {
   listarProdutosBling,
   parseListaResponse,
@@ -10,7 +10,8 @@ import ProdutosClient from "./client";
 export const dynamic = "force-dynamic";
 
 export default async function ProdutosPage() {
-  await requireUser();
+  const user = await requireUser();
+  await requirePermission(user, "products.read");
   const store = await prisma.blingToken.findUnique({ where: { id: 1 } });
   const connected = !!store;
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requirePermission, requireUser } from "@/lib/auth";
 import ConsoleClient from "./console-client";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,8 @@ export default async function ConsolePage({
   searchParams: Promise<{ connected?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  await requireUser();
+  const user = await requireUser();
+  await requirePermission(user, "bling.manage");
 
   const [store, rawTests, rawWebhooks] = await Promise.all([
     prisma.blingToken.findUnique({ where: { id: 1 } }),
