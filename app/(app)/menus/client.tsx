@@ -210,6 +210,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
     icone: string;
   } | null>(null);
   const [addEm, setAddEm] = useState<number | null>(null);
+  const [paginaSel, setPaginaSel] = useState("");
   const [copiarDe, setCopiarDe] = useState("");
   const [showNovaPage, setShowNovaPage] = useState(false);
   const [pageForm, setPageForm] = useState({
@@ -475,6 +476,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
     setEditing(null);
     setNovoSub(null);
     setAddEm(null);
+    setPaginaSel("");
   }
 
   const menus = data.menus;
@@ -832,71 +834,63 @@ export default function MenusClient({ initial }: { initial: Payload }) {
 
             {sel.itens.length > 0 && renderRows(sel.itens, null, 0)}
 
-            <h3 className="font-semibold">Adicionar páginas</h3>
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="text-zinc-600 dark:text-zinc-300">Adicionar em:</span>
-              <select
-                value={targetSel}
-                onChange={(e) =>
-                  setAddEm(e.target.value === "" ? null : Number(e.target.value))
-                }
-                className={inputCls}
-                style={{ width: "auto", minWidth: "200px" }}
-              >
-                <option value="">Página raiz</option>
-                {grupos.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.label}
+            <h3 className="font-semibold">Adicionar páginas (endpoints do ISB)</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Adicionar em
+                </label>
+                <select
+                  value={targetSel}
+                  onChange={(e) =>
+                    setAddEm(e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  className={inputCls}
+                >
+                  <option value="">Página raiz</option>
+                  {grupos.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Página do ISB
+                </label>
+                <select
+                  value={paginaSel}
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    const page = data.pages.find((p) => p.id === id);
+                    setPaginaSel("");
+                    if (id && page) void adicionarPagina(sel!, page, addEm);
+                  }}
+                  className={inputCls}
+                >
+                  <option value="" disabled>
+                    Escolha uma página para entrar no menu…
                   </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {data.pages
-                .filter((p) => p.disponivel && !usadas.includes(p.id))
-                .map((p) => {
-                  const allowed = pageAllowed(p, data.isAdmin, data.permKeys);
-                  return (
-                    <div
-                      key={p.id}
-                      className={`flex items-start gap-2 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-800 ${
-                        allowed ? "bg-white dark:bg-zinc-950" : "opacity-60"
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-1.5 truncate font-medium">
-                          <Icon className="h-4 w-4 shrink-0">
-                            {pageIconPath(p.icone)}
-                          </Icon>
-                          {p.titulo}
-                          {!allowed && <span title="Sem acesso a esta página">🔒</span>}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-zinc-500">{p.slug}</p>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          {p.sensivel && badge("administrador")}
-                          {p.permisao && badge(permissaoLabel(p.permisao))}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => void adicionarPagina(sel, p, addEm)}
-                        disabled={busy || !allowed}
-                        className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-40 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                        aria-label={`Adicionar ${p.titulo}`}
-                      >
-                        <Icon className="h-4 w-4">
-                          <path d="M12 5v14M5 12h14" />
-                        </Icon>
-                      </button>
-                    </div>
-                  );
-                })}
+                  {data.pages.map((p) => {
+                    const used = usadas.includes(p.id);
+                    const allowed = pageAllowed(p, data.isAdmin, data.permKeys);
+                    return (
+                      <option key={p.id} value={p.id} disabled={used || !allowed}>
+                        {p.titulo} ({p.slug})
+                        {used ? " — já no menu" : ""}
+                        {!allowed ? " — sem acesso" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
             </div>
             <p className="text-xs text-zinc-500">
-              Escolha onde a página entra em “Adicionar em:”. Arraste os itens
+              Ao escolher a página no dropdown ela já entra na estrutura, no
+              nível de “Adicionar em”, e aparece na navegação. Arraste os itens
               para reordenar dentro de cada nível, ou solte um item em cima de um
-              submenu para movê-lo para dentro. Tudo é salvo sozinho. Páginas que
-              você não pode acessar ficam bloqueadas e não aparecem na sua
-              navegação.
+              submenu para movê-lo para dentro. Tudo é salvo sozinho.
             </p>
           </div>
         )}
