@@ -29,7 +29,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { homePage: { select: { slug: true } } },
+  });
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json(
       { error: "E-mail ou senha inválidos." },
@@ -38,7 +41,11 @@ export async function POST(request: Request) {
   }
 
   const { token, expiresAt } = await createSession(user.id);
-  const response = NextResponse.json({ ok: true, next: safeNext(body.next) });
+  const explicitNext = typeof body.next === "string" && body.next.trim() !== "";
+  const next = explicitNext
+    ? safeNext(body.next!)
+    : (user.homePage?.slug ?? "/");
+  const response = NextResponse.json({ ok: true, next });
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

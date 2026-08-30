@@ -48,15 +48,19 @@ model BlingWebhook {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   name         String
-  email        String    @unique
+  email        String     @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime   @default(now())
   roleId       Int?
-  role         Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  role         Role?      @relation(fields: [roleId], references: [id], onDelete: SetNull)
   sessions     Session[]
+  menus        Menu[]
+  homePageId   Int?
+  homePage     Page?      @relation(fields: [homePageId], references: [id], onDelete: SetNull)
 
+  @@index([homePageId])
   @@map("users")
 }
 
@@ -90,4 +94,52 @@ model RolePermission {
 
   @@id([roleId, key])
   @@map("role_permissions")
+}
+
+model Page {
+  id         Int        @id @default(autoincrement())
+  slug       String     @unique
+  titulo     String
+  descricao  String?
+  icone      String?
+  sensivel   Boolean    @default(false)
+  permisao   String?
+  disponivel Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  menuItens  MenuItem[]
+  users      User[]
+
+  @@map("pages")
+}
+
+model Menu {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome      String
+  ativo     Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  itens     MenuItem[]
+
+  @@index([userId])
+  @@map("menus")
+}
+
+model MenuItem {
+  id       Int        @id @default(autoincrement())
+  menuId   Int
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId Int?
+  parent   MenuItem?  @relation("SubitensDe", fields: [parentId], references: [id], onDelete: Cascade)
+  filhos   MenuItem[] @relation("SubitensDe")
+  pageId   Int?
+  page     Page?      @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  titulo   String?
+  icone    String?
+  ordem    Int
+
+  @@unique([menuId, pageId])
+  @@index([menuId, parentId])
+  @@map("menu_items")
 }

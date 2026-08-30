@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import { pageIconPath } from "@/lib/pages";
 
 function Icon({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -21,54 +22,11 @@ function Icon({ children, className }: { children: ReactNode; className?: string
   );
 }
 
-interface NavItem {
-  href: string;
+export interface MenuNavItem {
+  href?: string;
   label: string;
-  perm: string | null;
-  icon: ReactNode;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: "/",
-    label: "Painel",
-    perm: "dashboard.view",
-    icon: <path d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" />,
-  },
-  {
-    href: "/produtos",
-    label: "Produtos",
-    perm: "products.read",
-    icon: <path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8" />,
-  },
-  {
-    href: "/importar",
-    label: "Importar",
-    perm: "products.import",
-    icon: <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />,
-  },
-  {
-    href: "/console",
-    label: "Console Bling",
-    perm: "bling.manage",
-    icon: <path d="M4 17l6-6-6-6M12 19h8" />,
-  },
-  {
-    href: "/admin",
-    label: "Usuários",
-    perm: "users.manage",
-    icon: <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
-  },
-  {
-    href: "/perfil",
-    label: "Meu perfil",
-    perm: null,
-    icon: <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />,
-  },
-];
-
-function has(keys: string[], perm: string): boolean {
-  return keys.includes("*") || keys.includes(perm);
+  icone: string;
+  children?: MenuNavItem[];
 }
 
 function isActive(pathname: string, href: string): boolean {
@@ -77,12 +35,14 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export default function AppShell({
-  permissionKeys,
+  navItems,
+  initialHref,
   userName,
   userEmail,
   children,
 }: {
-  permissionKeys: string[];
+  navItems: MenuNavItem[];
+  initialHref: string;
   userName: string;
   userEmail: string;
   children: ReactNode;
@@ -91,10 +51,7 @@ export default function AppShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
-
-  const items = NAV_ITEMS.filter(
-    (i) => i.perm === null || has(permissionKeys, i.perm)
-  );
+  const [openExtra, setOpenExtra] = useState<Record<string, boolean>>({});
 
   async function logout() {
     try {
@@ -105,11 +62,110 @@ export default function AppShell({
     router.push("/login");
   }
 
-  const linkBase = "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors";
+  const linkBase =
+    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors";
   const linkIdle =
     "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100";
   const linkActive =
     "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900";
+
+  function hasActiveChild(node: MenuNavItem): boolean {
+    if (node.href && isActive(pathname, node.href)) return true;
+    return Boolean(node.children?.some(hasActiveChild));
+  }
+
+  function isOpen(key: string, node: MenuNavItem): boolean {
+    return openExtra[key] ?? hasActiveChild(node);
+  }
+
+  function renderNodes(
+    nodes: MenuNavItem[],
+    prefix: string,
+    collapseMode: boolean,
+    onNavigate?: () => void
+  ): ReactNode {
+    if (nodes.length === 0) {
+      return (
+        <Link
+          href="/menus"
+          onClick={onNavigate}
+          className={`${linkBase} ${linkIdle} ${
+            collapseMode ? "justify-center px-2" : ""
+          }`}
+          title={collapseMode ? "Meu menu" : undefined}
+        >
+          <Icon>{pageIconPath("menu")}</Icon>
+          <span className="truncate">Sem itens — configure em Meu menu</span>
+        </Link>
+      );
+    }
+    return nodes.map((node, idx) => {
+      const key = `${prefix}.${idx}`;
+      if (node.href) {
+        const active = isActive(pathname, node.href);
+        return (
+          <Link
+            key={key}
+            href={node.href}
+            onClick={onNavigate}
+            title={collapseMode ? node.label : undefined}
+            className={`${linkBase} ${active ? linkActive : linkIdle} ${
+              collapseMode ? "justify-center px-2" : ""
+            }`}
+          >
+            <Icon>{pageIconPath(node.icone)}</Icon>
+            {!collapseMode && <span className="truncate">{node.label}</span>}
+          </Link>
+        );
+      }
+      const open = isOpen(key, node);
+      const groupActive = hasActiveChild(node);
+      return (
+        <div key={key}>
+          <button
+            type="button"
+            onClick={() => {
+              if (collapseMode) {
+                setCollapsed(false);
+                setOpenExtra((prev) => ({ ...prev, [key]: true }));
+              } else {
+                setOpenExtra((prev) => ({ ...prev, [key]: !open }));
+              }
+            }}
+            title={collapseMode ? node.label : undefined}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              collapseMode ? "justify-center px-2" : ""
+            } ${
+              groupActive
+                ? "text-zinc-900 dark:text-zinc-100"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            }`}
+          >
+            <Icon>{pageIconPath(node.icone)}</Icon>
+            {!collapseMode && (
+              <>
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {node.label}
+                </span>
+                <Icon
+                  className={`h-4 w-4 shrink-0 transition-transform ${
+                    open ? "rotate-90" : ""
+                  }`}
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </Icon>
+              </>
+            )}
+          </button>
+          {!collapseMode && open && node.children && node.children.length > 0 && (
+            <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-zinc-200 pl-2 dark:border-zinc-800">
+              {renderNodes(node.children, key, false, onNavigate)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }
 
   return (
     <>
@@ -120,7 +176,12 @@ export default function AppShell({
       >
         <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-3 dark:border-zinc-800">
           {!collapsed && (
-            <span className="font-semibold tracking-tight">ISB</span>
+            <Link
+              href={initialHref}
+              className="rounded-lg px-2 py-1 font-semibold tracking-tight hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              ISB
+            </Link>
           )}
           <button
             onClick={() => setCollapsed((v) => !v)}
@@ -133,23 +194,8 @@ export default function AppShell({
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 p-2">
-          {items.map((i) => {
-            const active = isActive(pathname, i.href);
-            return (
-              <Link
-                key={i.href}
-                href={i.href}
-                title={collapsed ? i.label : undefined}
-                className={`${linkBase} ${active ? linkActive : linkIdle} ${
-                  collapsed ? "justify-center px-2" : ""
-                }`}
-              >
-                <Icon>{i.icon}</Icon>
-                {!collapsed && <span className="truncate">{i.label}</span>}
-              </Link>
-            );
-          })}
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+          {renderNodes(navItems, "", collapsed)}
         </nav>
 
         <div className="flex flex-col gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
@@ -159,9 +205,19 @@ export default function AppShell({
               <p className="truncate text-xs text-zinc-500">{userEmail}</p>
             </div>
           )}
+          <Link
+            href="/menus"
+            className={`${linkBase} ${linkIdle} ${
+              collapsed ? "justify-center px-2" : ""
+            }`}
+            title={collapsed ? "Meu menu" : undefined}
+          >
+            <Icon>{pageIconPath("menu")}</Icon>
+            {!collapsed && <span>Meu menu</span>}
+          </Link>
           <button
             onClick={logout}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950 dark:hover:text-red-400 ${
+            className={`${linkBase} text-zinc-600 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950 dark:hover:text-red-400 ${
               collapsed ? "justify-center px-2" : ""
             }`}
           >
@@ -181,7 +237,13 @@ export default function AppShell({
           />
           <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800">
-              <span className="font-semibold tracking-tight">ISB</span>
+              <Link
+                href={initialHref}
+                onClick={() => setOpenMobile(false)}
+                className="rounded-lg px-2 py-1 font-semibold tracking-tight hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                ISB
+              </Link>
               <button
                 onClick={() => setOpenMobile(false)}
                 aria-label="Fechar menu"
@@ -193,26 +255,21 @@ export default function AppShell({
               </button>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-              {items.map((i) => {
-                const active = isActive(pathname, i.href);
-                return (
-                  <Link
-                    key={i.href}
-                    href={i.href}
-                    onClick={() => setOpenMobile(false)}
-                    className={`${linkBase} ${active ? linkActive : linkIdle}`}
-                  >
-                    <Icon>{i.icon}</Icon>
-                    <span className="truncate">{i.label}</span>
-                  </Link>
-                );
-              })}
+              {renderNodes(navItems, "", false, () => setOpenMobile(false))}
             </nav>
             <div className="flex flex-col gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
               <div className="min-w-0 px-1">
                 <p className="truncate text-sm font-medium">{userName}</p>
                 <p className="truncate text-xs text-zinc-500">{userEmail}</p>
               </div>
+              <Link
+                href="/menus"
+                onClick={() => setOpenMobile(false)}
+                className={`${linkBase} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100`}
+              >
+                <Icon>{pageIconPath("menu")}</Icon>
+                <span>Meu menu</span>
+              </Link>
               <button
                 onClick={logout}
                 className={`${linkBase} text-zinc-600 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950 dark:hover:text-red-400`}
