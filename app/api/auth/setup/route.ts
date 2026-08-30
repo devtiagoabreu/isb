@@ -46,8 +46,18 @@ export async function POST(request: Request) {
     );
   }
 
+  const adminRole = await prisma.role.findUnique({
+    where: { name: "admin" },
+    select: { id: true },
+  });
+
   const user = await prisma.user.create({
-    data: { name, email, passwordHash: hashPassword(password) },
+    data: {
+      name,
+      email,
+      passwordHash: hashPassword(password),
+      roleId: adminRole?.id ?? null,
+    },
   });
 
   const { token, expiresAt } = await createSession(user.id);

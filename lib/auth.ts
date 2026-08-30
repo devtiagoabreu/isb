@@ -66,6 +66,46 @@ export async function requireUser(): Promise<User> {
   return user;
 }
 
+export async function userPermissionKeys(userId: number): Promise<string[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: { select: { name: true, permissions: { select: { key: true } } } } },
+  });
+  if (!user?.role) return [];
+  if (user.role.name === "admin") {
+    return ["*"];
+  }
+  return user.role.permissions.map((p) => p.key);
+}
+
+export async function hasPermission(user: User, perm: string): Promise<boolean> {
+  const keys = await userPermissionKeys(user.id);
+  return keys.includes("*") || keys.includes(perm);
+}
+
+export async function apiRequire(perm: string): Promise<Response | null> {
+  const user = await currentUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Não autenticado." }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (!(await hasPermission(user, perm))) {
+    return new Response(JSON.stringify({ error: "Sem permissão para esta ação." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
+export async function requirePermission(user: User, perm: string): Promise<void> {
+  if (!(await hasPermission(user, perm))) {
+    redirect("/");
+  }
+}
+
 export function safeNext(next: string | null | undefined): string {
   if (typeof next === "string" && next.startsWith("/") && !next.startsWith("//")) {
     return next;

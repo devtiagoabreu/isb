@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { definirSituacaoProdutoBling } from "@/lib/products";
-import { currentUser } from "@/lib/auth";
+import { apiRequire } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: RouteContext) {
-  if (!(await currentUser())) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
+  const denied = await apiRequire("products.write");
+  if (denied) return denied;
   const { id } = await ctx.params;
   const productId = Number(id);
   if (!Number.isInteger(productId)) {

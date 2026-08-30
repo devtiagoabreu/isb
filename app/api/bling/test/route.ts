@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { type BlingMethod, blingRequest } from "@/lib/bling";
 import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
+import { apiRequire } from "@/lib/auth";
 
 interface TestPayload {
   label?: string;
@@ -12,9 +12,8 @@ interface TestPayload {
 }
 
 export async function POST(request: Request) {
-  if (!(await currentUser())) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
+  const denied = await apiRequire("bling.manage");
+  if (denied) return denied;
   let payload: TestPayload;
   try {
     payload = (await request.json()) as TestPayload;

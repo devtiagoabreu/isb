@@ -6,7 +6,7 @@ import {
   type SystextilProduto,
 } from "@/lib/systextil";
 import { origemSystextilParaBling } from "@/lib/import";
-import { currentUser } from "@/lib/auth";
+import { apiRequire } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,8 @@ function toDisplayItem(p: SystextilProduto) {
 }
 
 export async function GET(request: Request) {
-  if (!(await currentUser())) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
+  const denied = await apiRequire("products.import");
+  if (denied) return denied;
   if (!systextilIsConfigured()) {
     return NextResponse.json(
       {

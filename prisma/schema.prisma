@@ -53,6 +53,8 @@ model User {
   email        String    @unique
   passwordHash String
   createdAt    DateTime  @default(now())
+  roleId       Int?
+  role         Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   sessions     Session[]
 
   @@map("users")
@@ -67,4 +69,25 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  builtin     Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId Int
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  key    String
+
+  @@id([roleId, key])
+  @@map("role_permissions")
 }

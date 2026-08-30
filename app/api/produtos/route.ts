@@ -6,15 +6,13 @@ import {
   parseListaResponse,
   type BlingProdutoForm,
 } from "@/lib/products";
-import { currentUser } from "@/lib/auth";
+import { apiRequire } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const unauthorized = () =>
-  NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-
 export async function GET(request: Request) {
-  if (!(await currentUser())) return unauthorized();
+  const denied = await apiRequire("products.read");
+  if (denied) return denied;
   const url = new URL(request.url);
   const pagina = Math.max(Number(url.searchParams.get("pagina") ?? 1), 1);
   const limite = Math.min(
@@ -38,7 +36,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!(await currentUser())) return unauthorized();
+  const denied = await apiRequire("products.write");
+  if (denied) return denied;
   let form: BlingProdutoForm;
   try {
     form = (await request.json()) as BlingProdutoForm;
