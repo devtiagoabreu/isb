@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { InfoTitle } from "@/app/components/info-button";
 
 interface StatusData {
   configured: boolean;
@@ -164,7 +165,13 @@ export default function ImportClient({
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
       <div>
-        <h1 className="text-2xl font-semibold">Importar da Systêxtil</h1>
+        <h1 className="text-2xl font-semibold">
+          <InfoTitle
+            titulo="Importar da Systêxtil"
+            descricao="Busca os produtos cadastrados na Systêxtil e prepara para enviá-los como SKUs ao Bling. Cada código Systêxtil vira um SKU no Bling (sem variações); o preço é completado manualmente no Bling."
+            exemplo="1) Digite um termo e clique em Buscar para listar produtos da Systêxtil.\n2) Selecione os produtos desejados na tabela.\n3) Clique em Importar para criar os SKUs no Bling."
+          />
+        </h1>
         <p className="text-sm text-zinc-500">
           Cada código Systêxtil = 1 SKU no Bling (sem variações). Preço é
           complementado manualmente no Bling.

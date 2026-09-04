@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/db";
+
 const DEFAULT_TOKEN_URL =
   "https://idcs-03651be63851489595548b9127721fa1.identity.oraclecloud.com/oauth2/v1/token";
 
@@ -12,7 +14,7 @@ export interface SystextilConfig {
 
 export type SystextilAuthMethod = "apikey" | "oauth";
 
-export function systextilConfig(): SystextilConfig {
+function envSystextilConfig(): SystextilConfig {
   return {
     apiUrl: process.env.SYSTEXTIL_API_URL?.trim() || null,
     apiKey: process.env.SYSTEXTIL_API_KEY?.trim() || null,
@@ -23,16 +25,49 @@ export function systextilConfig(): SystextilConfig {
   };
 }
 
-export function systextilAuthMethod(): SystextilAuthMethod | null {
-  const cfg = systextilConfig();
+function envAuthMethod(cfg: SystextilConfig): SystextilAuthMethod | null {
   if (!cfg.apiUrl) return null;
   if (cfg.apiKey) return "apikey";
   if (cfg.clientId && cfg.clientSecret) return "oauth";
   return null;
 }
 
-export function systextilIsConfigured(): boolean {
-  return systextilAuthMethod() !== null;
+// Config que considera as vars salvas na página de Integrações (banco),
+// com fallback para as variáveis de ambiente do .env/Vercel.
+export async function systextilConfigDb(): Promise<SystextilConfig> {
+  const env = envSystextilConfig();
+  const db = await prisma.apiConfig.findUnique({
+    where: { handle: "systextil" },
+    include: { vars: true },
+  });
+  const map = new Map(db?.vars.map((v) => [v.chave, v.valor]) ?? []);
+  const apiUrl = map.get("SYSTEXTIL_API_URL")?.trim() || env.apiUrl;
+  return {
+    apiUrl: apiUrl || null,
+    apiKey: map.get("SYSTEXTIL_API_KEY")?.trim() || env.apiKey || null,
+    clientId: map.get("SYSTEXTIL_CLIENT_ID")?.trim() || env.clientId || null,
+    clientSecret:
+      map.get("SYSTEXTIL_CLIENT_SECRET")?.trim() || env.clientSecret || null,
+    tokenUrl: map.get("SYSTEXTIL_TOKEN_URL")?.trim() || env.tokenUrl,
+    scope: map.get("SYSTEXTIL_SCOPE")?.trim() || env.scope,
+  };
+}
+
+export async function systextilAuthMethodDb(): Promise<SystextilAuthMethod | null> {
+  return envAuthMethod(await systextilConfigDb());
+}
+
+export async function systextilIsConfiguredDb(): Promise<boolean> {
+  return (await systextilAuthMethodDb()) !== null;
+}
+
+// Versões síncronas (apenas .env) mantidas para compatibilidade
+export function systextilConfig(): SystextilConfig {
+  return envSystextilConfig();
+}
+
+export function systextilAuthMethod(): SystextilAuthMethod | null {
+  return envAuthMethod(systextilConfig());
 }
 
 export interface SystextilProduto {
@@ -148,14 +183,16 @@ function normalizeProdutoList(json: unknown): SystextilProduto[] {
 export async function listaProdutos(
   options: SystextilListOptions = {}
 ): Promise<SystextilListResult> {
-  const cfg = systextilConfig();
+  const cfg = await systextilConfigDb();
   if (!cfg.apiUrl) {
-    throw new Error("SYSTEXTIL_API_URL não configurada no .env.");
+    throw new Error(
+      "SYSTEXTIL_API_URL não configurada. Preencha na página de Integrações."
+    );
   }
-  const method = systextilAuthMethod();
+  const method = envAuthMethod(cfg);
   if (!method) {
     throw new Error(
-      "Systêxtil não configurada: informe SYSTEXTIL_API_KEY ou SYSTEXTIL_CLIENT_ID/CLIENT_SECRET no .env."
+      "Systêxtil não configurada: informe SYSTEXTIL_CLIENT_ID/SYSTEXTIL_CLIENT_SECRET ou SYSTEXTIL_API_KEY na página de Integrações."
     );
   }
   const headers = await authHeaders(cfg);

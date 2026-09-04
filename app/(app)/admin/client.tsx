@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PERMISSOES, PERMISSAO_KEYS } from "@/lib/permissions";
+import { InfoTitle } from "@/app/components/info-button";
 
 interface RoleRef {
   id: number;
@@ -214,7 +215,11 @@ export default function AdminClient({
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">
-          Usuários e permissões
+          <InfoTitle
+            titulo="Usuários e permissões"
+            descricao="Crie usuários, defina roles e controle as permissões de cada role. Somente administradores têm acesso aqui."
+            exemplo="1) Clique em Novo usuário e preencha nome e e-mail.\n2) Escolha a role (ex.: admin) para o usuário.\n3) Em Roles, marque as permissões que a role pode acessar e salve."
+          />
         </h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           Crie usuários, defina roles e controle as permissões de cada role.

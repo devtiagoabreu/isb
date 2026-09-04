@@ -48,17 +48,17 @@ model BlingWebhook {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   name         String
-  email        String     @unique
+  email        String    @unique
   passwordHash String
-  createdAt    DateTime   @default(now())
+  createdAt    DateTime  @default(now())
   roleId       Int?
-  role         Role?      @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  role         Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   sessions     Session[]
   menus        Menu[]
   homePageId   Int?
-  homePage     Page?      @relation(fields: [homePageId], references: [id], onDelete: SetNull)
+  homePage     Page?     @relation(fields: [homePageId], references: [id], onDelete: SetNull)
 
   @@index([homePageId])
   @@map("users")
@@ -105,6 +105,7 @@ model Page {
   sensivel   Boolean    @default(false)
   permisao   String?
   disponivel Boolean    @default(true)
+  exemplo    String?
   createdAt  DateTime   @default(now())
   menuItens  MenuItem[]
   users      User[]
@@ -142,4 +143,49 @@ model MenuItem {
   @@unique([menuId, pageId])
   @@index([menuId, parentId])
   @@map("menu_items")
+}
+
+model ApiConfig {
+  id        Int           @id @default(autoincrement())
+  handle    String        @unique
+  nome      String
+  descricao String?
+  icone     String?
+  baseUrl   String?
+  ativo     Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  vars      ApiVar[]
+  endpoints ApiEndpoint[]
+
+  @@map("api_configs")
+}
+
+model ApiVar {
+  id        Int       @id @default(autoincrement())
+  apiId     Int
+  api       ApiConfig @relation(fields: [apiId], references: [id], onDelete: Cascade)
+  chave     String
+  valor     String
+  segredo   Boolean   @default(false)
+  descricao String?
+  ordem     Int       @default(0)
+
+  @@unique([apiId, chave])
+  @@map("api_vars")
+}
+
+model ApiEndpoint {
+  id        Int       @id @default(autoincrement())
+  apiId     Int
+  api       ApiConfig @relation(fields: [apiId], references: [id], onDelete: Cascade)
+  method    String
+  path      String
+  label     String
+  descricao String?
+  exemplo   String?
+  params    Json?
+  ordem     Int       @default(0)
+
+  @@map("api_endpoints")
 }

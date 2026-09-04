@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TEST_ENDPOINTS } from "@/lib/endpoints";
+import { InfoTitle } from "@/app/components/info-button";
 
 interface StatusData {
   connected: boolean;
@@ -156,7 +157,13 @@ export default function ConsoleClient({
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Console Bling V3</h1>
+          <h1 className="text-2xl font-semibold">
+            <InfoTitle
+              titulo="Console Bling V3"
+              descricao="Central de teste da integração com o Bling. Aqui você conecta a conta (OAuth 2.0), vê se o token está válido e testa cada endpoint da API do Bling direto do app, sem precisar de Postman."
+              exemplo="1) Clique em Conectar para autorizar o ISB no Bling.\n2) Depois de conectado, escolha um endpoint (ex.: GET /produtos).\n3) Clique em Testar para ver a resposta da API em tempo real."
+            />
+          </h1>
           <p className="text-sm text-zinc-500">
             OAuth 2.0 e testes de endpoints
           </p>

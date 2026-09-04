@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { InfoTitle } from "@/app/components/info-button";
 
 interface Aviso {
   tipo: "ok" | "erro";
@@ -87,7 +88,13 @@ export default function PerfilClient({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-10">
       <header>
-        <h1 className="text-2xl font-semibold">Meu perfil</h1>
+        <h1 className="text-2xl font-semibold">
+          <InfoTitle
+            titulo="Meu perfil"
+            descricao="Seus dados, o papel (role) que você tem no ISB e como você acessa o sistema."
+            exemplo="Aqui você vê seu nome, e-mail e a role (ex.: admin). O que você pode fazer no app é definido pelas permissões da sua role."
+          />
+        </h1>
         <p className="text-sm text-zinc-500">
           {role ? (
             <>

@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { PAGE_ICONES, pageIconPath } from "@/lib/pages";
 import { permissaoLabel } from "@/lib/permissions";
+import { InfoTitle } from "@/app/components/info-button";
 
 interface PageDTO {
   id: number;
@@ -737,7 +738,13 @@ export default function MenusClient({ initial }: { initial: Payload }) {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Meus menus</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <InfoTitle
+            titulo="Meus menus"
+            descricao="Cada usuário monta a própria navegação: cria um nome, adiciona páginas direto ou cria submenus com páginas dentro. A ordem salva vira o seu menu da sidebar, sempre com ícone à esquerda."
+            exemplo="1) Clique em Novo menu e dê um nome (ex.: 'Menu principal').\n2) Adicione páginas existentes (ex.: Painel, Produtos, Integrações).\n3) Arraste para ordenar e salve — a sidebar atualiza na hora."
+          />
+        </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Cada usuário monta a própria navegação: cria um nome, adiciona páginas
           direto ou cria submenus com páginas dentro. A ordem salva vira o seu

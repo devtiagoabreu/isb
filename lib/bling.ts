@@ -30,16 +30,40 @@ interface OAuthTokenResponse {
   refresh_token: string;
 }
 
-function blingConfig() {
-  return {
-    clientId: process.env.BLING_CLIENT_ID!,
-    clientSecret: process.env.BLING_CLIENT_SECRET!,
-    redirectUri: process.env.BLING_REDIRECT_URI!,
-  };
+interface BlingConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  apiBase: string;
 }
 
-export function buildAuthorizeUrl(state: string): string {
-  const { clientId, redirectUri } = blingConfig();
+async function blingConfig(): Promise<BlingConfig> {
+  const env = {
+    clientId: process.env.BLING_CLIENT_ID ?? "",
+    clientSecret: process.env.BLING_CLIENT_SECRET ?? "",
+    redirectUri: process.env.BLING_REDIRECT_URI ?? "",
+  };
+  if (env.clientId && env.clientSecret && env.redirectUri) {
+    return {
+      ...env,
+      apiBase: process.env.BLING_API_BASE?.trim() || BLING_API_BASE,
+    };
+  }
+  // Fallback: configuração das vars salvas na página de Integrações
+  const config = await prisma.apiConfig.findUnique({
+    where: { handle: "bling" },
+    include: { vars: true },
+  });
+  const map = new Map(config?.vars.map((v) => [v.chave, v.valor]) ?? []);
+  const clientId = map.get("BLING_CLIENT_ID")?.trim() || env.clientId;
+  const clientSecret = map.get("BLING_CLIENT_SECRET")?.trim() || env.clientSecret;
+  const redirectUri = map.get("BLING_REDIRECT_URI")?.trim() || env.redirectUri;
+  const apiBase = map.get("BLING_API_BASE")?.trim() || BLING_API_BASE;
+  return { clientId, clientSecret, redirectUri, apiBase };
+}
+
+export async function buildAuthorizeUrl(state: string): Promise<string> {
+  const { clientId, redirectUri } = await blingConfig();
   const qs = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
@@ -50,8 +74,8 @@ export function buildAuthorizeUrl(state: string): string {
 }
 
 async function oauthRequest(form: URLSearchParams): Promise<OAuthTokenResponse> {
-  const { clientId, clientSecret } = blingConfig();
-  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const cfg = await blingConfig();
+  const auth = Buffer.from(`${cfg.clientId}:${cfg.clientSecret}`).toString("base64");
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: {
@@ -68,7 +92,7 @@ async function oauthRequest(form: URLSearchParams): Promise<OAuthTokenResponse> 
 }
 
 export async function exchangeCode(code: string): Promise<OAuthTokenResponse> {
-  const { redirectUri } = blingConfig();
+  const { redirectUri } = await blingConfig();
   return oauthRequest(
     new URLSearchParams({
       grant_type: "authorization_code",
@@ -128,8 +152,9 @@ async function getValidAccessToken(): Promise<string> {
   return store.accessToken;
 }
 
-function buildUrl(input: BlingRequestInput): string {
-  const url = new URL(`${BLING_API_BASE}${input.path}`);
+async function buildUrl(input: BlingRequestInput): Promise<string> {
+  const cfg = await blingConfig();
+  const url = new URL(`${cfg.apiBase}${input.path}`);
   if (input.params) {
     for (const [k, v] of Object.entries(input.params)) {
       url.searchParams.set(k, String(v));
@@ -143,7 +168,7 @@ async function runOnce(
   token: string
 ): Promise<BlingResponse> {
   const start = Date.now();
-  const res = await fetch(buildUrl(input), {
+  const res = await fetch(await buildUrl(input), {
     method: input.method,
     headers: {
       Authorization: `Bearer ${token}`,

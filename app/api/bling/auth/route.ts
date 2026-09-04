@@ -15,5 +15,5 @@ export async function GET() {
     maxAge: 600,
     path: "/",
   });
-  return NextResponse.json({ url: buildAuthorizeUrl(state) });
+  return NextResponse.json({ url: await buildAuthorizeUrl(state) });
 }

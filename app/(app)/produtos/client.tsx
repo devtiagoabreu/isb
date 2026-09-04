@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { InfoTitle } from "@/app/components/info-button";
 import type { BlingProdutoItem } from "@/lib/products";
 
 const TIPO_OPTIONS = [
@@ -255,7 +256,13 @@ export default function ProdutosClient({
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Produtos no Bling</h1>
+          <h1 className="text-2xl font-semibold">
+            <InfoTitle
+              titulo="Produtos no Bling"
+              descricao="Cadastro manual de SKUs direto no Bling V3. Aqui você vê e gerencia os produtos existentes no Bling."
+              exemplo="1) Pesquise por nome ou código para encontrar um produto.\n2) Clique em Novo para cadastrar um SKU manualmente.\n3) Use Editar para atualizar dados de um produto existente."
+            />
+          </h1>
           <p className="text-sm text-zinc-500">
             Cadastro manual de SKUs direto no Bling V3
           </p>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   listaProdutos,
   produtoCodigo,
-  systextilIsConfigured,
+  systextilIsConfiguredDb,
   type SystextilProduto,
 } from "@/lib/systextil";
 import { origemSystextilParaBling } from "@/lib/import";
@@ -29,11 +29,11 @@ function toDisplayItem(p: SystextilProduto) {
 export async function GET(request: Request) {
   const denied = await apiRequire("products.import");
   if (denied) return denied;
-  if (!systextilIsConfigured()) {
+  if (!(await systextilIsConfiguredDb())) {
     return NextResponse.json(
       {
         error:
-          "Systêxtil não configurada. Preencha SYSTEXTIL_API_URL e (SYSTEXTIL_API_KEY ou SYSTEXTIL_CLIENT_ID/CLIENT_SECRET) no .env.",
+          "Systêxtil não configurada. Preencha SYSTEXTIL_API_URL e (SYSTEXTIL_API_KEY ou SYSTEXTIL_CLIENT_ID/CLIENT_SECRET) na página de Integrações.",
       },
       { status: 501 }
     );

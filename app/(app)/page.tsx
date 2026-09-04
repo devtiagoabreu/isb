@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { requireUser, userPermissionKeys } from "@/lib/auth";
 import { pageAllowed } from "@/lib/menus";
 import { listarProdutosBling } from "@/lib/products";
-import { systextilIsConfigured } from "@/lib/systextil";
+import { systextilIsConfiguredDb } from "@/lib/systextil";
+import { InfoButton } from "@/app/components/info-button";
 import type { Page } from "@/prisma/generated/client";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +17,16 @@ export default async function Home() {
   const keys = await userPermissionKeys(user.id);
   const isAdmin = keys.includes("*");
 
-  const [pages, store, testes, webhooks, usuarios, roles] = await Promise.all([
-    prisma.page.findMany({ orderBy: { id: "asc" } }),
-    prisma.blingToken.findUnique({ where: { id: 1 } }),
-    prisma.blingTest.count(),
-    prisma.blingWebhook.count(),
-    prisma.user.count(),
-    prisma.role.count(),
-  ]);
+  const [pages, store, testes, webhooks, usuarios, roles, systextilCfg] =
+    await Promise.all([
+      prisma.page.findMany({ orderBy: { id: "asc" } }),
+      prisma.blingToken.findUnique({ where: { id: 1 } }),
+      prisma.blingTest.count(),
+      prisma.blingWebhook.count(),
+      prisma.user.count(),
+      prisma.role.count(),
+      systextilIsConfiguredDb(),
+    ]);
 
   const connected = !!store;
 
@@ -72,7 +75,7 @@ export default async function Home() {
     },
     {
       label: "Systêxtil",
-      value: systextilIsConfigured() ? "Configurada" : "Não configurada",
+      value: systextilCfg ? "Configurada" : "Não configurada",
     },
 {
       label: "Conexão Bling",
@@ -83,9 +86,16 @@ export default async function Home() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 p-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Olá, {user.name.split(" ")[0]}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Olá, {user.name.split(" ")[0]}
+          </h1>
+          <InfoButton
+            titulo="Painel"
+            descricao="Seu ponto de partida no ISB: mostra o status das integrações (Bling e Systêxtil) e um resumo do que dá para medir hoje."
+            exemplo="Veja os cartões de status no topo (ex.: 'Systêxtil: Configurada'). Clique nos itens do menu à esquerda para navegar."
+          />
+        </div>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Este é o seu painel: tudo o que você pode fazer no ISB e o que dá
           para medir hoje.
