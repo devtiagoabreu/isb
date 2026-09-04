@@ -227,3 +227,67 @@ export async function listaProdutos(
     raw: json,
   };
 }
+
+export type SystextilMethod = "GET" | "POST" | "PUT" | "DELETE";
+
+export interface SystextilRequestInput {
+  method: SystextilMethod;
+  path: string;
+  params?: Record<string, string | number | boolean>;
+  body?: unknown;
+}
+
+export interface SystextilResponse {
+  status: number;
+  ok: boolean;
+  bodyText: string;
+  bodyJson: unknown | null;
+  durationMs: number;
+}
+
+export async function systextilRequest(
+  input: SystextilRequestInput
+): Promise<SystextilResponse> {
+  const cfg = await systextilConfigDb();
+  const method = envAuthMethod(cfg);
+  if (!cfg.apiUrl) {
+    throw new Error(
+      "SYSTEXTIL_API_URL não configurada. Preencha na página de Integrações."
+    );
+  }
+  if (!method) {
+    throw new Error(
+      "Systêxtil não configurada: informe SYSTEXTIL_CLIENT_ID/SYSTEXTIL_CLIENT_SECRET ou SYSTEXTIL_API_KEY na página de Integrações."
+    );
+  }
+  const url = new URL(`${cfg.apiUrl.replace(/\/+$/, "")}${input.path}`);
+  if (input.params) {
+    for (const [k, v] of Object.entries(input.params)) {
+      url.searchParams.set(k, String(v));
+    }
+  }
+  const headers = await authHeaders(cfg);
+  const start = Date.now();
+  const res = await fetch(url.toString(), {
+    method: input.method,
+    headers: {
+      ...headers,
+      "Content-Type": "application/json",
+    },
+    body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
+  });
+  const bodyText = await res.text();
+  let bodyJson: unknown = null;
+  try {
+    bodyJson = bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    bodyJson = null;
+  }
+  return {
+    status: res.status,
+    ok: res.ok,
+    bodyText,
+    bodyJson,
+    durationMs: Date.now() - start,
+  };
+}

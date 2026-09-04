@@ -47,6 +47,21 @@ model BlingWebhook {
   @@map("bling_webhooks")
 }
 
+model SystextilTest {
+  id           Int      @id @default(autoincrement())
+  method       String
+  endpoint     String
+  label        String?
+  params       Json?
+  status       Int?
+  durationMs   Int?
+  success      Boolean  @default(false)
+  responseBody String?
+  responseAt   DateTime @default(now())
+
+  @@map("systextil_tests")
+}
+
 model User {
   id           Int       @id @default(autoincrement())
   name         String
