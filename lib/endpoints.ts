@@ -5,6 +5,9 @@ export interface TestEndpoint {
   params?: Array<{ key: string; value: string; required?: boolean }>;
 }
 
+// Endpoints do Bling confirmados como disponíveis na conta conectada.
+// Os demais (estruturas, tabelas de preços, notas fiscais, estoques, cnaes,
+// tarefas) retornam 404 RESOURCE_NOT_FOUND nesta conta/plano e foram removidos.
 export const TEST_ENDPOINTS: TestEndpoint[] = [
   {
     label: "Produtos (listagem)",
@@ -16,13 +19,9 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     label: "Produtos (por ID)",
     method: "GET",
     path: "/produtos/{id}",
-    params: [{ key: "id", value: "1", required: true }],
-  },
-  {
-    label: "Estruturas dos produtos",
-    method: "GET",
-    path: "/produtos/estruturas",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
+    params: [
+      { key: "id", value: "16698895080", required: true },
+    ],
   },
   {
     label: "Categorias de produtos",
@@ -37,27 +36,9 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
   },
   {
-    label: "Tabelas de preços",
-    method: "GET",
-    path: "/tabelas/precos",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
-  },
-  {
     label: "Vendas/pedidos de venda",
     method: "GET",
     path: "/pedidos/vendas",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
-  },
-  {
-    label: "Notas fiscais",
-    method: "GET",
-    path: "/notasfiscais",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
-  },
-  {
-    label: "Estoques",
-    method: "GET",
-    path: "/estoques",
     params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
   },
   {
@@ -70,17 +51,5 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     label: "Situações de venda",
     method: "GET",
     path: "/situacoes/modulos",
-  },
-  {
-    label: "CNAEs",
-    method: "GET",
-    path: "/cnaes",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
-  },
-  {
-    label: "Tarefas",
-    method: "GET",
-    path: "/tarefas",
-    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
   },
 ];
