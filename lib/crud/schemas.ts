@@ -300,6 +300,32 @@ export const CRUD_ENTITIES: Record<string, CrudEntitySchema> = {
       },
     ],
   },
+  "systextil:colecao": {
+    provider: "systextil",
+    entity: "colecao",
+    title: "Coleções (Systêxtil)",
+    description:
+      "Coleções de produtos cadastradas no ERP Systêxtil. Endpoint /material/v1/colecao retornou 404 no tenant PRD (2026-09-05) - recurso pode estar desabilitado na assinatura. Verifique com a Systêxtil antes de usar.",
+    idField: "colecao_id",
+    keyFields: ["colecao_id"],
+    searchField: "colecao_descricao",
+    basePath: "/material/v1/colecao",
+    fields: [
+      { name: "colecao_id", label: "Código da coleção", type: "number", required: true, column: true },
+      { name: "colecao_descricao", label: "Descrição", type: "text", required: true, column: true },
+      { name: "colecao_descricao_ingles", label: "Descrição (inglês)", type: "text" },
+      { name: "colecao_descricao_espanhol", label: "Descrição (espanhol)", type: "text" },
+      {
+        name: "disponivel_internet",
+        label: "Disponível na internet?",
+        type: "select",
+        options: [
+          { value: "true", label: "true" },
+          { value: "false", label: "false" },
+        ],
+      },
+    ],
+  },
 };
 
 export function getCrudEntity(
