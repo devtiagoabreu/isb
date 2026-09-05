@@ -32,7 +32,8 @@ export function buildBlingProdutoPayload(
     payload.descricaoCurta = item.descricaoCurta.trim().slice(0, 255);
   }
   if (item.unidadeId?.trim()) payload.unidade = item.unidadeId.trim();
-  if (item.gtin?.trim()) payload.gtin = item.gtin.trim();
+  const gtin = item.gtin?.trim() ?? "";
+  if (/^\d{8,14}$/.test(gtin)) payload.gtin = gtin;
   const tributacao: Record<string, unknown> = {};
   if (item.ncm?.trim()) tributacao.ncm = item.ncm.trim();
   if (typeof item.origem === "number") tributacao.origem = item.origem;
