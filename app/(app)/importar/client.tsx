@@ -41,6 +41,16 @@ const SITUACAO_LABEL: Record<number, string> = {
   2: "Lançamento",
 };
 
+const NIVEIS = [
+  { value: "1", label: "1 · Peça" },
+  { value: "2", label: "2 · Tecido" },
+  { value: "4", label: "4 · Tecido cru" },
+  { value: "5", label: "5 · Serviços" },
+  { value: "7", label: "7 · Fio" },
+  { value: "8", label: "8 · Largura de tecido" },
+  { value: "9", label: "9 · Material comprado" },
+];
+
 export default function ImportClient({
   initialStatus,
 }: {
@@ -48,7 +58,10 @@ export default function ImportClient({
 }) {
   const [status] = useState<StatusData>(initialStatus);
   const [busca, setBusca] = useState("");
+  const [nivel, setNivel] = useState("");
   const [grupo, setGrupo] = useState("");
+  const [subgrupo, setSubgrupo] = useState("");
+  const [item, setItem] = useState("");
   const [produtos, setProdutos] = useState<ProdutoItem[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState("");
@@ -66,7 +79,10 @@ export default function ImportClient({
     try {
       const params = new URLSearchParams({ limit: "50" });
       if (busca.trim()) params.set("q", busca.trim());
+      if (nivel) params.set("nivel", nivel);
       if (grupo.trim()) params.set("grupo", grupo.trim());
+      if (subgrupo.trim()) params.set("subgrupo", subgrupo.trim());
+      if (item.trim()) params.set("item", item.trim());
       const res = await fetch(`/api/systextil/produtos?${params.toString()}`);
       const data = (await res.json()) as {
         items?: ProdutoItem[];
@@ -221,6 +237,21 @@ export default function ImportClient({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
+          Nível
+          <select
+            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+            value={nivel}
+            onChange={(e) => setNivel(e.target.value)}
+          >
+            <option value="">Todos</option>
+            {NIVEIS.map((n) => (
+              <option key={n.value} value={n.value}>
+                {n.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
           Grupo
           <input
             className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
@@ -228,6 +259,26 @@ export default function ImportClient({
             onChange={(e) => setGrupo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && buscar()}
             placeholder="ex.: K18"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Subgrupo
+          <input
+            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+            value={subgrupo}
+            onChange={(e) => setSubgrupo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && buscar()}
+            placeholder="ex.: CRU"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Item de estrutura
+          <input
+            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+            value={item}
+            onChange={(e) => setItem(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && buscar()}
+            placeholder="ex.: 000010"
           />
         </label>
         <button

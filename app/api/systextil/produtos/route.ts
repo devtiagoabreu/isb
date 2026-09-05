@@ -41,19 +41,23 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const busca = url.searchParams.get("q")?.trim() ?? "";
+  const nivel = url.searchParams.get("nivel")?.trim() ?? "";
   const grupo = url.searchParams.get("grupo")?.trim() ?? "";
+  const subgrupo = url.searchParams.get("subgrupo")?.trim() ?? "";
+  const item = url.searchParams.get("item")?.trim() ?? "";
   const limit = Math.min(
     Math.max(Number(url.searchParams.get("limit") ?? 20), 1),
     100
   );
   const offset = Math.max(Number(url.searchParams.get("offset") ?? 0), 0);
 
-  let q: string | undefined;
-  if (grupo) {
-    q = JSON.stringify({ grupo_id: { $like: `${grupo}%` } });
-  } else if (busca) {
-    q = JSON.stringify({ descricao_produto: { $like: `%${busca}%` } });
-  }
+  const filter: Record<string, unknown> = {};
+  if (nivel) filter.nivel_produto = { $like: `${nivel}%` };
+  if (grupo) filter.grupo_id = { $like: `${grupo}%` };
+  if (subgrupo) filter.subgrupo_id = { $like: `${subgrupo}%` };
+  if (item) filter.item_estrutura_id = { $like: `${item}%` };
+  if (busca) filter.descricao_produto = { $like: `%${busca}%` };
+  const q = Object.keys(filter).length ? JSON.stringify(filter) : undefined;
 
   try {
     const data = await listaProdutos({ q, limit, offset });
