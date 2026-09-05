@@ -235,25 +235,38 @@ export function mergePerfilNoProduto(
 }
 
 function extractBlingError(res: BlingResponse): string {
-  const body = res.bodyJson as {
-    error?: { type?: string; msg?: string; details?: unknown };
-  } | null;
-  const err = body?.error;
-  const parts: string[] = [];
-  if (err?.type) parts.push(err.type);
-  if (err?.msg) parts.push(err.msg);
-  if (err?.details) parts.push(JSON.stringify(err.details));
-  if (parts.length > 0) return parts.join(" — ");
+  const body = res.bodyJson as Record<string, unknown> | null;
+  if (body && typeof body === "object") {
+    const err = (body as Record<string, unknown>).error;
+    if (err && typeof err === "object") {
+      const e = err as Record<string, unknown>;
+      const parts: string[] = [];
+      for (const key of ["type", "msg", "message", "description"]) {
+        const v = e[key];
+        if (typeof v === "string" && v.trim() !== "") parts.push(v.trim());
+      }
+      if (e.details !== undefined) {
+        parts.push(JSON.stringify(e.details));
+      }
+      if (parts.length > 0) return parts.join(" — ");
+    }
+  }
   if (Array.isArray(body)) {
-    const items = (body as Array<{ error?: { type?: string; msg?: string } }>)
+    const items = (body as Array<{ error?: Record<string, unknown> }>)
       .map((x) => {
         const e = x?.error;
-        return e ? [e.type, e.msg].filter(Boolean).join(": ") : "";
+        if (!e || typeof e !== "object") return "";
+        const parts: string[] = [];
+        for (const key of ["type", "msg", "message", "description"]) {
+          const v = (e as Record<string, unknown>)[key];
+          if (typeof v === "string" && v.trim() !== "") parts.push(v.trim());
+        }
+        return parts.join(" — ");
       })
-      .filter(Boolean);
+      .filter((s) => s !== "");
     if (items.length > 0) return items.join(" | ");
   }
-  return res.bodyText?.slice(0, 500) || `HTTP ${res.status}`;
+  return res.bodyText?.slice(0, 600) || `HTTP ${res.status}`;
 }
 
 export interface AplicarPerfilResultado {
@@ -291,12 +304,7 @@ export async function aplicarPerfilEmProdutos(
       resultados.push(
         put.ok
           ? { id, ok: true }
-          : {
-              id,
-              ok: false,
-              erro: extractBlingError(put) || put.bodyText?.slice(0, 600) ||
-                `HTTP ${put.status}`,
-            }
+          : { id, ok: false, erro: extractBlingError(put) }
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
