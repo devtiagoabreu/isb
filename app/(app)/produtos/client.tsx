@@ -39,6 +39,7 @@ interface AplicarResultado {
   id: number;
   ok: boolean;
   erro?: string;
+  aviso?: string;
 }
 
 function num(value: string): number | undefined {
@@ -321,16 +322,26 @@ export default function ProdutosClient({
         return;
       }
       const falhas = (data.resultados ?? []).filter((r) => !r.ok);
+      const avisos = (data.resultados ?? []).filter(
+        (r) => r.ok && r.aviso
+      );
       const detalhes =
         falhas.length > 0
           ? `\n${falhas
               .map((f) => `· Produto ${f.id}: ${f.erro ?? "erro"}`)
               .join("\n")}`
           : "";
+      const detalhesAvisos =
+        avisos.length > 0
+          ? `\n${avisos
+              .map((a) => `· Produto ${a.id}: ${a.aviso ?? ""}`)
+              .join("\n")}`
+          : "";
       setNotice(
         `Perfil "${aplicarPerfil.nome}" aplicado em ${data.okCount ?? 0} produto(s)` +
           (data.falhaCount ? ` · ${data.falhaCount} falha(s).` : ".") +
-          detalhes
+          detalhes +
+          detalhesAvisos
       );
       setAplicarPerfil(null);
       setSel({});

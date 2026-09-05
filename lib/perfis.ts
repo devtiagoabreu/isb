@@ -273,9 +273,38 @@ export interface AplicarPerfilResultado {
   id: number;
   ok: boolean;
   erro?: string;
+  aviso?: string;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+interface PutComRetry {
+  put: BlingResponse;
+  aviso?: string;
+}
+
+async function putComRetrySemCest(id: number, payload: Record<string, unknown>): Promise<PutComRetry> {
+  let put = await blingRequest({
+    method: "PUT",
+    path: `/produtos/${id}`,
+    body: payload,
+  });
+  if (put.ok) return { put };
+  const trib = payload.tributacao as Record<string, unknown> | undefined;
+  if (trib && typeof trib.cest === "string" && trib.cest.trim() !== "") {
+    const semCest = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>;
+    (semCest.tributacao as Record<string, unknown>).cest = "";
+    put = await blingRequest({
+      method: "PUT",
+      path: `/produtos/${id}`,
+      body: semCest,
+    });
+    if (put.ok) {
+      return { put, aviso: "CEST rejeitado pelo Bling; aplicado sem CEST." };
+    }
+  }
+  return { put };
+}
 
 export async function aplicarPerfilEmProdutos(
   campos: PerfilCampos,
@@ -296,16 +325,14 @@ export async function aplicarPerfilEmProdutos(
         continue;
       }
       const payload = mergePerfilNoProduto(data, campos);
-      const put = await blingRequest({
-        method: "PUT",
-        path: `/produtos/${id}`,
-        body: payload,
-      });
-      resultados.push(
-        put.ok
-          ? { id, ok: true }
-          : { id, ok: false, erro: extractBlingError(put) }
-      );
+      const { put, aviso } = await putComRetrySemCest(id, payload);
+      if (put.ok) {
+        const resultado: AplicarPerfilResultado = { id, ok: true };
+        if (aviso) resultado.aviso = aviso;
+        resultados.push(resultado);
+      } else {
+        resultados.push({ id, ok: false, erro: extractBlingError(put) });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       resultados.push({ id, ok: false, erro: message });
