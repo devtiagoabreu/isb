@@ -291,7 +291,12 @@ export async function aplicarPerfilEmProdutos(
       resultados.push(
         put.ok
           ? { id, ok: true }
-          : { id, ok: false, erro: extractBlingError(put) }
+          : {
+              id,
+              ok: false,
+              erro: extractBlingError(put) || put.bodyText?.slice(0, 600) ||
+                `HTTP ${put.status}`,
+            }
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
