@@ -86,7 +86,6 @@ export default function ProdutosClient({
   const [salvando, setSalvando] = useState(false);
 
   const [deleting, setDeleting] = useState<BlingProdutoItem | null>(null);
-  const [forceDelete, setForceDelete] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
   async function carregar(alvo?: number) {
@@ -227,10 +226,23 @@ export default function ProdutosClient({
     setExcluindo(true);
     setErro("");
     try {
-      const res = await fetch(
-        `/api/produtos/${deleting.id}${forceDelete ? "?force=true" : ""}`,
-        { method: "DELETE" }
-      );
+      const marcaRes = await fetch(`/api/produtos/${deleting.id}/situacoes`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ situacao: "E" }),
+      });
+      const marcaData = (await marcaRes.json()) as { ok?: boolean; erro?: unknown; error?: string };
+      if (!marcaRes.ok || !marcaData.ok) {
+        setErro(
+          marcaData.error ??
+            (marcaData.erro ? JSON.stringify(marcaData.erro) : `HTTP ${marcaRes.status}`)
+        );
+        setDeleting(null);
+        return;
+      }
+      const res = await fetch(`/api/produtos/${deleting.id}?force=true`, {
+        method: "DELETE",
+      });
       const data = (await res.json()) as { ok?: boolean; erro?: unknown; error?: string };
       if (!res.ok || !data.ok) {
         setErro(
@@ -605,17 +617,9 @@ export default function ProdutosClient({
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Confirmar exclusão de{" "}
               <span className="font-mono">{deleting.codigo}</span> ·{" "}
-              {deleting.nome}?
+              {deleting.nome}? O produto será marcado como excluído e
+              removido definitivamente no Bling.
             </p>
-            <label className="flex items-center gap-2 text-sm text-zinc-500">
-              <input
-                type="checkbox"
-                checked={forceDelete}
-                onChange={(e) => setForceDelete(e.target.checked)}
-                className="h-4 w-4"
-              />
-              Forçar exclusão (produtos com movimentação)
-            </label>
             {erro && <p className="text-sm text-red-500">{erro}</p>}
             <div className="flex items-center justify-end gap-2">
               <button
