@@ -204,3 +204,14 @@ model ApiEndpoint {
 
   @@map("api_endpoints")
 }
+
+model PerfilProduto {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  descricao String?
+  campos    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("product_profiles")
+}

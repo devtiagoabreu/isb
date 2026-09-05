@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
 import type { BlingProdutoItem } from "@/lib/products";
@@ -27,6 +27,18 @@ const ORIGEM_OPTIONS = [
 interface Paginacao {
   total?: number;
   pagina?: number;
+}
+
+interface PerfilRow {
+  id: number;
+  nome: string;
+  campos: Record<string, unknown>;
+}
+
+interface AplicarResultado {
+  id: number;
+  ok: boolean;
+  erro?: string;
 }
 
 function num(value: string): number | undefined {
@@ -87,6 +99,21 @@ export default function ProdutosClient({
 
   const [deleting, setDeleting] = useState<BlingProdutoItem | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+
+  const [perfis, setPerfis] = useState<PerfilRow[]>([]);
+  const [sel, setSel] = useState<Record<number, boolean>>({});
+  const [perfilId, setPerfilId] = useState("");
+  const [aplicarPerfil, setAplicarPerfil] = useState<PerfilRow | null>(null);
+  const [aplicando, setAplicando] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/perfis-produto")
+      .then((res) => res.json())
+      .then((data: { perfis?: PerfilRow[]; error?: string }) => {
+        if (data.perfis && !data.error) setPerfis(data.perfis);
+      })
+      .catch(() => {});
+  }, []);
 
   async function carregar(alvo?: number) {
     const p = alvo ?? pagina;
@@ -261,6 +288,61 @@ export default function ProdutosClient({
     }
   }
 
+  const contagemSel = Object.values(sel).filter(Boolean).length;
+  const selIds = Object.keys(sel)
+    .filter((k) => sel[Number(k)])
+    .map(Number);
+
+  function toggleSel(id: number) {
+    setSel((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  async function aplicar() {
+    if (!aplicarPerfil || selIds.length === 0) return;
+    setAplicando(true);
+    setErro("");
+    try {
+      const res = await fetch(
+        `/api/perfis-produto/${aplicarPerfil.id}/aplicar`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: selIds }),
+        }
+      );
+      const data = (await res.json()) as {
+        okCount?: number;
+        falhaCount?: number;
+        resultados?: AplicarResultado[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setErro(data.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      const falhas = (data.resultados ?? []).filter((r) => !r.ok);
+      const detalhes =
+        falhas.length > 0
+          ? `\n${falhas
+              .map((f) => `· Produto ${f.id}: ${f.erro ?? "erro"}`)
+              .join("\n")}`
+          : "";
+      setNotice(
+        `Perfil "${aplicarPerfil.nome}" aplicado em ${data.okCount ?? 0} produto(s)` +
+          (data.falhaCount ? ` · ${data.falhaCount} falha(s).` : ".") +
+          detalhes
+      );
+      setAplicarPerfil(null);
+      setSel({});
+      setPerfilId("");
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAplicando(false);
+    }
+  }
+
   const formKey = (k: string) =>
     form[k as keyof ReturnType<typeof emptyForm>];
 
@@ -335,6 +417,48 @@ export default function ProdutosClient({
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              <span className="font-semibold">{contagemSel}</span> selecionado(s)
+            </span>
+            <select
+              className="min-w-[180px] rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 text-sm dark:border-zinc-700"
+              value={perfilId}
+              onChange={(e) => setPerfilId(e.target.value)}
+            >
+              <option value="">Perfil de produto…</option>
+              {perfis.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                const perfil = perfis.find((p) => p.id === Number(perfilId));
+                if (perfil) setAplicarPerfil(perfil);
+              }}
+              disabled={contagemSel === 0 || !perfilId || aplicando}
+              className="rounded-full bg-violet-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            >
+              Aplicar perfil
+            </button>
+            <Link
+              href="/perfis-produto"
+              className="text-sm text-violet-600 underline dark:text-violet-400"
+            >
+              Gerenciar perfis
+            </Link>
+            {contagemSel > 0 && (
+              <button
+                onClick={() => setSel({})}
+                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                limpar seleção
+              </button>
+            )}
+          </div>
+
           {produtos.length === 0 && !carregando ? (
             <p className="text-sm text-zinc-500">
               Nenhum produto cadastrado. Clique em &quot;Novo produto&quot; para
@@ -348,10 +472,18 @@ export default function ProdutosClient({
                     key={p.id}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
                   >
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!!sel[p.id]}
+                        onChange={() => toggleSel(p.id)}
+                        className="h-4 w-4 accent-violet-600"
+                      />
                       <span className="font-mono text-xs text-zinc-500">
                         {p.codigo}
                       </span>
+                    </label>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="truncate font-medium">{p.nome}</span>
                       <span
                         className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
@@ -634,6 +766,68 @@ export default function ProdutosClient({
                 className="rounded-full bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
               >
                 {excluindo ? "Excluindo…" : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    {aplicarPerfil && contagemSel === 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Nenhum produto selecionado para aplicar o perfil.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setAplicarPerfil(null)}
+                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aplicarPerfil && contagemSel > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="flex w-full max-w-lg flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="text-lg font-semibold">Aplicar perfil</h2>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Aplicar o perfil{" "}
+              <span className="font-medium">{aplicarPerfil.nome}</span> em{" "}
+              <span className="font-semibold">{contagemSel}</span> produto(s):
+            </p>
+            <ul className="max-h-40 overflow-auto rounded-md border border-zinc-200 p-2 text-xs font-mono text-zinc-500 dark:border-zinc-800">
+              {produtos
+                .filter((p) => sel[p.id])
+                .map((p) => (
+                  <li key={p.id}>
+                    {p.codigo} · {p.nome}
+                  </li>
+                ))}
+            </ul>
+            <p className="text-xs text-zinc-500">
+              Os campos preenchidos no perfil substituem os valores atuais de
+              cada produto no Bling. Campos vazios do perfil não são tocados.
+            </p>
+            {erro && (
+              <p className="whitespace-pre-line text-sm text-red-500">{erro}</p>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setAplicarPerfil(null)}
+                disabled={aplicando}
+                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={aplicar}
+                disabled={aplicando}
+                className="rounded-full bg-violet-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+              >
+                {aplicando ? "Aplicando…" : "Aplicar agora"}
               </button>
             </div>
           </div>
