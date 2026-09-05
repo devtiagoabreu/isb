@@ -1,4 +1,5 @@
 import { blingRequest, type BlingResponse } from "@/lib/bling";
+import { eanValido } from "@/lib/import";
 
 export interface BlingProdutoForm {
   nome: string;
@@ -43,8 +44,7 @@ export function buildProdutoPayload(f: BlingProdutoForm): Record<string, unknown
     formato: f.formato || "S",
   };
   if (f.descricaoCurta?.trim()) payload.descricaoCurta = f.descricaoCurta.trim();
-  const gtin = f.gtin?.trim() ?? "";
-  if (/^\d{8,14}$/.test(gtin)) payload.gtin = gtin;
+  if (eanValido(f.gtin)) payload.gtin = f.gtin.trim();
   if (f.unidadeId?.trim()) payload.unidade = f.unidadeId.trim();
   const tributacao: Record<string, unknown> = {};
   if (f.ncm?.trim()) tributacao.ncm = f.ncm.trim();

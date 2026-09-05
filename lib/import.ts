@@ -5,6 +5,18 @@ import {
 
 export type BlingSituacao = "A" | "I";
 
+export function eanValido(valor: string | null | undefined): boolean {
+  const s = (valor ?? "").trim();
+  if (!/^\d{8,14}$/.test(s)) return false;
+  let soma = 0;
+  for (let i = 0; i < s.length - 1; i++) {
+    const peso = (s.length - i) % 2 === 0 ? 3 : 1;
+    soma += Number(s[i]) * peso;
+  }
+  const digito = (10 - (soma % 10)) % 10;
+  return digito === Number(s[s.length - 1]);
+}
+
 export interface ImportItemInput {
   codigo: string;
   nome: string;
@@ -32,8 +44,7 @@ export function buildBlingProdutoPayload(
     payload.descricaoCurta = item.descricaoCurta.trim().slice(0, 255);
   }
   if (item.unidadeId?.trim()) payload.unidade = item.unidadeId.trim();
-  const gtin = item.gtin?.trim() ?? "";
-  if (/^\d{8,14}$/.test(gtin)) payload.gtin = gtin;
+  if (eanValido(item.gtin)) payload.gtin = item.gtin.trim();
   const tributacao: Record<string, unknown> = {};
   if (item.ncm?.trim()) tributacao.ncm = item.ncm.trim();
   if (typeof item.origem === "number") tributacao.origem = item.origem;
