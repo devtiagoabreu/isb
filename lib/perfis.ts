@@ -235,10 +235,25 @@ export function mergePerfilNoProduto(
 }
 
 function extractBlingError(res: BlingResponse): string {
-  const body = res.bodyJson as { error?: { type?: string; msg?: string } } | null;
-  if (body?.error?.msg) return body.error.msg;
-  if (body?.error?.type) return body.error.type;
-  return res.bodyText?.slice(0, 300) || `HTTP ${res.status}`;
+  const body = res.bodyJson as {
+    error?: { type?: string; msg?: string; details?: unknown };
+  } | null;
+  const err = body?.error;
+  const parts: string[] = [];
+  if (err?.type) parts.push(err.type);
+  if (err?.msg) parts.push(err.msg);
+  if (err?.details) parts.push(JSON.stringify(err.details));
+  if (parts.length > 0) return parts.join(" — ");
+  if (Array.isArray(body)) {
+    const items = (body as Array<{ error?: { type?: string; msg?: string } }>)
+      .map((x) => {
+        const e = x?.error;
+        return e ? [e.type, e.msg].filter(Boolean).join(": ") : "";
+      })
+      .filter(Boolean);
+    if (items.length > 0) return items.join(" | ");
+  }
+  return res.bodyText?.slice(0, 500) || `HTTP ${res.status}`;
 }
 
 export interface AplicarPerfilResultado {
