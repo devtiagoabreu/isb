@@ -198,6 +198,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
   const [data, setData] = useState<Payload>(initial);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [selId, setSelId] = useState<number | null>(initial.menus[0]?.id ?? null);
   const [novoMenu, setNovoMenu] = useState("");
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -291,6 +292,23 @@ export default function MenusClient({ initial }: { initial: Payload }) {
     await run(() => salvarItens(menu, serialize(reindex(nodes))));
   }
 
+  async function salvarEstruturaSilencioso(menu: MenuDTO, nodes: SubItemDTO[]) {
+    setSalvando(true);
+    setError("");
+    try {
+      await salvarItens(menu, serialize(reindex(cloneTree(nodes))));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      try {
+        await refresh();
+      } catch {
+        // mantém o estado otimista se o rollback também falhar
+      }
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   async function adicionarPagina(menu: MenuDTO, page: PageDTO, parentId: number | null) {
     const tree = cloneTree(menu.itens);
     if (collectPageIds(tree).includes(page.id)) return;
@@ -371,7 +389,16 @@ export default function MenusClient({ initial }: { initial: Payload }) {
     }
     index = Math.max(0, Math.min(index, list.length));
     list.splice(index, 0, removed);
-    await salvarEstrutura(menu, tree);
+
+    setData((prev) => ({
+      ...prev,
+      menus: prev.menus.map((m) => (m.id === menu.id ? { ...m, itens: tree } : m)),
+    }));
+    setDraggingId(null);
+    setDragParentId(null);
+    setDropHint(null);
+
+    await salvarEstruturaSilencioso(menu, tree);
   }
 
   async function ativarMenu(menu: MenuDTO) {
@@ -828,7 +855,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
               >
                 Excluir menu
               </button>
-              {busy && <span className="text-xs text-zinc-500">Salvando…</span>}
+              {busy || salvando ? <span className="text-xs text-zinc-500">Salvando…</span> : null}
             </div>
 
             {sel.itens.length === 0 && (
