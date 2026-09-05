@@ -48,6 +48,11 @@ export interface CrudEntitySchema {
   keyFields?: string[];
   /** Caminho base do recurso dentro do provider, ex.: "/contatos" */
   basePath: string;
+  /**
+   * Campo usado na busca textual (filtro $instr no Systêxtil). Padrão:
+   * primeiro campo de texto marcado como coluna.
+   */
+  searchField?: string;
   fields: CrudField[];
 }
 

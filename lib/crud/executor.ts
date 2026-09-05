@@ -32,7 +32,8 @@ export interface CrudDeleteResult {
 }
 
 function pickListField(schema: CrudEntitySchema): string {
-  return schema.fields.find((f) => f.type === "text" && f.column)?.name ??
+  return schema.searchField ??
+    schema.fields.find((f) => f.type === "text" && f.column)?.name ??
     schema.fields[0]?.name ??
     "";
 }
