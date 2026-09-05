@@ -23,10 +23,10 @@ export async function PATCH(request: Request, ctx: RouteContext) {
       { status: 400 }
     );
   }
-  const situacao = body.situacao as "A" | "I" | undefined;
-  if (situacao !== "A" && situacao !== "I") {
+  const situacao = body.situacao as "A" | "I" | "E" | undefined;
+  if (situacao !== "A" && situacao !== "I" && situacao !== "E") {
     return NextResponse.json(
-      { error: "Situação deve ser \"A\" ou \"I\"." },
+      { error: 'Situação deve ser "A", "I" ou "E".' },
       { status: 400 }
     );
   }

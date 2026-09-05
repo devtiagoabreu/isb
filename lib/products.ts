@@ -109,7 +109,7 @@ export async function excluirProdutoBling(
 
 export async function definirSituacaoProdutoBling(
   id: number,
-  situacao: "A" | "I"
+  situacao: "A" | "I" | "E"
 ): Promise<BlingResponse> {
   return blingRequest({
     method: "PATCH",
