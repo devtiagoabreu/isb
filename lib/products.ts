@@ -43,18 +43,18 @@ export function buildProdutoPayload(f: BlingProdutoForm): Record<string, unknown
     formato: f.formato || "S",
   };
   if (f.descricaoCurta?.trim()) payload.descricaoCurta = f.descricaoCurta.trim();
-  if (f.ncm?.trim()) payload.ncm = f.ncm.trim();
   if (f.gtin?.trim()) payload.gtin = f.gtin.trim();
-  if (f.unidadeId?.trim()) payload.unidade = { id: f.unidadeId.trim() };
+  if (f.unidadeId?.trim()) payload.unidade = f.unidadeId.trim();
+  const tributacao: Record<string, unknown> = {};
+  if (f.ncm?.trim()) tributacao.ncm = f.ncm.trim();
   const origem = Number(f.origem);
   if (Number.isInteger(origem) && origem >= 0 && origem <= 8) {
-    payload.origem = origem;
+    tributacao.origem = origem;
   }
-  const preco: Record<string, number> = {};
-  if (f.preco != null) preco.preco = f.preco;
-  if (f.custo != null) preco.custo = f.custo;
-  if (Object.keys(preco).length) payload.preco = preco;
-  if (f.pesoLiq != null) payload.pesoLiq = f.pesoLiq;
+  if (Object.keys(tributacao).length) payload.tributacao = tributacao;
+  if (f.preco != null) payload.preco = f.preco;
+  if (f.custo != null) payload.precoCusto = f.custo;
+  if (f.pesoLiq != null) payload.pesoLiquido = f.pesoLiq;
   if (f.pesoBruto != null) payload.pesoBruto = f.pesoBruto;
   return payload;
 }

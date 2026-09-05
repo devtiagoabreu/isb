@@ -21,6 +21,8 @@ function toDisplayItem(p: SystextilProduto) {
     unidadeDescricao: p.unidade_medida_descricao ?? "",
     grupoDescricao: p.grupo_descricao ?? "",
     situacao: p.situacao_produto ?? null,
+    situacaoBling: p.situacao_produto === 0 ? "A" : "I",
+    codigoBarras: p.codigo_barras ?? "",
     origem: p.origem_produto ?? null,
     origemBling: origemSystextilParaBling(p.origem_produto) ?? null,
   };

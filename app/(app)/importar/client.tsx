@@ -18,6 +18,8 @@ interface ProdutoItem {
   unidadeDescricao: string;
   grupoDescricao: string;
   situacao: number | null;
+  situacaoBling: string;
+  codigoBarras: string;
   origem: number | null;
   origemBling: number | null;
 }
@@ -68,6 +70,10 @@ export default function ImportClient({
   const [aviso, setAviso] = useState("");
   const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
   const [precos, setPrecos] = useState<Record<string, string>>({});
+  const [ncms, setNcms] = useState<Record<string, string>>({});
+  const [unidades, setUnidades] = useState<Record<string, string>>({});
+  const [situacoes, setSituacoes] = useState<Record<string, string>>({});
+  const [gtins, setGtins] = useState<Record<string, string>>({});
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<ImportResponse | null>(null);
 
@@ -112,6 +118,22 @@ export default function ImportClient({
     setPrecos((prev) => ({ ...prev, [codigo]: value }));
   }
 
+  function setNcm(codigo: string, value: string) {
+    setNcms((prev) => ({ ...prev, [codigo]: value }));
+  }
+
+  function setUnidade(codigo: string, value: string) {
+    setUnidades((prev) => ({ ...prev, [codigo]: value }));
+  }
+
+  function setSituacao(codigo: string, value: string) {
+    setSituacoes((prev) => ({ ...prev, [codigo]: value }));
+  }
+
+  function setGtin(codigo: string, value: string) {
+    setGtins((prev) => ({ ...prev, [codigo]: value }));
+  }
+
   const selecionadosCount = Object.keys(selecionados).filter(
     (c) => selecionados[c]
   ).length;
@@ -134,9 +156,12 @@ export default function ImportClient({
           codigo: p.codigo,
           nome: p.nome,
           descricaoCurta: p.descricaoCurta || null,
-          ncm: p.ncm || null,
-          unidadeId: p.unidadeId || null,
+          ncm: (ncms[p.codigo] ?? "").trim() || p.ncm || null,
+          unidadeId: (unidades[p.codigo] ?? "").trim() || p.unidadeId || null,
+          gtin: (gtins[p.codigo] ?? "").trim() || p.codigoBarras || null,
           origem: p.origemBling,
+          situacao:
+            (situacoes[p.codigo] ?? "").trim() || p.situacaoBling || "A",
           preco: precos[p.codigo]?.trim()
             ? Number(precos[p.codigo].replace(",", "."))
             : null,
@@ -165,16 +190,22 @@ export default function ImportClient({
       codigo: p.codigo,
       tipo: "P",
       formato: "S",
-      situacao: "A",
+      situacao: (situacoes[p.codigo] ?? "").trim() || p.situacaoBling || "A",
     };
-    if (p.descricaoCurta) payload.descricaoCurta = p.descricaoCurta;
-    if (p.ncm) payload.ncm = p.ncm;
-    if (p.unidadeId) payload.unidade = { id: p.unidadeId };
-    if (p.origemBling != null) payload.origem = p.origemBling;
     const preco = precos[p.codigo]?.trim()
       ? Number(precos[p.codigo].replace(",", "."))
       : null;
-    if (preco && preco > 0) payload.preco = { preco };
+    if (preco && preco > 0) payload.preco = preco;
+    if (p.descricaoCurta) payload.descricaoCurta = p.descricaoCurta;
+    const unidade = (unidades[p.codigo] ?? "").trim() || p.unidadeId;
+    if (unidade) payload.unidade = unidade;
+    const gtin = (gtins[p.codigo] ?? "").trim() || p.codigoBarras;
+    if (gtin) payload.gtin = gtin;
+    const tributacao: Record<string, unknown> = {};
+    const ncm = (ncms[p.codigo] ?? "").trim() || p.ncm;
+    if (ncm) tributacao.ncm = ncm;
+    if (p.origemBling != null) tributacao.origem = p.origemBling;
+    if (Object.keys(tributacao).length) payload.tributacao = tributacao;
     return JSON.stringify(payload, null, 2);
   }
 
@@ -184,13 +215,14 @@ export default function ImportClient({
         <h1 className="text-2xl font-semibold">
           <InfoTitle
             titulo="Importar da Systêxtil"
-            descricao="Busca os produtos cadastrados na Systêxtil e prepara para enviá-los como SKUs ao Bling. Cada código Systêxtil vira um SKU no Bling (sem variações); o preço é completado manualmente no Bling."
-            exemplo="1) Digite um termo e clique em Buscar para listar produtos da Systêxtil.\n2) Selecione os produtos desejados na tabela.\n3) Clique em Importar para criar os SKUs no Bling."
+            descricao="Busca os produtos cadastrados na Systêxtil e prepara para enviá-los como SKUs ao Bling. NCM, unidade, situação e GTIN vêm preenchidos com os dados da Systêxtil; o preço de venda você informa por produto (se vazio, o Bling cria com R$ 0,00)."
+            exemplo="1) Digite um termo e clique em Buscar para listar produtos da Systêxtil.\n2) Selecione os produtos desejados na tabela.\n3) Ajuste NCM, unidade, situação, GTIN e preço na linha de cada produto.\n4) Clique em Importar para criar os SKUs no Bling."
           />
         </h1>
         <p className="text-sm text-zinc-500">
-          Cada código Systêxtil = 1 SKU no Bling (sem variações). Preço é
-          complementado manualmente no Bling.
+          Cada código Systêxtil = 1 SKU no Bling (sem variações). NCM,
+          unidade, situação e código de barras são enviados; informe o preço de
+          venda na linha do produto.
         </p>
       </div>
 
@@ -368,17 +400,73 @@ export default function ImportClient({
                       </div>
 
                       {marcado && (
-                        <div className="mt-2 flex flex-col gap-2">
-                          <label className="flex items-center gap-2 text-xs text-zinc-500">
-                            Preço de venda (opcional — se vazio, não envia e
-                            você preenche no Bling)
-                            <input
-                              className="w-32 rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
-                              value={precos[p.codigo] ?? ""}
-                              onChange={(e) => setPreco(p.codigo, e.target.value)}
-                              placeholder="ex.: 39,90"
-                            />
-                          </label>
+                        <div className="mt-3 flex flex-col gap-2">
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+                              NCM
+                              <input
+                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
+                                value={ncms[p.codigo] ?? p.ncm}
+                                onChange={(e) => setNcm(p.codigo, e.target.value)}
+                                placeholder="ex.: 52081900"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+                              Unidade
+                              <input
+                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
+                                value={unidades[p.codigo] ?? p.unidadeId}
+                                onChange={(e) =>
+                                  setUnidade(p.codigo, e.target.value)
+                                }
+                                placeholder="ex.: M"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+                              Situação
+                              <select
+                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 dark:border-zinc-700"
+                                value={
+                                  situacoes[p.codigo] ??
+                                  p.situacaoBling ??
+                                  "A"
+                                }
+                                onChange={(e) =>
+                                  setSituacao(p.codigo, e.target.value)
+                                }
+                              >
+                                <option value="A">Ativo</option>
+                                <option value="I">Inativo</option>
+                              </select>
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+                              GTIN / código de barras
+                              <input
+                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
+                                value={gtins[p.codigo] ?? p.codigoBarras}
+                                onChange={(e) =>
+                                  setGtin(p.codigo, e.target.value)
+                                }
+                                placeholder="ex.: 789..."
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+                              Preço de venda
+                              <input
+                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
+                                value={precos[p.codigo] ?? ""}
+                                onChange={(e) =>
+                                  setPreco(p.codigo, e.target.value)
+                                }
+                                placeholder="ex.: 39,90"
+                              />
+                            </label>
+                          </div>
+                          <p className="text-xs text-zinc-400">
+                            NCM, unidade, situação e GTIN vêm preenchidos da
+                            Systêxtil — edite se necessário. Se o preço ficar
+                            vazio, o Bling cria o produto com R$ 0,00.
+                          </p>
                           <details>
                             <summary className="cursor-pointer text-xs text-zinc-500">
                               ver payload que será enviado ao Bling

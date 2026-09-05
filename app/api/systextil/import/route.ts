@@ -17,6 +17,7 @@ interface ImportItemBody {
   origem?: number | null;
   preco?: number | null;
   situacao?: "A" | "I";
+  gtin?: string | null;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
       origem: item.origem,
       preco: item.preco,
       situacao: item.situacao,
+      gtin: item.gtin,
     });
     const res = await blingRequest({ method: "POST", path: "/produtos", body: payload });
 
