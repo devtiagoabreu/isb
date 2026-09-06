@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
-import type { CrudEntitySchema, CrudField } from "@/lib/crud/types";
+import type { CrudEntitySchema, CrudField, CrudFieldInfo } from "@/lib/crud/types";
 
 type Row = Record<string, unknown>;
 
@@ -82,6 +82,8 @@ export default function CrudClient({
   const [editing, setEditing] = useState<Row | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>(() => emptyForm(schema));
   const [salvando, setSalvando] = useState(false);
+
+  const [info, setInfo] = useState<{ label: string; info: CrudFieldInfo } | null>(null);
 
   const [deleting, setDeleting] = useState<Row | null>(null);
   const [excluindo, setExcluindo] = useState(false);
@@ -437,7 +439,24 @@ export default function CrudClient({
                     f.type === "password" ? "sm:col-span-2" : ""
                   }`}
                 >
-                  {keyLabel(f)}
+                  <span className="flex items-center gap-1.5">
+                    {keyLabel(f)}
+                    {f.info && (
+                      <button
+                        type="button"
+                        aria-label={`Ajuda sobre ${f.label}`}
+                        title="Ver ajuda do campo"
+                        onPointerDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setInfo({ label: f.label, info: f.info! });
+                        }}
+                        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-[10px] font-bold text-zinc-500 transition-colors hover:border-indigo-400 hover:text-indigo-500 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-indigo-400 dark:hover:text-indigo-400"
+                      >
+                        i
+                      </button>
+                    )}
+                  </span>
                   {f.type === "select" ? (
                     <select
                       className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
@@ -493,6 +512,71 @@ export default function CrudClient({
                 {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {info && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setInfo(null)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">{info.label}</h2>
+              <button
+                onClick={() => setInfo(null)}
+                className="text-zinc-400 hover:text-zinc-600"
+                aria-label="Fechar ajuda"
+              >
+                ✕
+              </button>
+            </div>
+
+            {info.info.oQue && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  O que é
+                </h3>
+                <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                  {info.info.oQue}
+                </p>
+              </div>
+            )}
+
+            {info.info.regras && info.info.regras.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  Regras de preenchimento
+                </h3>
+                <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                  {info.info.regras.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {info.info.exemplos && info.info.exemplos.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  Exemplos
+                </h3>
+                <div className="flex flex-col gap-1.5">
+                  {info.info.exemplos.map((ex, i) => (
+                    <pre
+                      key={i}
+                      className="whitespace-pre-wrap rounded-lg bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                    >
+                      {ex}
+                    </pre>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

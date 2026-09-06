@@ -16,6 +16,19 @@ export interface CrudFieldOption {
   label: string;
 }
 
+/**
+ * Conteúdo do modal de ajuda aberto pelo ícone "i" ao lado do label.
+ * Dados puros (serializáveis) — renderizados no cliente.
+ */
+export interface CrudFieldInfo {
+  /** O que é este campo. */
+  oQue: string;
+  /** Regras de cadastro (têxteis, comerciais, fiscais, contábeis). */
+  regras?: string[];
+  /** Exemplos reais de preenchimento. */
+  exemplos?: string[];
+}
+
 export interface CrudField {
   name: string;
   label: string;
@@ -24,6 +37,8 @@ export interface CrudField {
   options?: CrudFieldOption[];
   placeholder?: string;
   help?: string;
+  /** Modal de ajuda completo (ícone "i" ao lado do label). */
+  info?: CrudFieldInfo;
   /** Se true, aparece na listagem (coluna da tabela). */
   column?: boolean;
   /**
