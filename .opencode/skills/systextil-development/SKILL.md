@@ -254,6 +254,78 @@ Conteúdo completo em `.agent/docs/systextil-manual-nfe.md`,
   5979403, Configurações Integração 6235888, Certificado Digital 274890765) e
   EFD-REINF (194117633).
 
+### 5ª rodada (2026-09-06): Faturamento, Obrigações Fiscais, EFD PIS/COFINS, Custos e Integração
+
+Conteúdo completo em `.agent/docs/systextil-faturamento.md`,
+`.agent/docs/systextil-obrigacoes-fiscais-parametros.md`,
+`.agent/docs/systextil-efd-piscofins.md`,
+`.agent/docs/systextil-custos-configuracoes.md` e
+`.agent/docs/systextil-integracao-configuracoes.md`.
+
+- **Faturamento em duas fases (5938893):** 1ª **Solicitação** (identifica pedido
+  + dados; itens manual / leitor ótico / coletor; várias notas do mesmo
+  **NR SOLICITAÇÃO** num único cálculo); 2ª **Cálculo** (fatu_f190: gera NF,
+  duplicata, comissão, emite, baixa estoque, acumulados e contabilidade — deve
+  concluir sem transferências; a solicitação é **deletada** ao concluir).
+- **Solicitação (fatu_f050, 6101284):** SIT sinaliza onde parou (1–NF, 2–itens,
+  3–duplicata, 4–NF emitida; **9** = problema na própria solicitação); SIT 9 → o
+  correto é rever e reprocessar. Processos de caixa/rolo: faturar sem romaneio
+  (F9), com romaneio (fatu_f150), leitor ótico (fatu_f155/156), coletor.
+- **NF-e (obrf_f601, 5938893):** cores = verde (re-envio), amarelo (não
+  recebida), vermelho (rejeitada), azul (problema de cadastro → crítica;
+  status **996**), laranja (**contingência**). Sem protocolo → obrf_f604/605:
+  copiar chave, consultar no Portal, gravar o protocolo.
+- **Cancelamento (fatu_f140/146):** anunciar data a considerar + motivo
+  (base em **fatu_f010**); não cancela notas em períodos de estoque fechados.
+  Restrição c/ títulos em banco (**5998880**): parâmetro **"movimenta título em
+  banco"** (Cobrança Escritural / Por Empresa) — 1 = permite, 2 = não permite,
+  3 = pergunta e só efetiva se confirmar; age para situações de cobrança 3 e 7.
+- **Parâmetros de Faturamento (empr_f831, 6101190):** "movimenta título em
+  banco"; liberação de sugestão (LIBERA SUGESTÃO 0/1); PERMITIR FATURAR MAIS QUE
+  A QUANT PEDIDA + VARIAÇÃO NA COLETA; TRATAMENTO DOS ROLOS (situação 5/3);
+  CÓDIGO TIPO VOLUME PARA PÇS (PALM); frete (PESO/variação, contrato, FOB);
+  RPTs de romaneio/etiqueta/invoice.
+- **Parâmetros de Obrigações Fiscais (empr_f830, 5989080):** destaques para a
+  integração — CÁLCULO DE DÍGITO (0–não / 1 RUC / 2 CUIT / 3 RFC),
+  MULTI MOEDA (0/1), EMPRESA DO SIMPLES NACIONAL (S/N), PERFIL SPED (A/B/C),
+  JUNÇÃO EMPRESAS AQR (0/1), PERMITE INFORMAR C. CUSTO/DEPÓSITO DIFERENTE
+  (0/1/2/3), PERMITE ALTERAR NF EMITIDA E ENVIADA À RECEITA (S/N + obrf_f799),
+  CARACTER ADICIONAL SÉRIE (duplicidade nº/série de entrada), bloqueio tipo 11
+  (títulos divergentes), certificado digital + aba **NFE** (CRITICA DADOS NFe,
+  ENVIA NFe AUTOMÁTICO, TIPO CONTINGÊNCIA 2/3/5, JUNTAR CFOP NO DANFE, FORMA
+  ORDENAÇÃO DANFE) — aprofunda o Manual NF-e.
+- **EFD Contribuições — PIS/COFINS (10393370):** IN RFB 1052/2010; obrigatória
+  por cronograma (Lucro Real 01/2011–07/2011; Presumido/Arbitrado 01/2012).
+  Parametrização: INDICADOR DO REGIME TRIBUTÁRIO (1 não-cumulativo / 2
+  cumulativo) na aba `+`; MÉTODO DE APROPRIAÇÃO (1 direta / 2 rateio) e CRITÉRIO
+  DE APURAÇÃO (caixa/competência — caixa só p/ cumulativo) na aba `+++`;
+  CÓDIGO INDICADOR DA INCIDÊNCIA (1/2) na aba `++++` (opção 3 não contemplada).
+  Cadastros: obrf_f705 (tabelas 4.3.5–4.3.8), obrf_f700 (ajustes/deduções +
+  devolução de exportação IND=3), obrf_f701/702 (processo referenciado),
+  obrf_f301/302 (bens F120/F130), obrf_f707 (F150 estoque de abertura),
+  obrf_f725 (F600 retenções), obrf_f730 (F700), obrf_f715 (fusão/cisão),
+  obrf_f704 (1300–1700), obrf_f703 (M110/M220 + CARREGA DEVOLUÇÃO), obrf_f710
+  (1100/1500), obrf_f720–722 (1200/1600 extemporânea). **Bloco P** (contribuição
+  previdenciária s/ receita): tabela 5.1.1 obrf_f706 + base obrf_f235 +
+  ajustes obrf_f225 + "GERA BLOCO P REGIME CUMULATIVO" (só p/ regime 2). Geração:
+  **obrf_f240**.
+- **Custos Industriais (empr_f810, 5979403):** FORMA DE CÁLCULO DO CUSTO MINUTO
+  **obrigatoriamente = "1"** (nível de centro de custo). OPCÃO CÁLCULO PREÇO A
+  PRAZO/À VISTA normalmente = **3** (mark-up1). Parâmetros de ficha de custos:
+  rcnb_f030 (alcance empresa/produto/cliente; CNPJ só p/ tipos 3–7) → F2
+  rcnb_f035 (tipos 1–2: SEQ, CONSUMO, EST estágio, MÊS/ANO) / rcnb_f037 (3–5,7)
+  / rcnb_f039 (6 PRAZOS).
+- **Integração (empr_f021, 6235888):** e-mail de críticas por programa;
+  transações de entrada/saída p/ importação (zero = da natureza); divisão por
+  100 (descontos, qualidade, unitário, acréscimo); VALIDA TABELA DE PREÇO (S/N);
+  INTEGRAÇÃO DE PEDIDOS DE VENDA (0/1/2); depósitos por tipo de pedido
+  (programado, pronta entrega, pack resto/segunda, produção/embalagem 1ª);
+  TIPO INTEGRAÇÃO TINTURARIA (Infotint/Orgatex); termoeletrônica; controle de
+  fretes (tempo de análise em segundos); RPTs obrf_f750 / shells de importação.
+- **Natureza relacionada (5999019):** campo no cadastro de natureza informa de
+  qual natureza a NF se origina; > 0 → consistência impede gravação de devolução/
+  retorno de industrialização com natureza errada em Obrigações Fiscais.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -292,6 +364,19 @@ Conteúdo completo em `.agent/docs/systextil-manual-nfe.md`,
     `.agent/docs/systextil-cadastros-fiscais.md`.
   - Pesquisar XML inválido (5901102) → append em
     `.agent/docs/systextil-procedimentos-fiscais.md`.
+  - Processo de Faturamento (5938893), Solicitação (6101284), Configurações
+    Faturamento (6101190) e restrição de cancelamento c/ títulos (5998880) →
+    `.agent/docs/systextil-faturamento.md`.
+  - Configurações de Obrigações Fiscais (5989080) →
+    `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
+  - EFD Contribuições PIS/COFINS (10393370) →
+    `.agent/docs/systextil-efd-piscofins.md`.
+  - Configurações Iniciais/Custos (5979403) →
+    `.agent/docs/systextil-custos-configuracoes.md`.
+  - Configurações de Integração (6235888) →
+    `.agent/docs/systextil-integracao-configuracoes.md`.
+  - Relacionamento de Naturezas (5999019) → append em
+    `.agent/docs/systextil-cadastros-fiscais.md`.
 - Coleta anônima via REST: `.../wiki/rest/api/content/{pageId}?expand=body.storage`
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
@@ -320,3 +405,14 @@ Conteúdo completo em `.agent/docs/systextil-manual-nfe.md`,
   (pedi_f050/f052/f034/f062, rateio na base ICMS, CSOSN, CVF, subpasta 
   "Inválidos") e árvore do BackOffice — fontes `.agent/docs/systextil-manual-nfe.md`, 
   `.agent/docs/systextil-sefaz-rejeicoes.md`, `.agent/docs/systextil-cadastros-fiscais.md`.
+- 0.1.0 (2026-09-06, 5ª rodada): adicionados processo de faturamento em duas
+  fases, fatu_f050, obrf_f601/cancelamento, restrição c/ títulos em banco,
+  empr_f831, empr_f830 (Obrigações Fiscais completo), EFD PIS/COFINS
+  (obrf_f700–f730/bloco P), custos industriais (empr_f810/rcnb_f030–f039),
+  integração (empr_f021) e natureza relacionada — fontes
+  `.agent/docs/systextil-faturamento.md`,
+  `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`,
+  `.agent/docs/systextil-efd-piscofins.md`,
+  `.agent/docs/systextil-custos-configuracoes.md`,
+  `.agent/docs/systextil-integracao-configuracoes.md`,
+  `.agent/docs/systextil-cadastros-fiscais.md`.
