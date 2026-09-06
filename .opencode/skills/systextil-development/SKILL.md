@@ -206,6 +206,54 @@ Conteúdo adicional de suporte/dúvidas em
   para a OC do cliente; diretório de XML recebidos parametrizado em empresa /
   Obrigações Fiscais, aba +++ ("Diretório XML recebidos").
 
+### 4ª rodada (2026-09-06): Manual NF-e, rejeições SEFAZ e naturezas
+
+Conteúdo completo em `.agent/docs/systextil-manual-nfe.md`,
+`.agent/docs/systextil-sefaz-rejeicoes.md` e `.agent/docs/systextil-cadastros-fiscais.md`.
+
+- **Pré-requisitos cadastrais p/ emitir NF-e (Manual NF-e 5988967):** cliente/
+  fornecedor com endereço **NRO e BAIRRO**, campo **SIMPLES** informado, cidade
+  com **código IBGE**, **CVF PIS/COFINS** parametrizado, produto com NCM.
+- **Certificado digital:** cadastrar no **empr_f830**; os demais parâmetros de
+  NF-e ficam na aba **NFE** das Obrigações Fiscais (obrf_f601 lê de lá).
+- **Fluxo de emissão:** **obrf_f020** (capa) → **obrf_f601** (envio/manutenção)
+  → status via **obrf_f604/f605** (RECIBO/996); mensagens impressas: **obrf_f230**
+  (texto da DANFE), **obrf_f873/obrf_f874** (observações da NF — zoom do cadastro
+  de natureza). XML/relatórios: **obrf_e002/e003**.
+- **xPed/nItemPed:** só saem se o pedido estiver no nível de digitação
+  **"Item completo" (3)**; em nível menor, o XML sai sem xPed/nItemPed.
+- **Contingência:** FS (Formulário de Segurança, série **900–999**) e **SCAN**;
+  após regularidade, selecionar e clicar **Enviar** na obrf_f601.
+- **Rejeições SEFAZ:** tabela completa (100–807) em
+  `.agent/docs/systextil-sefaz-rejeicoes.md`. Chaves: **100** = autorizado,
+  **110** = uso denegado (queimar número), **150** = autorização fora de prazo,
+  **501** = cancelamento intempestivo (>7 dias). Validar XML em
+  `https://www.sefaz.rs.gov.br/nfe/NFE-VAL.aspx`.
+- **Naturezas de Operação (pedi_f050):** a mesma natureza precisa de cadastro
+  **por Estado** (o código interno agrupa; ex.: 5.99 cadastro SC e PR). Campos
+  críticos para o fluxo Bling→Systêxtil: **EMITE DUPLICATA** (1 gera título),
+  **TEM MOVIMENTAÇÃO FÍSICA** (0/1 → IND.MOV do C170/SPED, deve ser coerente
+  com a transação), **CONSIDERA RATEIO NA BASE ICMS** (1 = item recebe rateio;
+  2 = não; se **todos** os itens forem 2 o sistema rateia mesmo assim; não vale
+  p/ loja, NF de entrada e IPI), **SUBTRAI ICMS DO CUSTO** (entrada de
+  fornecedor), **CONSUMIDOR FINAL** (S/N p/ SPED), **EXIGE CÓDIGO DO PRODUTO**,
+  **TIPO NF ATIVO IMOBILIZADO** (0/1/2), **CSOSN** (101–900, Simples) e
+  **CVF PIS/COFINS** (1–99, obrigatório).
+- **Natureza por empresa (pedi_f052):** sobrescreve pedi_f050 por empresa sem
+  criar código novo (busca prioriza f052 e cai p/ f050). **Exceções (pedi_f034):**
+  natureza diferenciada por divisão de produto (**1, 2, 4, 7 e 9**) × tipo de
+  pessoa (1 PF / 2 PJ / 9 todas) × UF; zoom **pedi_f062** copia os processos.
+- **XML inválido (5901102):** local = empr_f001 → Obrigações Fiscais → aba NFE
+  → campo **"Caminho geração arquivos"** → subpasta **"Inválidos"**. O `[nItem:n]`
+  da rejeição é a sequência do item **no XML**, não na nota. Não identificando o
+  motivo, abrir SS anexando print do validador + XML (TXT).
+- **Árvore de manuais:** Systêxtil ERP (6711257) → BackOffice (6711727, **127
+  páginas**: Faturamento 6101190/6101284/5938893, Obrigações Fiscais 5989080,
+  GNRE 5932490/5931654, EFD Contribuições 10393370, CEST 5929056/5929588,
+  Tabelas de Preço 6236024), Parâmetros (6711787 → Configurações Iniciais
+  5979403, Configurações Integração 6235888, Certificado Digital 274890765) e
+  EFD-REINF (194117633).
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -237,6 +285,13 @@ Conteúdo adicional de suporte/dúvidas em
   - Artigos de Solução de Problemas e Dúvidas (296976389; 8 de 30 páginas de
     alto valor) + "NF-e retroativa" (8130267) →
     `.agent/docs/systextil-suporte-duvidas.md`.
+  - Manual NF-e (5988967) → `.agent/docs/systextil-manual-nfe.md`.
+  - Códigos de rejeição da RF (6525636) →
+    `.agent/docs/systextil-sefaz-rejeicoes.md`.
+  - Cadastro de Naturezas (5991369) e Exceções (5991680) →
+    `.agent/docs/systextil-cadastros-fiscais.md`.
+  - Pesquisar XML inválido (5901102) → append em
+    `.agent/docs/systextil-procedimentos-fiscais.md`.
 - Coleta anônima via REST: `.../wiki/rest/api/content/{pageId}?expand=body.storage`
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
@@ -259,3 +314,9 @@ Conteúdo adicional de suporte/dúvidas em
   (pedi_f130), NF-e retroativa (30 dias) e código do cliente na DANFE
   (estq_f400/xPed/nItemPed) — fonte
   `.agent/docs/systextil-suporte-duvidas.md`.
+- 0.1.0 (2026-09-06, 4ª rodada): adicionados Manual NF-e (pré-requisitos, 
+  empr_f830, obrf_f601/604/605, xPed/nItemPed nível "Item completo", FS/SCAN 
+  série 900-999), tabela de rejeições SEFAZ, cadastro de naturezas 
+  (pedi_f050/f052/f034/f062, rateio na base ICMS, CSOSN, CVF, subpasta 
+  "Inválidos") e árvore do BackOffice — fontes `.agent/docs/systextil-manual-nfe.md`, 
+  `.agent/docs/systextil-sefaz-rejeicoes.md`, `.agent/docs/systextil-cadastros-fiscais.md`.
