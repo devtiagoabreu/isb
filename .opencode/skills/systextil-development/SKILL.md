@@ -358,6 +358,81 @@ nas seções de `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
   no WEB é gravado no **banco** (híbrido VISION+WEB: VISION mantém o modelo
   antigo).
 
+### 7ª rodada (2026-09-06): Engenharia de produto/processo, OPs e estoques
+
+Conteúdo completo em `.agent/docs/systextil-producao-engenharia.md`,
+`.agent/docs/systextil-producao-ops.md` e
+`.agent/docs/systextil-estoques-depositos.md` (Produção, 6711747 — 44 filhos,
+21 corpos lidos).
+
+- **Código de produto = 15 posições** `N.GGGGG.SSS.IAAAAA` (nível . grupo .
+  subgrupo . item): 1–peças confeccionadas (subgrupo=tamanho, item=cor), 2–
+  tecidos acabados, 3–estampas/bordados, 4–tecidos em elaboração, 5–receitas,
+  7–fios, 9–materiais comprados. **Produto comprado (1)** dispensa engenharia;
+  **fabricado (2)** exige estrutura + roteiro; **protótipo** não aceita pedido
+  de venda.
+- **Código inteligente do fio (basi_f290→f300→f310):** ex. Ne/Nm `81301` (fibra
+  8 / 100% / título 30 / cabos 1) e Dtex/PES `50AA2` (PES / filamento contínuo
+  / 150-48 via tabela alfanumérica `A0=76-74`, `AA=150-48`, `AB=150-10` /
+  cabos 2). Sentido de torção em `ftec_f125`.
+- **Atributos dos Produtos (`basi_f544`):** opcionais, botão "Atributos dos
+  Produtos", níveis 1,2,3,4,5,7,9.
+- **Máquinas/operações/estágios (mqop_f010/f025/f033/f040/f120/f170/f005):
+  operação "manual" usa máquina simbólica `MANU`; **TIPO OPERAÇÃO 6–LOTE
+  TINTURARIA** e **PERMITE ORDEM EM VÁRIAS MAQ** no beneficiamento; estágios
+  com T.E. (0=sequencial / 1=simultâneo) + E.F. (último estágio); responsáveis
+  por produção `mqop_f006`. Roteiro: `mqop_f800`→F2→`mqop_f055` (sequência 3×F2
+  → `mqop_f051`); alimenta carga máquina, células, custos, balanceamento, CMC.
+- **Ficha técnica confecção (`ftec_f700`/`ftec_f010`/`ftec_f015`):** grade de
+  distribuição por tamanho/cor/tamanho+cor (usada no pedido/OP/necessidade);
+  cores de sortimento (estoque/pedido/ordens de confecção; `999999`); composição
+  obrigatória (nível grupo PT/EN ou grupo/subgrupo/item com `basi_f015/f045/
+  f025/f075`); impressão `ftec_e010`.
+- **Ficha técnica tecido acabado (`ftec_f600`):** 3 blocos (1 = do cadastro do
+  item, só **NR DESENVOLVIMENTO** editável; 2 = composição %/símbolo; 3 =
+  complementos); botões → roteiro (`mqop_f800`), acompanhamento/ribana
+  (`basi_f640`), estrutura (`basi_f390`), `ftec_f400` (gramatura, largura, peso
+  rolo, perdas antes de tingir, peso padrão p/ ordem de tecelagem), máquinas
+  `ftec_f410`, desenvolvimento `f420`, regulagens `f430`, testes `basi_f561`
+  (com estágio), agulhas `f440`, hist/obs `f640` (pontos críticos; históricos
+  restrito/aberto/estrutura), colocação de fios `f445`.
+- **Estruturas/consumo:** estrutura de receitas `basi_f390`→F9→`basi_f395`
+  (purga/lavação/tingimento/acabamento; pasta banho/transferência de químicos;
+  SERVIÇO 1=externo só codifica / 2=interno obriga estrutura); estrutura do
+  produto com alternativa (padrão 01) e relacionamentos (subgrupo/item/consumo
+  0 → tela de variação); **consumo de tecido** por rendimento (`X/(A/B)`) ou
+  **risco padrão** `pcpc_f220`/`pcpc_f222` (DEFINIR COMO RISCO PADRÃO →
+  `(LARG*COMPR*GRAMATURA)/QTDE MARCAÇÕES`); estruturas alternativas e itens
+  alternativos com prazo de validade; conjuntos aninhados; componentes
+  informativos = consumo 1.
+- **Código de barras:** parâmetro da empresa (1–Systêxtil, 2–EAN por
+  cor/tamanho `basi_f105`/`basi_f930` com TIPO CÓDIGO EAN 1–cor/2–tamanho,
+  3–outros manual, 4–sem); cor de estoque não recebe código.
+- **Gestão de cadastros:** `basi_f400` (quem usa um componente), `basi_f410`
+  (valida a estrutura), `basi_f920` (cópia de referência por nível),
+  `basi_f900` (eliminação com análise de DIAS: movimentações, produção, NSs,
+  qualidade etc. bloqueiam).
+- **Ordem de Serviço de terceiros (`obrf_f399`):** numeração por parâmetro
+  Terceiros → **NUMERAÇÃO ORDEM SERVIÇO EXTERNO** 1–automática / 2–manual.
+  **Gestão de Manufatura (`tmrp_e300`):** necessidades de MP da confecção
+  (filtros estágios/período de produção/intervalo de ordens/ordem/coleções/
+  referências) + baixa de OP, terceiros e leitura óptica. **Plano Mestre
+  (`rcnb_e200`):** pedidos de venda (por área) + OPs programadas + pedidos de
+  compra; segmentos 1/2/7. **Previsão de Vendas por Período (`tmrp_f020`→F2
+  `tmrp_f021`, totalizador `tmrp_f022`, cópia `pcpc_f090`, períodos
+  `tmrp_f070` área 7–fiação, **ÍNDICE DE TROCA**). **Rolos Cortados
+  (`pcpt_f200`):** gera novas etiquetas após corte.
+- **Estoques:** Gestão de Estoques_WEB integrada a PCPs/fiscal/suprimentos/
+  contas a pagar; **Inventário (balanço físico)** com transações de balanço e
+  flag "consiste balanço" (exige todos os itens; divergência exige aprovação +
+  motivo); **Fechamento (FICHA CARDEX `estq_f077`)** valoriza a **preço médio**
+  e bloqueia novas movimentações no período (reabre para corrigir); **Sugestão
+  de Faturamento de Peças** controlada por **LIBERA SUGESTÃO (empr_f831):
+  0–liberada / 1–alocada** (rodou o processo); **rolos por Kg (loja):** campo
+  **Dep.Kg** no Cadastro de Depósitos (só tipo volume 0 e níveis 2/4) — a
+  transferência por Movimentação de Estoques "abre o rolo" (registro por rolo)
+  para venda por peso.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -412,8 +487,22 @@ nas seções de `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
   - EFD-REINF (194117633, PDFs anexos `REINF.pdf`, `REINF 1.4_v20181023.pdf`,
     `Documentacao_REINF_SS118954-1-1.pdf` baixados e extraídos) →
     `.agent/docs/systextil-efd-reinf.md`.
-  - Certificado Digital (274890765, PDFs de instalação ERP/SystêxtilFast) →
-    seção em `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
+- Certificado Digital (274890765, PDFs de instalação ERP/SystêxtilFast) →
+     seção em `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
+  - Engenharia de produto/processo: Gestão e Desenvolvimento_WEB (5937052,
+     corpo completo 2.700+ linhas), Ficha Técnica do Produto (5979533), Ficha
+     Técnica do Tecido Acabado (5989976), Máquinas e Operações (5989182),
+     Roteiro de Fabricação (6000367), Atributos (5989839), Estrutura de
+     Codificação (6001540), Configurações módulo Básico (6001643) e Estrutura
+     de Receitas (5991477) → `.agent/docs/systextil-producao-engenharia.md`.
+  - Produção/OPs: Ordem de Serviço (5992102), Gestão de Manufatura_WEB
+     (5939092), Plano Mestre_WEB (5937286), Previsão de Vendas por Período
+     (5992202) e Rolos Cortados (5992415) →
+     `.agent/docs/systextil-producao-ops.md`.
+  - Estoques/depósitos: Gestão de Estoques_WEB (5937192), Inventário de
+     Estoque_WEB (5937388), Fechamento de Estoques_WEB (5938379), Sugestão de
+     Faturamento de Peças (6101407) e Rastreamento de rolos em vendas por
+     quilo (5992829) → `.agent/docs/systextil-estoques-depositos.md`.
 - Download de anexos via REST anônimo confirmado:
   `.../wiki/rest/api/content/{pageId}/child/attachment` (lista; `mediaType` em
   `extensions`) e `.../child/attachment/{attId}/download` (arquivo).
@@ -457,8 +546,18 @@ nas seções de `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
   `.agent/docs/systextil-integracao-configuracoes.md`,
   `.agent/docs/systextil-cadastros-fiscais.md`.
 - 0.1.0 (2026-09-06, 6ª rodada): adicionados EFD-Reinf (Painel Reinf obrf_f118,
-  quadros R-1000–R-5001, fechamento/reabertura, Reinf 1.4, cópia do R-1000) e o
-  novo processo de instalação do certificado digital (upload + senha, sem
-  Alias/JBoss, gravado no banco) — fontes `.agent/docs/systextil-efd-reinf.md` e
-  `.agent/docs/systextil-obrigacoes-fiscais-parametros.md` (download de anexos
-  via REST anônimo confirmado).
+   quadros R-1000–R-5001, fechamento/reabertura, Reinf 1.4, cópia do R-1000) e o
+   novo processo de instalação do certificado digital (upload + senha, sem
+   Alias/JBoss, gravado no banco) — fontes `.agent/docs/systextil-efd-reinf.md` e
+   `.agent/docs/systextil-obrigacoes-fiscais-parametros.md` (download de anexos
+   via REST anônimo confirmado).
+- 0.1.0 (2026-09-06, 7ª rodada): adicionadas engenharia de produto/processo
+   (codificação N.GGGGG.SSS.IAAAAA, níveis 1–9, fios basi_f290, máquinas/
+   operações/estágios/roteiro mqop_f010–f800, fichas técnicas ftec_f700/f600,
+   estruturas/receitas basi_f390/395, código de barras, risco padrão pcpc_f220),
+   produção/OPs (obrf_f399, tmrp_e300, rcnb_e200, tmrp_f020–f022, pcpt_f200) e
+   estoques/depósitos (inventário 5937388, fechamento estq_f077, sugestão de
+   faturamento LIBERA SUGESTÃO, rolos por Kg Dep.Kg) — fontes
+   `.agent/docs/systextil-producao-engenharia.md`,
+   `.agent/docs/systextil-producao-ops.md` e
+   `.agent/docs/systextil-estoques-depositos.md`.
