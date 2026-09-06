@@ -182,6 +182,30 @@ Conteúdo completo em `.agent/docs/systextil-procedimentos-fiscais.md`.
 - **"Sugestão de nº não concluiu":** usuários simultâneos na **fatu_e780**; ou
   parâmetro FATURAMENTO → Aba +++ → "Libera sugestão:" = 0.
 
+Conteúdo adicional de suporte/dúvidas em
+`.agent/docs/systextil-suporte-duvidas.md` (3ª rodada 2026-09-06):
+
+- **Preço médio:** sem CARDEX, valor vem da **rcnb_f070**, alimentado pelas
+  movimentações on-line ("conta corrente" acumulada) — campo digitável. Com
+  CARDEX, o valor real (advindo da CARDEX) é visto em **estq_f035** (fluxo
+  estq_f030 → F2 estq_f033 → F2 estq_f034) e pode ser digitado na rcnb_f070.
+- **Rejeição 694:** NF-e interestadual p/ consumidor final sem grupo ICMS da UF
+  destino — quase sempre natureza de operação da **capa** ≠ naturezas dos
+  **itens** do pedido; alinhar os itens com a capa.
+- **Rejeição 297:** campos com caracteres especiais (`< > & ª º ¿ ² ³ ¹ §`),
+  espaços no início/fim e quebras de linha no XML; validar em
+  `https://www.sefaz.rs.gov.br/nfe/NFE-VAL.aspx`.
+- **Rejeição 990:** instrução = corrigir e-mail do usuário do cancelamento e
+  reenviar na **obrf_f601**.
+- **Desconto especial** (na nota) é **rateado entre os itens** (reduz base de
+  cálculo por item) — mesmo comportamento do desconto do **pedi_f130**. Para
+  desconto não-rateado usar o campo **"%Desc"** (percentual) na capa do pedido.
+- **NF-e retroativa:** até **30 dias** (ou limite da UF) da data de emissão.
+- **Código do produto do cliente na DANFE:** cadastrar em **estq_f400** e
+  marcar **"Imprime descr cliente nf:"**. XML de entrada usa **xPed + nItemPed**
+  para a OC do cliente; diretório de XML recebidos parametrizado em empresa /
+  Obrigações Fiscais, aba +++ ("Diretório XML recebidos").
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -210,6 +234,9 @@ Conteúdo completo em `.agent/docs/systextil-procedimentos-fiscais.md`.
     → `.agent/docs/systextil-apex-env.md`.
   - Instruções fiscais/operacionais (5636097; 13 de 22 páginas) + Manuais
     (6711621) → `.agent/docs/systextil-procedimentos-fiscais.md`.
+  - Artigos de Solução de Problemas e Dúvidas (296976389; 8 de 30 páginas de
+    alto valor) + "NF-e retroativa" (8130267) →
+    `.agent/docs/systextil-suporte-duvidas.md`.
 - Coleta anônima via REST: `.../wiki/rest/api/content/{pageId}?expand=body.storage`
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
@@ -227,3 +254,8 @@ Conteúdo completo em `.agent/docs/systextil-procedimentos-fiscais.md`.
   NF-e complementar, limites, CFOP, cbenef (obrf_f805), etiqueta de rolo
   (empr_f833) e sugestão de número (fatu_e780) — fonte
   `.agent/docs/systextil-procedimentos-fiscais.md`.
+- 0.1.0 (2026-09-06, 3ª rodada): adicionados preço médio (rcnb_f070 vs
+  estq_f035/CARDEX), rejeições 694/297/990, desconto especial rateado vs %Desc
+  (pedi_f130), NF-e retroativa (30 dias) e código do cliente na DANFE
+  (estq_f400/xPed/nItemPed) — fonte
+  `.agent/docs/systextil-suporte-duvidas.md`.
