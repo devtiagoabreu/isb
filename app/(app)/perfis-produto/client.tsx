@@ -116,12 +116,14 @@ function Input({
   value,
   onChange,
   placeholder,
+  help,
   wide,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  help?: string;
   wide?: boolean;
 }) {
   return (
@@ -135,6 +137,7 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
       />
+      {help && <span className="text-xs text-amber-600 dark:text-amber-400">{help}</span>}
     </label>
   );
 }
@@ -564,6 +567,11 @@ export default function PerfisClient() {
                   value={form.cest}
                   onChange={(v) => setField("cest", v)}
                   placeholder="ex.: 14.028.00"
+                  help={
+                    form.cest.trim() !== ""
+                      ? "CEST é validado pelo Bling contra o NCM do produto — se não combinar, o Bling rejeita e, na aplicação do perfil, o CEST é ignorado automaticamente."
+                      : undefined
+                  }
                 />
                 <Input
                   label="Tipo do item (SPED)"

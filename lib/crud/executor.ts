@@ -40,6 +40,35 @@ function pickListField(schema: CrudEntitySchema): string {
 
 // ---------- Listagem ----------
 
+function flattenVendedor(item: Record<string, unknown>): Record<string, unknown> {
+  const contato = (item.contato ?? {}) as Record<string, unknown>;
+  return {
+    ...item,
+    "contato.nome": contato.nome ?? "",
+    "contato.situacao": contato.situacao ?? "",
+  };
+}
+
+function flattenVenda(item: Record<string, unknown>): Record<string, unknown> {
+  const contato = (item.contato ?? {}) as Record<string, unknown>;
+  const situacao = (item.situacao ?? {}) as Record<string, unknown>;
+  const loja = (item.loja ?? {}) as Record<string, unknown>;
+  return {
+    ...item,
+    "contato.nome": contato.nome ?? "",
+    "situacao.nome": situacao.nome ?? "",
+    "loja.nome": loja.nome ?? "",
+  };
+}
+
+const BLING_LIST_TRANSFORMS: Record<
+  string,
+  (item: Record<string, unknown>) => Record<string, unknown>
+> = {
+  "bling:vendedores": flattenVendedor,
+  "bling:pedidos-venda": flattenVenda,
+};
+
 async function blingList(
   schema: CrudEntitySchema,
   params: CrudListParams
@@ -51,7 +80,32 @@ async function blingList(
     limite: limit,
   };
   const term = params.term?.trim();
-  if (term) searchParams.pesquisa = term;
+  const searchParamName = schema.searchParamName ?? "pesquisa";
+  if (term && searchParamName !== "none") {
+    searchParams[searchParamName] = term;
+  }
+  if (schema.tipoContato) {
+    const tipos = await blingRequest({
+      method: "GET",
+      path: "/contatos/tipos",
+    });
+    if (tipos.ok) {
+      const tiposBody = (tipos.bodyJson ?? {}) as { data?: unknown[] };
+      const keyword = schema.tipoContato.toLowerCase();
+      const found = (tiposBody.data ?? []).find(
+        (t) =>
+          ((t as Record<string, unknown>).descricao ?? "")
+            .toString()
+            .toLowerCase()
+            .includes(keyword)
+      );
+      if (found) {
+        searchParams.idTipoContato = Number(
+          (found as Record<string, unknown>).id
+        );
+      }
+    }
+  }
 
   const res = await blingRequest({
     method: "GET",
@@ -62,7 +116,11 @@ async function blingList(
     throw new Error(res.bodyText || `HTTP ${res.status}`);
   }
   const body = (res.bodyJson ?? {}) as Record<string, unknown>;
-  const items = Array.isArray(body.data) ? (body.data as unknown[]) : [];
+  const rawItems = Array.isArray(body.data) ? (body.data as unknown[]) : [];
+  const transform = BLING_LIST_TRANSFORMS[`${schema.provider}:${schema.entity}`];
+  const items = transform
+    ? (rawItems as Record<string, unknown>[]).map(transform)
+    : rawItems;
   const paginacao = (body.paginacao ?? {}) as Record<string, unknown>;
   const total =
     typeof paginacao.total === "number" ? paginacao.total : null;
@@ -153,6 +211,14 @@ export async function crudCreate(
   schema: CrudEntitySchema,
   data: Record<string, unknown>
 ): Promise<CrudMutationResult> {
+  if (schema.readOnly || schema.disableCreate) {
+    return {
+      ok: false,
+      status: 405,
+      body: { error: `Criação desabilitada para "${schema.entity}".` },
+      statusText: "Criação desabilitada.",
+    };
+  }
   return schema.provider === "bling"
     ? blingCreate(schema, data)
     : systextilCreate(schema, data);
@@ -214,6 +280,14 @@ export async function crudUpdate(
   schema: CrudEntitySchema,
   data: Record<string, unknown>
 ): Promise<CrudMutationResult> {
+  if (schema.readOnly || schema.disableUpdate) {
+    return {
+      ok: false,
+      status: 405,
+      body: { error: `Atualização desabilitada para "${schema.entity}".` },
+      statusText: "Atualização desabilitada.",
+    };
+  }
   return schema.provider === "bling"
     ? blingUpdate(schema, data)
     : systextilUpdate(schema, data);
@@ -272,6 +346,14 @@ export async function crudDelete(
   schema: CrudEntitySchema,
   data: Record<string, unknown>
 ): Promise<CrudDeleteResult> {
+  if (schema.readOnly || schema.disableDelete) {
+    return {
+      ok: false,
+      status: 405,
+      body: { error: `Exclusão desabilitada para "${schema.entity}".` },
+      statusText: "Exclusão desabilitada.",
+    };
+  }
   return schema.provider === "bling"
     ? blingDelete(schema, data)
     : systextilDelete(schema, data);

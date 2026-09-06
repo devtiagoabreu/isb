@@ -272,7 +272,7 @@ export default function CrudClient({
           </h1>
           <p className="text-sm text-zinc-500">{schema.description}</p>
         </div>
-        {connected && canWrite && (
+        {connected && canWrite && !schema.readOnly && !schema.disableCreate && (
           <button
             onClick={abrirNovo}
             className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
@@ -294,6 +294,13 @@ export default function CrudClient({
             Integrações
           </Link>{" "}
           para configurar as credenciais antes de listar e gerenciar registros.
+        </div>
+      )}
+
+      {schema.readOnly && connected && (
+        <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/20 dark:text-zinc-400">
+          Entidade somente leitura na API do Bling — exibição e busca, sem criar,
+          editar ou excluir.
         </div>
       )}
 
@@ -321,8 +328,10 @@ export default function CrudClient({
 
           {rows.length === 0 && !carregando ? (
             <p className="text-sm text-zinc-500">
-              Nenhum registro encontrado. Clique em &quot;Novo registro&quot; para
-              começar.
+              {schema.readOnly
+                ? "Nenhum registro encontrado para os filtros atuais."
+                : `Nenhum registro encontrado. Clique em "Novo registro" para
+              começar.`}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
@@ -354,7 +363,7 @@ export default function CrudClient({
                         ))}
                         <td className="px-3 py-2 text-right">
                           <div className="flex justify-end gap-2">
-                            {canWrite && (
+                            {canWrite && !schema.readOnly && !schema.disableUpdate && (
                               <button
                                 onClick={() => abrirEdicao(row)}
                                 className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
@@ -362,7 +371,7 @@ export default function CrudClient({
                                 Editar
                               </button>
                             )}
-                            {canDelete && (
+                            {canDelete && !schema.readOnly && !schema.disableDelete && (
                               <button
                                 onClick={() => setDeleting(row)}
                                 className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
