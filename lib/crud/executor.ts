@@ -38,6 +38,25 @@ function pickListField(schema: CrudEntitySchema): string {
     "";
 }
 
+// ---------- Sanitização de payload ----------
+// Permite somente campos declarados no schema (defesa contra mass-assignment)
+// sempre preservando a chave do registro (idField/keyFields) exigida pelo executor.
+function sanitizePayload(
+  schema: CrudEntitySchema,
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const allowed = new Set<string>([
+    schema.idField,
+    ...(schema.keyFields ?? []),
+    ...schema.fields.map((f) => f.name),
+  ]);
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (allowed.has(k)) clean[k] = v;
+  }
+  return clean;
+}
+
 // ---------- Listagem ----------
 
 function flattenVendedor(item: Record<string, unknown>): Record<string, unknown> {
@@ -219,6 +238,7 @@ export async function crudCreate(
       statusText: "Criação desabilitada.",
     };
   }
+  data = sanitizePayload(schema, data);
   return schema.provider === "bling"
     ? blingCreate(schema, data)
     : systextilCreate(schema, data);
@@ -288,6 +308,7 @@ export async function crudUpdate(
       statusText: "Atualização desabilitada.",
     };
   }
+  data = sanitizePayload(schema, data);
   return schema.provider === "bling"
     ? blingUpdate(schema, data)
     : systextilUpdate(schema, data);
@@ -354,6 +375,7 @@ export async function crudDelete(
       statusText: "Exclusão desabilitada.",
     };
   }
+  data = sanitizePayload(schema, data);
   return schema.provider === "bling"
     ? blingDelete(schema, data)
     : systextilDelete(schema, data);

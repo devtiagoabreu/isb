@@ -152,7 +152,7 @@ export default function CrudClient({
       for (const f of schema.fields) {
         const raw = form[f.name];
         if (f.type === "number") {
-          const n = Number(String(raw).replace(",", "."));
+          const n = Number(String(raw).replace(/,/g, "."));
           payload[f.name] =
             raw === "" || raw === null || raw === undefined || !Number.isFinite(n)
               ? undefined
@@ -177,6 +177,12 @@ export default function CrudClient({
         for (const f of schema.fields) {
           if (payload[f.name] === undefined && editing[f.name] !== undefined) {
             payload[f.name] = editing[f.name];
+          }
+        }
+        // Garante id/chaves para o executor (ex.: produto Bling não expõe "id" no form).
+        for (const k of [schema.idField, ...(schema.keyFields ?? [])]) {
+          if (payload[k] === undefined && editing[k] !== undefined) {
+            payload[k] = editing[k];
           }
         }
       }
