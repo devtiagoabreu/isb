@@ -11,7 +11,7 @@ export const CRUD_ENTITIES: Record<string, CrudEntitySchema> = {
       "Produtos cadastrados no Bling V3. A edição usa o PUT de substituição da API (validações do Bling podem rejeitar a gravação; a mensagem completa é exibida). A exclusão é feita pelo módulo Produtos (2 passos: situação E + excluir).",
     idField: "id",
     basePath: "/produtos",
-    searchParamName: "pesquisa",
+    searchParamName: "nome",
     disableDelete: true,
     fields: [
       { name: "codigo", label: "Código", type: "text", column: true },
