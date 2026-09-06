@@ -145,7 +145,7 @@ export const CRUD_ENTITIES: Record<string, CrudEntitySchema> = {
     idField: "id",
     basePath: "/contatos",
     searchParamName: "pesquisa",
-    tipoContato: "Transportadora",
+    tipoContato: "Transportador",
     readOnly: true,
     fields: [
       { name: "id", label: "ID", type: "number", column: true },
