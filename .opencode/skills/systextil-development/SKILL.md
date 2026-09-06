@@ -326,6 +326,38 @@ Conteúdo completo em `.agent/docs/systextil-faturamento.md`,
   qual natureza a NF se origina; > 0 → consistência impede gravação de devolução/
   retorno de industrialização com natureza errada em Obrigações Fiscais.
 
+### 6ª rodada (2026-09-06): EFD-Reinf (Painel Reinf) e certificado digital
+
+Conteúdo completo em `.agent/docs/systextil-efd-reinf.md`; certificado digital
+nas seções de `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
+
+- **EFD-Reinf é via Web Services + XML** (dispensa PVA, ao contrário dos demais
+  SPED); usa o **mesmo certificado da NF-e** e a mesma configuração do SPED
+  Contribuições. Painel = **obrf_f118** ("PainelReinf"), **somente na versão
+  WEB** (SystêxtilWeb; ok em ambiente híbrido).
+- **Quadros:** R-1000 (Contribuinte), R-1070 (Processos Administrativos),
+  R-2010 (Tomadores), R-2020 (Prestadores), R-2060 (Receita Bruta), R-5001
+  (consolidado — **não é enviado**, vem da Receita após o fechamento).
+- **Opções do painel:** Consultar, **Processar** (lê os documentos e insere
+  automático), **Enviar** (controle visual Inclusão/Alteração/Exclusão;
+  alterado reenvia como alteração), **Fechar Período** (R-2099 → "Enviar
+  Fechamento"; retorno = R-5001) e **Reabrir Período**. Situação do registro:
+  código + número de **recibo**; botões **XML Enviado/XML Recibo**.
+- **Início da obrigação:** 01/2018 p/ empresas > **R$ 79 mi/ano**; versão
+  implementada sobre **layout 1.01.1** (Reinf 2.1 e R-2060/R-5001 ainda não
+  liberados na época); **R-2070** prorrogado (e-Social).
+- **Reinf 1.4:** R-1070 "Id Vara" = 4 caracteres; campo **CNO** em R-5001/R-5011
+  (Totalizadores do R-2010). **Cópia do R-1000** entre períodos: anterior sem
+  data término → copia mantendo validade e situação (período já fecha, recibo/
+  XMLs copiados); com data término → obriga envio, permite **data término vazia**
+  (validade indeterminada); criar com **F8** também permite.
+- **Certificado digital (novo processo, 274890765):** **não se informa mais o
+  caminho do .pfx** — upload do arquivo + senha na aba **NFE** das Obrigações
+  Fiscais (ERP) ou tela **"Upload de certificado digital"** (SystêxtilFast);
+  gravar **F9** valida senha e alias, **sem Alias manual nem reinício do JBoss**;
+  no WEB é gravado no **banco** (híbrido VISION+WEB: VISION mantém o modelo
+  antigo).
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -377,6 +409,14 @@ Conteúdo completo em `.agent/docs/systextil-faturamento.md`,
     `.agent/docs/systextil-integracao-configuracoes.md`.
   - Relacionamento de Naturezas (5999019) → append em
     `.agent/docs/systextil-cadastros-fiscais.md`.
+  - EFD-REINF (194117633, PDFs anexos `REINF.pdf`, `REINF 1.4_v20181023.pdf`,
+    `Documentacao_REINF_SS118954-1-1.pdf` baixados e extraídos) →
+    `.agent/docs/systextil-efd-reinf.md`.
+  - Certificado Digital (274890765, PDFs de instalação ERP/SystêxtilFast) →
+    seção em `.agent/docs/systextil-obrigacoes-fiscais-parametros.md`.
+- Download de anexos via REST anônimo confirmado:
+  `.../wiki/rest/api/content/{pageId}/child/attachment` (lista; `mediaType` em
+  `extensions`) e `.../child/attachment/{attId}/download` (arquivo).
 - Coleta anônima via REST: `.../wiki/rest/api/content/{pageId}?expand=body.storage`
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
@@ -416,3 +456,9 @@ Conteúdo completo em `.agent/docs/systextil-faturamento.md`,
   `.agent/docs/systextil-custos-configuracoes.md`,
   `.agent/docs/systextil-integracao-configuracoes.md`,
   `.agent/docs/systextil-cadastros-fiscais.md`.
+- 0.1.0 (2026-09-06, 6ª rodada): adicionados EFD-Reinf (Painel Reinf obrf_f118,
+  quadros R-1000–R-5001, fechamento/reabertura, Reinf 1.4, cópia do R-1000) e o
+  novo processo de instalação do certificado digital (upload + senha, sem
+  Alias/JBoss, gravado no banco) — fontes `.agent/docs/systextil-efd-reinf.md` e
+  `.agent/docs/systextil-obrigacoes-fiscais-parametros.md` (download de anexos
+  via REST anônimo confirmado).
