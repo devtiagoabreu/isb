@@ -267,7 +267,7 @@ export const CRUD_ENTITIES: Record<string, CrudEntitySchema> = {
     readOnly: true,
     fields: [
       { name: "id", label: "ID", type: "number", column: true, info: { oQue: "Identificador do contato no Bling.", regras: ["Gerado pelo Bling."] } },
-      { name: "nome", label: "Nome", type: "text", column: true, info: { oQue: "Nome/razão social da transportadora.", regras: ["Use a razão social oficial (consta do CNPJ)."], exemplos: ["TRANSPORTADORA BRASIl LTDA"] } },
+      { name: "nome", label: "Nome", type: "text", column: true, info: { oQue: "Nome/razão social da transportadora.", regras: ["Use a razão social oficial (consta do CNPJ)."], exemplos: ["TRANSPORTADORA BRASIL LTDA"] } },
       {
         name: "numeroDocumento",
         label: "CPF / CNPJ",

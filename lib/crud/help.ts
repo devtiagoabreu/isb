@@ -91,7 +91,7 @@ export const EMAIL_NFE = {
   regras: [
     "Pode ser um e-mail corporativo separado do e-mail comercial.",
     "Precisa ter caixa disponível (e-mail com bounce rejeita o envio da nota).",
-    "Processos de cotações/confeções costumam usar o e-mail da administração.",
+    "Processos de cotações/confecções costumam usar o e-mail da administração.",
   ],
   exemplos: ["nf@tecidossubra.com.br (emissão de NF-e)", "financeiro@tecidossubra.com.br (2ª via)"],
 } satisfies CrudFieldInfo;
@@ -123,7 +123,7 @@ export const TIPO_FRETE = {
 
 export const FORMA_PAGAMENTO = {
   oQue: "Código da forma/condição de pagamento padrão do cadastro no ERP (tabela de formas do Systêxtil).",
-  regras: ["Use o código da tabela (não a descrição) — campos 'código' do ERP são numéricos.", "Convenção comum têxtil: BOLETO, DI, CHEQUE A PRZO, CARTÃO, CREDIÁRIO — conforme cadastrado."],
+  regras: ["Use o código da tabela (não a descrição) — campos 'código' do ERP são numéricos.", "Convenção comum têxtil: BOLETO, DI, CHEQUE A PRAZO, CARTÃO, CREDIÁRIO — conforme cadastrado."],
   exemplos: ["Boleto 30 dias → código da forma", "Cheque pré-datado → código da forma"],
 } satisfies CrudFieldInfo;
 
@@ -217,7 +217,7 @@ export const GENERO_TIPI = {
   regras: [
     "Tabela de Gênero do Item (SPED fiscal): gênero = capítulo TIPI da mercadoria.",
     "Têxteis: gênero correspondente ao capítulo (52 algodão, 54 sintéticos, 60 malha, 62 vestuário...).",
-    "Few produtos têxteis podem ter gêneros genéricos para serviços (ex.: beneficiamento) — confira com o fiscal.",
+    "Alguns produtos têxteis podem ter gêneros genéricos para serviços (ex.: beneficiamento) — confira com o fiscal.",
   ],
   exemplos: ["5208.19.00 → gênero 52 (algodão)", "tecidos de malha 60xx → gênero 60"],
 } satisfies CrudFieldInfo;
@@ -496,7 +496,7 @@ export const DESCONTO_SPD = {
   regras: [
     "Só aplicar percentuais autorizados (tabela comercial).",
     "Desconto soma na sequência 1 → 2 → 3 (ex.: 5% + 2% + 1%).",
-    "Descontos abrasivos alteram a base de PIS/COFINS — validar com o fiscal.",
+    "Descontos elevados alteram a base de PIS/COFINS — validar com o fiscal.",
   ],
   exemplos: ["tabela de desconto 10% → 10", "desconto progressivo 5% + 2% → 5 e 2"],
 } satisfies CrudFieldInfo;
@@ -617,7 +617,7 @@ export const BLING_GTIN = {
 } satisfies CrudFieldInfo;
 
 export const BLING_PESO = {
-  oQue: "Peso líquido (alíquota de IPI/frete) e bruto (embalagem) do produto em kg.",
+  oQue: "Peso líquido e bruto (embalagem) do produto, em kg.",
   regras: [
     "Peso bruto = líquido + embalagem.",
     "Conferido nos transportes (frete) e no peso da NF-e.",
@@ -723,7 +723,7 @@ export const PRECO = {
 
 export const PRECO_CUSTO = {
   oQue: "Preço de custo do produto (último custo de compra/formação).",
-  regras: ["É dado interno — não exporem em catálogos/marketplaces.", "Embasa a margem e o custo da NF-es de venda (SPED)."],
+  regras: ["É dado interno — não expor em catálogos/marketplaces.", "Embasa a margem e o custo da NF-e de venda (SPED)."],
   exemplos: ["última entrada de 8,30 → 8.3"],
 } satisfies CrudFieldInfo;
 
@@ -794,7 +794,7 @@ export const TIPO_SOCIO = {
   oQue: "Indica se o fornecedor está relacionado como sócio de empresa do grupo (partes relacionadas).",
   regras: [
     "Use para transparência de partes relacionadas (controles societários).",
-    "Não é pré-requisito para comprasonde — é informação complementar.",
+    "Não é pré-requisito para a compra — é informação complementar.",
   ],
   exemplos: ["fornecedor ligado ao sócio → true", "fornecedor independente → false"],
 } satisfies CrudFieldInfo;
@@ -830,7 +830,7 @@ export const TIPO_FRETE_PEDIDO = {
 
 export const EMPRESA_PEDIDO = {
   oQue: "Código da empresa/estabelecimento emissor do pedido.",
-  regras: ["Use o código do CNPJ/CNPJ da empresa de venda.", "Define a série da NF-e e o cadastro fiscal usado."],
+  regras: ["Use o código do CNPJ da empresa de venda.", "Define a série da NF-e e o cadastro fiscal usado."],
   exemplos: ["código da empresa matriz → 1 (exemplo)", "código da filial de expedição → 2 (exemplo)"],
 } satisfies CrudFieldInfo;
 
