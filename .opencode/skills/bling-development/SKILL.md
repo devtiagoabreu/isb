@@ -154,7 +154,14 @@ Regras críticas:
 ### Docs locais
 - `.agent/docs/bling-estudo.md` — estudo das fontes oficiais (1ª rodada).
 - `.agent/docs/bling-repositorios.md` — SDKs/integrações/padrões (1ª rodada).
+- `.agent/docs/bling-api-pesquisa-oficial.md` — pesquisa web oficial
+  aprofundada (escopos, JWT, endpoints, webhooks ISB, plano mínimo, migração
+  URL v3, lacunas; 1ª rodada).
 - `.agent/docs/bling-wiki-map.md` — mapa de fontes, cobertura e lacunas.
+- `.agent/docs/bling-catalog.md` — catálogo AUTO das 257 operações / 49 tags
+  (2ª rodada).
+- `.agent/docs/bling-schemas-key.md` — schemas AUTO dos 10 módulos ISB,
+  189 de 407 schemas (2ª rodada).
 - `.agent/docs/api-bling.md` — referência conceitual da API v3.
 - `.agent/docs/bling-openapi.md` — Swagger JSON cru (27k linhas).
 - `.agent/docs/manual-integracao-versao-1.md` — arquitetura/domínio ISB.
@@ -176,3 +183,22 @@ Regras críticas:
   (SDK `bling-erp-api-js`, PHP, conectar Omie/Bling/Tiny com modelo canônico,
   EcommAPI estoque tipo B, MCPs) e padrões de integração — fonte
   `.agent/docs/bling-repositorios.md`.
+- 0.1.1 (2026-09-07, 2ª rodada): **consolidação do OpenAPI em docs legíveis** —
+  `.agent/docs/bling-catalog.md` (catálogo das 257 operações agrupadas pelas
+  49 tags: produtos, estoques, NF-e/NFC-e/NFS-e, pedidos, contas, caixas,
+  situações, notificações, logísticas, etc.) e `.agent/docs/bling-schemas-key.md`
+  (**189 schemas-chave**, dos 407 do Swagger, dos 10 módulos ISB — produtos,
+  estoques/depósitos, vendas/pedidos, compras, contatos/empresas, contas
+  receber/pagar, situações/transições, caixas, NotasFiscais/NF-e, notificações)
+  com campos, tipos, **`[req]`** (obrigatórios), descrições e enumerações —
+  gerados por script a partir do Swagger oficial; também documentada a
+  **pesquisa web oficial** (`.agent/docs/bling-api-pesquisa-oficial.md`:
+  escopos detalhados, plano mínimo Cobalto, migração de URL, tackles p/
+  webhooks ISB e lacunas, incluindo a ausência de Swagger JSON público e
+  deprecation da base `bling.com.br/Api/v3` → `api.bling.com.br/Api/v3`).
+  **Conclusão sobre URLs:** o Swagger oficial declara os endpoints **OAuth**
+  (`authorize`/`token`/`refresh`) em `bling.com.br/Api/v3/oauth/*`; a
+  descontinuação de `bling.com.br/Api/v3` (30/04/2026) atinge apenas a **base
+  de recursos** → `api.bling.com.br/Api/v3`. Verificado em `lib/bling.ts`
+  (`TOKEN_URL`/`AUTHORIZE_URL` em `www.bling.com.br` OAuth; `BLING_API_BASE`
+  em `api.bling.com.br`) — **consistente, sem mudança necessária**.
