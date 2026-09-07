@@ -875,6 +875,126 @@ que o projeto ISB consome. Conteúdo completo em
   codigo_pedido) + `mensagem[]{nivel,campo,valor,mensagem}`; **406** mais de
   um item; **408** registro não existe; **409** já cadastrado.
 
+### 14ª rodada (2026-09-07): APIs Cloud — corporativo, crédito, contábil, produção, webhooks e Paytrack
+
+Continuação no portal GitBook (`api/systextil-apis/*` + `api/paytrack/*`),
+fechando cadastros importantes para o ISB e o módulo de adiantamentos a
+fornecedor. Conteúdo completo em
+`.agent/docs/systextil-apis-corporativo-credito-contabil-paytrack.md`.
+
+- **Funcionário (`/pessoa/v1/funcionario`, CRUD):** chave
+  `empresa_id`+`funcionario_id`+nome(40); `sexo` 1/2, `estado_civil` 1–5,
+  `grau_instrucao` 1–10; permissões True/False (`responsavel_dados`,
+  `lanca_parada`, `lanca_rejeicao`, `lanca_horas_manutencao`,
+  `responsavel_desenvolvimento_produto`, `supervisor_projeto`); `custo_hora`,
+  `centro_custo_id`, `turno`, `cracha`, máquinas — conecta
+  `codigo_funcionario` do pedido de venda (13ª) e OPs (7ª/8ª).
+- **Centro de Custo (`/pessoa/v1/centro-custo`, só GET):** schema **truncado
+  na doc** (sem campos recuperáveis); já usado como FK em todo o ERP (estoque
+  12ª, título a pagar 12ª, lançamento contábil 14ª, paytrack 14ª).
+- **Usuário Centro de Custo (`/pessoa/v1/usuario_centrocusto`, CRUD):**
+  chave `centro_custo_id`+`usuario`; permissões `requisitar_material`,
+  `cancelar_material`, `entregar` (almoxarife), `requisitar_compra`,
+  `aplicacao_compra` — eixo das requisições de estoque/compra (13ª).
+- **Comprador (`/comprador/v1/comprador`, CRUD):** chave `comprador_id`;
+  `comprador_nome`(30), `email_comprador`(40), `fone_ramal_comprador`(8).
+- **Grupo Comprador (`/comprador/v1/grupocomprador`, CRUD):** chave itens
+  `equipe_id`+`comprador_id`+`nivel_produto`+`grupo/subgrupo/item`; raiz
+  `equipe_id`(3)+`equipe_nome`(30)+`equipe_empresa`(3); `compradores[]` e
+  `produtos[]` — comprador responsável por produto.
+- **Empresa (`/empresa/v1/empresa`, só GET):** chave `empresa`; `tipo_empresa`
+  **0** Matriz/**1** Filial/**2** Loja Própria/**3** Franquia/**4** Outros;
+  CNPJ 9/4/2, razão/fantasia, `matriz_empresa`, IE/IE-ST/IM, endereço,
+  cidade+`codigo_ibge`, UF; base infográfica das demais APIs.
+- **Consulta Crédito (`/credito/v1/consulta`, só GET):** retorna **um objeto**
+  (não array); pedidos liberados/bloqueados (vista/prazo/cartão), títulos
+  vencidos e a vencer, **limites individual e grupo econômico**,
+  `saldo_adiantamento`, total faturado, `prazo_medio`, atraso médio/maior,
+  validade do limite; `situacao_credito` **1** Normal/**2** Suspenso —
+  conecta `situacao_venda` 66 (13ª).
+- **XML NFE (`/notafiscal/v1/xmlnfe`, só GET):** `{items:[xml_nfe]}` com
+  empresa, nota/série, datas, `cnpj_9/4/2_nota`, `situacao_nota`+desc, e o
+  campo **`xml`** (conteúdo do XML) — alimenta guarda de XML e conferência do
+  documento de entrada (12ª).
+- **Conta Contábil (`/contabilidade/v1/conta/contabil`, CRUD):** chaves
+  `plano_id`+`plano_mascara`+`conta_contabil_id`+`subconta_id`; `livro_diario`
+  G/R, `tipo_conta` 1 Analítica/2 Sintética, `patrimonio_resultado` 1/2,
+  `debito_credito` D/C, `tipo_orcamento` 0–2, **`natureza_conta`** 1 Ativo/
+  2 Passivo/3 Despesa/4 Receita/5 Mutações Ativas/6 Mutações Passivas/9 Outros;
+  **`natureza_conta_sped`** 1–9; `tipo_natureza` 0–3 (Custos/Despesa/Receita);
+  `livro_auxiliar` C/F/N; `exige_subconta`, `conta_reduzida_manual`,
+  `quebra_filial`, `familia_contabil_id`.
+- **Lançamento Contábil (`/contabilidade/v1/lancamento/contabil`, CRUD):**
+  obrig. POST `empresa_matriz_id`+`empresa_filial_id`+`exercicio`+
+  `data_lancamento`+`lancamento`; `partidas[]`: `sequencia_lancamento`,
+  `origem_id`, `reduzido`, `conta_contabil_id`+`subconta_id`,
+  `debito_credito` D/C, `valor`, `centro_custo_id`, `historico_id`, `lote`,
+  `cliente_fornecedor_participante` **0** não definido/**1** Cliente/
+  **2** Fornecedor (+ CNPJ + nome), `documento`, `projeto_id`/`subprojeto_id`/
+  `servico_id`, `tipo_titulo`, `imposto` — conecta
+  `numero_lancamento_contabil` do Recebimento/títulos (14ª/12ª).
+- **Baixa de Ordem de Confecção (`/producao/v1/baixa-ordem-confeccao`**
+  POST + `sync`): obrig. `ordem_producao`, `periodo_producao`,
+  `ordem_confeccao`, `turno_producao`, `familia`, `codigo_estagio`,
+  `data_producao`, `num_solicitacao`, `qt_pecas_prod`, `qt_pecas_2a`,
+  `qt_perda`, `qt_conserto` — baixa de OP/confecção (7ª/10ª).
+- **Recebimento (`/financeiro/v1/recebimento`, só POST + `sync`):** obrig.
+  `empresa_id`+`cnpj9/4/2_cliente`+`tipo_titulo_id`+`duplicata`+
+  `duplicata_parcela`; `data_recebimento`, `valor_recebido`,
+  `desconto/juros_recebido`, `numero_lancamento_contabil_recebimento`,
+  `portador_recebimento_id`, `conta_corrente_recebimento`,
+  `cheques_terceiro[]` (`sacado_cheque` vazio = dinheiro) — baixa do título a
+  receber (12ª) e alvo do webhook `TITULO/RECEBER/RECEBIMENTO`.
+- **Subscription/Webhook (`/webhook/v1/subscription`, GET/POST/DELETE):**
+  `url`(max 2000)+`method` POST/PUT/DELETE+`targets[]` = {`entity`,
+  `events[]` CREATE/UPDATE/DELETE}; `authentication_method` OAuth2/API_KEY
+  (key/value/`add_to` header|query)/BASIC_AUTH/NO_AUTH/TOKEN. **`entity`
+  esbarta as entidades do ISB**: `PEDIDO/VENDA`, `CLIENTE`, `FORNECEDOR`,
+  `PRODUTO`(+`FABRICADO`/`COMPRADO`), `TITULO/RECEBER`,
+  `TITULO/RECEBER/RECEBIMENTO`, `XMLNFE`, `PEDIDO/COMPRA`,
+  `REQUISICAO/COMPRA`, `REQUISICAO/ESTOQUE`, `CONTA/CONTABIL`,
+  `LANCAMENTO/CONTABIL`, `CENTRO/CUSTO`, `GRUPO/COMPRADOR`, `COMPRADOR`,
+  `CENTRO/CUSTO/USUARIO`, `FUNCIONARIO`, `PROJETO`, `FORMA/PAGAMENTO`
+  (+`VENDA`/`COMPRA`), `CONDICAO/PGTO/VENDA`/`COMPRA`, `PRECO/VENDA`,
+  `DEPOSITO`, `UNIDADE/MEDIDA`, `REPRESENTANTE`, `MOTIVO/CANCELAMENTO`,
+  `PEDIDO/TRACKING` — subscrever `PEDIDO/VENDA` + `TITULO/RECEBER/RECEBIMENTO`
+  + `XMLNFE` cobre o ciclo de faturamento sem polling.
+- **Calcular Preço (`GET /venda/v1/preco/calcular-preco/{venda}`):** path nº da
+  venda; queries `forma_de_pagamento`/`condicao_de_pagamento` (int);
+  retorna `valor`, `tarifa`, `taxa`, `valor_calculado_forma` +
+  `condicoes_de_pagamento[]` com `valor_calculado`/`valor_da_parcela` —
+  conecta taxas da forma de pagamento de venda (13ª).
+- **Paytrack (`/systextil-adto-viagens/api`, camelCase, base separada;**
+  `origem` (cpag_f001) + `observacao`(60) obrigatórios nas escritas):
+  - **Centros de Custo** `GET /v1/centros-custo`: `tipoMaoObra` 1 AUXILIAR/
+    2 PRODUTIVA/3 ADMINISTRATIVA/4 COMERCIAL.
+  - **Adiantamentos** `POST /v1/adiantamentos`: obrig. `origem`, `empresaId`,
+    `cgcR` (9 dígitos CNPJ ou CPF), `cgcO` ("0000" p/ CPF), `cgc2`,
+    `situacao` **ABERTO** (a pagar)/**PAGO** (exige `titulo.contaPagamento`),
+    `moeda` ISO (BRL/USD/EUR), `codigoPortador`, `valorAdiantamento`(+reais),
+    `cotacaoMoeda`/`dataCotacao` (estrangeira), `titulo`
+    (`codigoCentroCusto` obrig., `posicao`, `contaPagamento`);
+    retorna **`numeroAdiantamento`**; `PUT /v1/adiantamentos/cancelar`:
+    `origem`+`numeroAdiantamento`+`codigoCancelamento` (se não pago).
+  - **Pagável** `GET /v1/pagavel?numeroAdiantamento=`: chave `PagavelID`
+    = `numeroDuplicata`+`parcela`+`cgcR/O/2`+`tipoTitulo`+`valorPago`.
+  - **Prestação de Contas** `POST /v1/prestacao-contas`: `adiantamento`+`data`+
+    `despesas[]` por `centroDeCusto`+`valor`; `recebimento`: `pago` true
+    liquida (`contaCredito`) / false gera título a receber
+    (`codigoFormaPagamento`+`dataVencimento`); `contaFornecedor` p/ agendamento.
+  - **Devolução** `POST /v1/devolucao`: devolve o valor **total** não usado
+    (mesmo schema `recebimento`).
+  - **Reembolso** `POST /v1/pagavel/reembolso`: título de reembolso **sem**
+    vínculo com adiantamento (`despesas[]` rateiam por centro de custo).
+  - **Despesas Cartão** `POST /v1/pagavel/despesas`: `cartao` **CORPORATIVO**/
+    **DESPESAS**; gera e liquida títulos (fornecedor/tipo via `origem`).
+  - **Ciclo:** Adiantamento → Prestação de Contas → (Recebimento/Devolução) |
+    Reembolso direto | Despesas de cartão; consulta por Pagável.
+- **Padrões novos (14ª):** base Paytrack própria (camelCase) vs demais
+  (snake_case); webhooks são o push oficial (entity = entidades CRUD do ISB);
+  Paytrack `origem` é a chave da integração (cpag_f001); `tipoMaoObra` (1–4)
+  e `tipo_empresa` (0–4) novos enums organizacionais.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -971,7 +1091,7 @@ que o projeto ISB consome. Conteúdo completo em
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
   `https://bitbucket.org/systextildevelopers/systextil/wiki/Development`.
-- Portal de documentação oficial (GitBook — **11ª a 13ª rodadas**, SEPARADO da wiki
+- Portal de documentação oficial (GitBook — **11ª a 14ª rodadas**, SEPARADO da wiki
   BCST): `https://ajuda.systextil.com.br` com índice em `.../llms.txt` (Visão
   Geral dos módulos, Manuais, release notes 2026 mensais/diários e APIs Cloud
   em `api/systextil-apis/*`). Páginas do portal podem ser baixadas em markdown
@@ -987,7 +1107,12 @@ que o projeto ISB consome. Conteúdo completo em
   fornecedor, representante, grupo econômico, pedido/requisição de compra e
   de estoque, formas/condições de pagamento de compra e venda
   (`forma_pagamento_nfe` 01–99), tabela de preço de venda, motivo de
-  cancelamento, unidade de medida, depósito e transações/SPH).
+  cancelamento, unidade de medida, depósito e transações/SPH) e
+  `.agent/docs/systextil-apis-corporativo-credito-contabil-paytrack.md` (14ª:
+  funcionário, centro de custo/usuário centro de custo, comprador/grupo
+  comprador, empresa, consulta crédito, XML NFE, conta/lançamento contábil,
+  baixa de ordem de confecção, recebimento, subscription/webhooks e Paytrack
+  adiantamentos/PC/devolução/reembolso/despesas cartão).
 - Referência antiga da API: `https://ajuda.systextil.com.br/api`.
 - Suporte: `suporte@systextil.com.br`.
 
@@ -1135,4 +1260,29 @@ link_pagamento, pix_copiacola, bolepix) e Planejamento Industrial
    Unidade de Medida (`unidade_medida_fci`), Depósito (tipo_volume 0/1/2/4/7/9,
    rolo_mini, tipo_propriedade 1–3, tipo_valorizacao 1–4) e Transações/SPH
    (`numero_referencia`, link/pix/qr_code) — fonte
-   `.agent/docs/systextil-apis-cadastros-compras-venda.md`.
+`.agent/docs/systextil-apis-cadastros-compras-venda.md`.
+- 0.1.0 (2026-09-07, 14ª rodada): APIs Cloud de **corporativo, crédito,
+   contábil, produção, webhooks e Paytrack** — Funcionário (sexo 1/2,
+   estado_civil 1–5, grau_instrucao 1–10, permissões), Centro Custo (GET
+   truncado na doc) e Usuário Centro Custo (`centro_custo_id`+`usuario`,
+   permissões requisitar_material/compra, entregar, aplicacao_compra),
+   Comprador e Grupo Comprador (`equipe_id`+`equipe_nome`+`compradores[]`+
+   `produtos[]` nivel_produto), Empresa (`tipo_empresa` 0 Matriz/1 Filial/
+   2 Loja Própria/3 Franquia/4 Outros), Consulta Crédito (`situacao_credito`
+   1 Normal/2 Suspenso; limites individual/grupo econômico; conecta
+   situacao_venda 66), XML NFE (campo `xml` p/ guarda da NF-e), Conta Contábil
+   (`natureza_conta` 1–6/9, `natureza_conta_sped` 1–9, tipo_orcamento 0–2,
+   livro_auxiliar C/F/N, exige_subconta) e Lançamento Contábil
+   (partidas[] debito_credito D/C, cliente_fornecedor_participante 0/1/2,
+   projeto_id), Baixa de Ordem de Confecção (POST+sync; pecas 1ª/2ª/conserto/
+   perda), Recebimento (POST; cheques_terceiro[] sacado vazio = dinheiro),
+   **Subscription/webhooks** (`targets.entity` esbarta entidades ISB:
+   PEDIDO/VENDA, TITULO/RECEBER/RECEBIMENTO, XMLNFE, CLIENTE, FORNECEDOR,
+   PRODUTO...; auth OAuth2/API_KEY/BASIC_AUTH/NO_AUTH/TOKEN add_to header|
+   query), Calcular Preço (`GET /venda/v1/preco/calcular-preco/{venda}`) e
+   **Paytrack** (`/systextil-adto-viagens/api`, camelCase, `origem`=cpag_f001;
+   adiantamentos → numeroAdiantamento (situacao ABERTO/PAGO exige
+   titulo.contaPagamento, moeda ISO + cotacao), prestação de contas
+   (recebimento pago true liquida/false gera título), devolução, reembolso,
+   despesas cartão CORPORATIVO/DESPESAS, `GET /v1/pagavel?numeroAdiantamento`)
+   — fonte `.agent/docs/systextil-apis-corporativo-credito-contabil-paytrack.md`.
