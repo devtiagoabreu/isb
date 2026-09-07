@@ -2,7 +2,7 @@
 name: bling-development
 description: Desenvolver e manter integrações com o ERP Bling (API v3). Use ao implementar ou depurar chamadas à API do Bling, autenticação OAuth 2.0 (Authorization Code + JWT), endpoints /produtos, /estoques, /pedidos/vendas, /nfe, /contas, webhooks X-Bling-Signature-256, formação de SKU, regras de estoque, rate limits, ou o fluxo Bling -> Systêxtil (NF-e/vendas) no projeto ISB.
 category: integration
-version: 0.1.0
+version: 0.2.0
 author: devtiagoabreu
 license: MIT
 provenance:
@@ -160,8 +160,15 @@ Regras críticas:
 - `.agent/docs/bling-wiki-map.md` — mapa de fontes, cobertura e lacunas.
 - `.agent/docs/bling-catalog.md` — catálogo AUTO das 257 operações / 49 tags
   (2ª rodada).
-- `.agent/docs/bling-schemas-key.md` — schemas AUTO dos 10 módulos ISB,
-  189 de 407 schemas (2ª rodada).
+- `.agent/docs/bling-schemas-key.md` — schemas AUTO dos módulos ISB, 189 de
+  407 schemas; **regenerado na 3ª rodada** com novos módulos
+  (OrdensProducao, FormasPagamentos, Categorias, UnidadeNegocio/Vendedor/Loja).
+- `.agent/docs/bling-webhooks.md` — webhooks de implementação (3ª rodada):
+  payloads `data` por recurso (order/product/stock/virtual_stock/invoice/
+  consumer_invoice), validação HMAC, fila/dedupe.
+- `.agent/docs/bling-fluxo-nfe.md` — fluxos fiscais (3ª rodada): NF-e/NFC-e/
+  NFS-e criar→enviar→lançar estoque/contas→estorno, enum situacao 1–11,
+  endpoints de situações/transições.
 - `.agent/docs/api-bling.md` — referência conceitual da API v3.
 - `.agent/docs/bling-openapi.md` — Swagger JSON cru (27k linhas).
 - `.agent/docs/manual-integracao-versao-1.md` — arquitetura/domínio ISB.
@@ -202,3 +209,17 @@ Regras críticas:
   de recursos** → `api.bling.com.br/Api/v3`. Verificado em `lib/bling.ts`
   (`TOKEN_URL`/`AUTHORIZE_URL` em `www.bling.com.br` OAuth; `BLING_API_BASE`
   em `api.bling.com.br`) — **consistente, sem mudança necessária**.
+- 0.2.0 (2026-09-07, 3ª rodada): **webhooks payloads + fluxos fiscais + novos
+  módulos de schemas** — `.agent/docs/bling-webhooks.md` (recursos chave
+  `order`/`product`/`stock`/`virtual_stock`/`product_supplier`/`invoice`/
+  `consumer_invoice`; ações `created`/`updated`/`deleted`; payload `data`
+  derivado dos schemas oficiais por recurso; `vinculoComplexo` do
+  `virtual_stock`; validação HMAC e recomendações de fila/dedupe para o ISB)
+  e `.agent/docs/bling-fluxo-nfe.md` (fluxos NF-e/NFC-e/NFS-e: POST `/nfe`
+  (allOf `NotasFiscaisDadosBaseDTO`+`DadosPostDTO`) → PUT → `/enviar` →
+  reenviar se rejeitada → `/lancar-estoque[/{deposito}]`+`/lancar-contas` se
+  autorizada → estornos; **enum `situacao` 1–11** (1 Pendente…5 Autorizada,
+  6 DANFE, 9 Denegada, 11 Bloqueada); endpoints de situações/transições
+  `/situacoes/modulos/{id}`+`/acoes`+`/transicoes`; Reforma Tributária 2026
+  IBS/CBS CRT=3). `bling-schemas-key.md` **regenerado** adicionando seções
+  OrdensProducao, FormasPagamentos, Categorias, UnidadeNegocio/Vendedor/Loja.
