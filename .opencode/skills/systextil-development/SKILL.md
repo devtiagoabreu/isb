@@ -577,6 +577,57 @@ Conteúdo completo em `.agent/docs/systextil-tags-etiquetas-cores.md`
 - **Motivos de Cancelamento de OS (`obrf_f500`):** código + descrição usados no
   cancelamento de ordem de serviço (`obrf_f399`).
 
+### 10ª rodada (2026-09-07): Qualidade, defeitos e 2ª qualidade
+
+Conteúdo completo em `.agent/docs/systextil-qualidade-defeitos-2aqua.md`
+(Beneficiamento 5935343 + Confecção 5935433 + Tecelagem 5935818 + Vendas
+5935103 + efic_f205 305823761 + 6501198 + 5999879 + 5936639 + 10064403).
+
+- **Testes/enquadramento de qualidade (laudos):** tipos de teste em
+  **`basi_f660`** (produtos) / **`basi_f561`** (tecelagem, com estágio de
+  produção onde o teste deve ser feito); relaciona tecido × testes via Ficha
+  Técnica `ftec_f600` botão **DADOS TÉCNICOS**; registra resultado em
+  **`pcpb_f270`** (funcionário + resultados); imprime **laudo `pcpb_e380`**
+  (classificação: 1–solidez, 2–encolh. largura, 3–encolh. comprimento,
+  5–largura, 6–gramatura, 999–todos; layout **RPT LAUDO DE QUALIDADE**);
+  `ftec_f640` Hist./Obs. cobre **pontos críticos**/descrição/observações;
+  **QUEBRA POR: QUAL** na liquidação `tmrp_f015` = quebra de fio p/ controle de
+  qualidade.
+- **Motivos de rejeição (`efic_f190`):** por motivo/estágio/produto (ou divisão;
+  níveis 4 tecido cru e 7 fios); **TD (tipo defeito) 1–matéria-prima,
+  2–falha humana, 3–equipamento**; **QTD MÍNIMA/MÁXIMA** do defeito; DESCR.
+- **Apontamento de rejeições:** pré-configurações: estágio ACABAMENTO
+  (Beneficiamento aba GLOBAL, `oper_f500` usuário, **REJEIÇÃO DE TECIDO
+  ACABADOS 0–ordem/quilo ou 1–rolo**). Por **rolo**: `efic_f400` (divisão 2/4/7
+  + ordem) → `efic_f405` (rolos baixados) → `efic_f410` com **classificação do
+  defeito (campo C)**: 1–Recuperado 1ª, 2–Recuperado 2ª, 3–Direto 2ª,
+  4–Fora do Padrão, 5–Devolvido, 6–Produzido (+), 7–Produzido (−), 8–Fora de
+  Cor, 9–Reprocessar. Por **quilo** (meio do processo, sem rolo, usuário estágio
+  ≠ acabamento): `efic_f400→efic_f415`. Baixa `pcpb_f180` botão APONTAMENTO DE
+  QUALIDADE; Automasoft `pcpb_f674` → **reprocesso tipo de ordem 4**. Relatórios
+  `efic_f210/f500`, `efic_e020/e630/e640`.
+- **Confecção — rejeições:** na **Leitura Ótica `pcpc_f140`**, depósito de 2ª
+  qualidade abre o botão **REJEIÇÕES** → **`efic_f200`** (ordem + data) →
+  **`efic_f205`** (rejeições por produto; recentemente traz **todos os
+  registros** independente de data/motivo, com data de cadastro).
+- **Baixa 1ª/2ª/conserto/perdas:** na baixa de estágios informa quantidade por
+  qualidade; **2ª e perdas entram no estoque em qualquer etapa**, **1ª e
+  conserto só no último estágio**; entrada por parâmetro Confecção 0–pela
+  Movimentação de Estoque ou 1–por Ordem de Confecção (Leitura Ótica).
+- **Faturamento 2ª qualidade (5999879):** referência própria + **depósito
+  (tipo prod. `2`–segunda qualidade, tipo dep. pronta entrega)** + transação
+  específica + entrada via Movimentação de Estoques + **pedido pronta entrega**
+  (tipo pedido `1`, **tp. prod. `2`**, **Tabela de Preços** obrigatória) → Consulta
+  de Estoque de Pronta Entrega (qtde a empenhar, F9/F1) → fatura normalmente.
+  Parâmetros de **entradas de 2ª qualidade** em Terceiros (`empr_f001` → Terceiros
+  → zoom → Tipo → F9; tipos 1ª/2ª/perdas) — 6501198/10064403.
+- **Pedido/Vendas:** **CRITÉRIO QUALIDADE** (níveis 2/4/7) liga critério exigido
+  ao tipo de qualidade do produto; **Devolução por qualidade** pós-venda
+  (`pedi_f570/572/574`, TIPO `2–Devolução por qualidade`).
+- **Nota:** **WALT (4 pontos) e ABNT NBR não estão no wiki BCST público** — o
+  enquadramento é pelo **campo C (classificação do defeito)** + **QTD mín/max
+  por motivo** (`efic_f190`).
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -660,6 +711,12 @@ Conteúdo completo em `.agent/docs/systextil-tags-etiquetas-cores.md`
      (6235454), Alteração de cores no estoque (5906946) e Cadastro de Motivos
      de Cancelamento (5999437) →
      `.agent/docs/systextil-tags-etiquetas-cores.md`.
+  - Qualidade/defeitos (2026-09-07): Beneficiamento (5935343), Confecção
+     (5935433), Tecelagem (5935818), Vendas (5935103), Tela efic_f205
+     (305823761), Configurações peças de 2ª qualidade (6501198), Pedidos
+     Faturamento Itens 2.Qualidade (5999879), Cadastro Níveis de Liberação_WEB
+     (5936639) e Configuração de lançamentos por qualidade (10064403) →
+     `.agent/docs/systextil-qualidade-defeitos-2aqua.md`.
 - Download de anexos via REST anônimo confirmado:
   `.../wiki/rest/api/content/{pageId}/child/attachment` (lista; `mediaType` em
   `extensions`) e `.../child/attachment/{attId}/download` (arquivo).
@@ -750,3 +807,15 @@ Conteúdo completo em `.agent/docs/systextil-tags-etiquetas-cores.md`
    (BASI_030 COR_DE_ESTOQUE vs COR_DE_SORTIDO, basi_f080 vs ftec_f700) e
    motivos de cancelamento de OS (obrf_f500) — fonte
    `.agent/docs/systextil-tags-etiquetas-cores.md`.
+- 0.1.0 (2026-09-07, 10ª rodada): adicionada a **Qualidade**: testes/
+   enquadramento (basi_f660/basi_f561, ftec_f600 DADOS TÉCNICOS, pcpb_f270,
+   laudo pcpb_e380, RPT LAUDO DE QUALIDADE), motivos de rejeição (efic_f190
+   com TD 1/2/3 e QTD mín/max), apontamento por rolo (efic_f400/405/410 com
+   classificação do defeito campo C 1–9) e por quilo (efic_f400/415),
+   reprocesso (pcpb_f674 tipo ordem 4), rejeições na confecção
+   (efic_f200/205 via Leitura Ótica com depósito 2ª qualidade), baixa
+   1ª/2ª/conserto/perdas com regra de entrada no estoque, faturamento de 2ª
+   qualidade (5999879), parâmetros Terceiros p/ entradas (6501198/10064403),
+   CRITÉRIO QUALIDADE e devolução por qualidade (pedi_f570/572/574) — fonte
+   `.agent/docs/systextil-qualidade-defeitos-2aqua.md`.
+   Nota: WALT (4 pontos) e ABNT NBR não estão no wiki BCST público.
