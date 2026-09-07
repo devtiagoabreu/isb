@@ -628,6 +628,76 @@ Conteúdo completo em `.agent/docs/systextil-qualidade-defeitos-2aqua.md`
   enquadramento é pelo **campo C (classificação do defeito)** + **QTD mín/max
   por motivo** (`efic_f190`).
 
+### 11ª rodada (2026-09-07): APIs Cloud do Systêxtil (portal ajuda.systextil.com.br)
+
+Nova fonte separada da wiki BCST: portal **GitBook** com índice em
+`https://ajuda.systextil.com.br/llms.txt`. Documenta Visão Geral dos módulos,
+**release notes 2026 (mensal + diário)** e as **APIs Cloud** (`api/systextil-apis/*`).
+Conteúdo completo em `.agent/docs/systextil-apis-cloud-integracao.md`.
+
+- **Autenticação/paginação:** OAuth2 **client credentials** (token Oracle IDCS
+  com escopos `C0405:QA`/`C0405:PRD`) + header `APIKey`; servidores
+  `https://api-{customerid}.systextilapps.com.br/` (PRD) e `qa-api-...` (QA);
+  rota alternativa `https://{customerid}.systextil.com.br/systextil-oauth2-api/...`
+  (renegociação, instruções bancárias). Coleções usam `limit` (1–100, default
+  20) + `offset`; limites de caracteres retornam `413`.
+- **Filtro `q=` (FilterObject, padrão das consultas REST de coleção):**
+  `$eq/$ne/$lt/$lte/$gt/$gte/$instr/$ninstr/$like/$null/$notnull/$between/`
+  `$and/$or/$orderby/$asof` (data RFC3339 UTC ou SCN) — codificado RFC3986.
+  Ex.: `?q={"nome_cliente":"JOHN"}`, `{"SALARY":{"$between":[1000,2000]}}`,
+  `{"$orderby":{"SALARY":"DESC"}}`.
+- **Romaneio de Rolos (`GET /fatu/relatorios`):** cabeçalho + rolos + totais.
+  Filtros: `codigo_empresa` (obrig.), `pedido`, `nota_fiscal`+`serie_nota_fiscal`,
+  `romaneio`, `ordenacao` (0–ordem_tingimento/seq_tingimento/seq_corte,
+  1–rolada/seq_tingimento/seq_corte, 2–artigo/endereco_rolo). Campos do rolo:
+  `etiqueta`, `endereco_rolo`, `metros`, **`nuance`**, `largura`,
+  `peso_bruto/liquido`, **`qualidade_lote`**, **`pontos` (pontuação de
+  qualidade)** — conecta com a 10ª rodada (classificação do defeito).
+- **Sugestão de rolos para venda:** `POST /crm/v1/sugerir-rolos` (pedido da
+  força de vendas + cnpj9/4/2 + produto + empresa + quantidade + usuario +
+  qualidade + deposito; retorna quantidades em estoque/disponível/sugerida/
+  restante) e `GET|POST /crm/v1/sugerir-rolos-dpv` (pronta entrega +
+  programado pelo DPV; `saldoDPV`, períodos de produção,
+  `proximoPeriodoViavel`). **DPV = períodos da programação de produção**
+  (`codigoPeriodoProducao`, datas início/fim/real).
+- **Quebra DPV (`GET /crm/v1/quebra-dpv`):** quebras de produção do DPV por
+  produto: `tipoQuebra`+`descricaoQuebra`, `quebraDetalhe`, `PrevistoDia`,
+  `PrevistoAcumulado`, `Realizado` — perdas para reposição/replanejamento.
+- **Tracking Pedido (`GET /venda/v1/pedido/{codigo}/tracking`):** mascara os
+  status do pedido: **1** recebido → **2** em análise → **3** aprovado
+  financeiro → **4** em emprenho → **5** geração romaneio / **6** liberado p/
+  separação → **7** separação → **8** faturamento → **9** faturado → **10** saiu
+  p/ entrega; retorna também `nota_fiscal`, `data_ocorrencia`, `tracking`.
+- **Industrial (produção):**
+  - **Ordem Beneficiamento** (`GET /industrial/v1/ordembeneficiamento`):
+    `ordem_producao`, `periodo_producao`, `numero_receita`,
+    `numero_maquina_id`/`grupo_maquina_id`, `operacao_id`, `peso_tingimento`,
+    `quantidade_quilos_programados`/`quantidade_rolos_programados`,
+    `largura_tecido`, `gramatura`, `relacao_banho`, `situacao_ordem`,
+    `data_programa`, `previsao_termino`.
+  - **Fila Máquina** (`GET /industrial/v1/filamaquina`): ordens de trabalho
+    alocadas em recursos com `quantidade`, `quantidade_produzida`,
+    `tempo_producao`, `minutos_unitario`, `termino_producao`, `tipo_alocacao`.
+  - **Roteiro** (`GET /industrial/v1/roteiro`): produto × `operacao_id` ×
+    `estagio_id` × centro de custo com `tempo_em_minutos`, `alternativa`,
+    `roteiro`, `sequencia_operacao`.
+- **Financeiro/renegociação** (`/systextil-oauth2-api/inte/renegociacao`;
+  GET/POST/PUT/DELETE): **capa** (tipo **0–manual | 1–CMC7**; situação
+  **SIMULACAO | EFETIVACAO**; `concede_parcial`, `concede_desconto`; taxas de
+  renegociados e novos com `tipo_reajuste` **1–juros simples mensal, 2–juros
+  diários, 3–índice/moeda + juros simples**, moeda via basi_f450/basi_256) +
+  **títulos substituídos** (baixados) + **substitutos** (novos; `nr_identificacao`
+  = Atributo de Remessa `cobr_f080`). Regras: cancelar renegociação EFETIVADA
+  exige `codigo_historico_estorno` + `codigo_cancelamento`; ao atualizar
+  títulos enviar **lista completa** (os não enviados são removidos).
+- **Instruções Bancárias** (`/systextil-oauth2-api/cobr/instrucoes-bancarias`;
+  GET/POST/DELETE): inclui instrução sobre duplicata (`instrucao_interna`,
+  `portador_dupl`, protesto, prorrogação, juros, `gera_fidc`, bloco de baixa
+  `vlr_pago/desc/juro` + contas/históricos); **exclusão bloqueada** quando a
+  duplicata não está na situação `0` e para instrução tipo prorrogação (data/dias).
+- Nota: o portal GitBook tem o mecanismo `?ask=<pergunta>` para consultas
+  dinâmicas com trechos-fontes — útil em rodadas futuras.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -724,6 +794,12 @@ Conteúdo completo em `.agent/docs/systextil-qualidade-defeitos-2aqua.md`
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
   `https://bitbucket.org/systextildevelopers/systextil/wiki/Development`.
+- Portal de documentação oficial (GitBook — **11ª rodada**, SEPARADO da wiki
+  BCST): `https://ajuda.systextil.com.br` com índice em `.../llms.txt` (Visão
+  Geral dos módulos, Manuais, release notes 2026 mensais/diários e APIs Cloud
+  em `api/systextil-apis/*`). Páginas do portal podem ser baixadas em markdown
+  acrescentando `.md` ao final da URL. Mecanismo `?ask=<pergunta>` para
+  consultas dinâmicas com trechos-fontes. → `.agent/docs/systextil-apis-cloud-integracao.md`.
 - Referência antiga da API: `https://ajuda.systextil.com.br/api`.
 - Suporte: `suporte@systextil.com.br`.
 
@@ -819,3 +895,17 @@ Conteúdo completo em `.agent/docs/systextil-qualidade-defeitos-2aqua.md`
    CRITÉRIO QUALIDADE e devolução por qualidade (pedi_f570/572/574) — fonte
    `.agent/docs/systextil-qualidade-defeitos-2aqua.md`.
    Nota: WALT (4 pontos) e ABNT NBR não estão no wiki BCST público.
+- 0.1.0 (2026-09-07, 11ª rodada): adicionada a **API Cloud do Systêxtil** —
+   nova fonte (portal GitBook ajuda.systextil.com.br, índice `llms.txt`):
+   autenticação OAuth2 client credentials (escopos C0405:QA/PRD, token Oracle
+   IDCS + header APIKey, servidores apis.systextilapps.com.br QAS/PRD,
+   rota alternativa systextil-oauth2-api) e paginação limit/offset;
+   gramática de filtro `q=` (FilterObject: $eq/$ne/$lt/$lte/$gt/$gte/$instr/
+   $ninstr/$like/$null/$notnull/$between/$and/$or/$orderby/$asof);
+   Romaneio de Rolos (GET /fatu/relatorios, nuances + qualidade_lote + pontos
+   de qualidade, ordenação 0/1/2), Sugerir Rolos + Sugerir Rolos DPV
+   (/crm/v1, saldoDPV e períodos de produção), Quebra DPV, Tracking Pedido
+   (status 1–10), Ordem Beneficiamento, Fila Máquina e Roteiro (/industrial/v1),
+   Renegociação de Títulos (tipo 0 manual/1 CMC7, SIMULACAO/EFETIVACAO,
+   tipo_reajuste 1/2/3) e Instruções Bancárias (bloqueio de exclusão) —
+   fonte `.agent/docs/systextil-apis-cloud-integracao.md`.
