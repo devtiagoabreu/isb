@@ -518,6 +518,65 @@ Conteúdo completo em `.agent/docs/systextil-beneficiamento-tinturaria-estampas.
   `e320` (giro), `e340` (FAL), `e440` (OBs a preparar); endereçamento
   `pcpb_f940/e900` e rolos `inte_p016/inte_f170/estq_f170`.
 
+### 9ª rodada (2026-09-07): TAGs, Etiquetas e Cores no estoque
+
+Conteúdo completo em `.agent/docs/systextil-tags-etiquetas-cores.md`
+(5999113 + 5999326 + 6235454 + 5906946 + 5999437).
+
+- **TAGs sem OP (5999113):** configurar nº de OP e Ordem de Confecção padrão
+  em Cadastro de Empresas → **Estoques → aba `++`**; menu Controle de Estoques
+  → **Movimentação de Tags sem OP**. "Geração": origem **NF de Devolução** (NF
+  entrada + série + CNPJ) ou **Pedido de Compra** (nº + seq, traz item/qtde);
+  gera as tags **sem entrar no estoque (situação 9, eliminada)**. "Entrada":
+  informa origem + depósito + transação → depósito **tipo vol = 1 (TAG)** ⇒
+  situação **1 (em estoque)**; depósito sem volume (tipo vol = 0) ⇒ situação **4**.
+- **Coleta de peças devolvidas de depósitos de TAG (5999326):** NF de devolução
+  com **transação que NÃO atualiza estoque** (só fiscal); no **Systêxtil Palm →
+  Coleta de Peças Devolvidas** informa NF entrada + CNPJ + depósito + transação
+  **que atualiza estoque** e passa a TAG no leitor; a TAG precisa estar
+  **situação 4 – faturado ou 9 – eliminado** (Consulta Individual de Tags);
+  depois **Confirmação de Devolução** (Faturamento): relatório de conferência e,
+  após conferido, **Atualização dos Estoques**.
+- **Segmento Vendas de Etiquetas (6235454):** etiquetas = produtos **nível 2**;
+  habilitar **Vendas → aba `++` → VENDA DE ETIQUETA (1/0)**. Menu **Vendas
+  Segmento Etiquetas** com pré-cadastros: **Grupos de Características
+  (`basi_f135`) + Variações por Grupo (`basi_f136`)** (tipo produto/ligamento/
+  acabamento/aplicação) e coeficientes de preço **`basi_f825` NFL, `basi_f826`
+  CC, `basi_f835` tags, `basi_f834` cadarço, `basi_f832` largura por material,
+  `basi_f831` qtd por tipo de produto, `basi_f821` CM**; item em `basi_f110` com
+  o código do tipo.
+- **Pedido (`pedi_f130`):** **PEDIDO DE = 2** (tecidos acabados); numeração
+  manual/auto (`empr_f825`); **CRITÉRIO**: 0–sem, 1–com, **3** (faturar total,
+  todos itens 100%), **4** (alguns itens mas selecionados 100%), **5**
+  (proporcionalidade); não cumpridos 3/4/5 ⇒ **bloqueio código 88** (crítica só
+  no faturamento). Observações em `pedi_f135/137/138`. Itens `pedi_f123`:
+  TIPO DE PRODUTO, PRODUTO DERIVADO, TIPO ACABAMENTO/APLICAÇÃO/MATERIAIS
+  AGREGADOS (só valorizam preço), ENSACADO, REPETIÇÃO (pedido de origem
+  carrega), DIMENSÕES (dimensão/perímetro/densidade), ULTRASSÔNICO/ARTE
+  IMPRESSA/TEAR (informativos), CORES (variantes; cada cor = um pedido);
+  **CALCULA PEDIDO** e **FINALIZA PEDIDO** (cria item `pedi_f142`, atualiza
+  `basi_f110` e gera estrutura `basi_f390`).
+- **Produção de etiquetas:** OP manual `pcpb_f065` (período não fechado;
+  VARIAÇÃO DATA PREVISTA DA OB; VALIDAR CAPACIDADE em `empr_f834`; ALTERA
+  DESTINO OB em `oper_f500`) ou **Painel Segmento Etiquetas `pedi_f315`**
+  (ocupação `pcpb_f047`/relat. `pcpb_e047`, **DEFINIR MÁQUINAS `pedi_f316`**,
+  necessidade de fios, emissão). Apontamento `pcpb_f265` (F7 roteiro; usuário
+  responsável pelo estágio `mqop_f005`; não volta estágio baixado; **UNIDADES/
+  BATIDAS só no estágio de acabamento**; novas seq só posteriores). Perdas por
+  defeito `efic_f030` (requer estágio **00 área 00** e motivos p/ produto
+  **`2.00000.000.000000`**) → relatório `efic_e035` (POR PERÍODO via intervalo
+  de datas ou POR DATA; motivos inclusão/exceção). Posição dos pedidos
+  `pedi_f275`. Faturamento `fatu_f050→fatu_f055→fatu_f190`; **Faturamento de
+  Etiquetas por Tear `fatu_e002`** (participação no grupo/geral + máquina).
+- **CORES (5906946):** `BASI_030.COR_DE_ESTOQUE` vs `BASI_030.COR_DE_SORTIDO`.
+  Cor de estoque em `basi_f080` (campo "Cor/sortimento estoque") ⇒ OPs na cor,
+  **estoque na cor, pedidos SÓ no sortido**; Cor de sortido em `ftec_f700`
+  ("cor para pedido") ⇒ OPs e estoque na cor, pedidos na cor **ou** sortido.
+  Regra: usar uma forma **ou** outra — cor de estoque em `basi_f080` **não pode**
+  estar também como cor de pedido em `ftec_f700`.
+- **Motivos de Cancelamento de OS (`obrf_f500`):** código + descrição usados no
+  cancelamento de ordem de serviço (`obrf_f399`).
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -588,14 +647,19 @@ Conteúdo completo em `.agent/docs/systextil-beneficiamento-tinturaria-estampas.
      Estoque_WEB (5937388), Fechamento de Estoques_WEB (5938379), Sugestão de
      Faturamento de Peças (6101407) e Rastreamento de rolos em vendas por
      quilo (5992829) → `.agent/docs/systextil-estoques-depositos.md`.
-  - Beneficiamento: Beneficiamento_VISION (5935343) + PDF de 132 págs.
-     (5935368), Certificação Gestão e Engenharia de Produto (5969196) + PDF
-     (5969238), Aulas 1–4 (6066543/6066646/6066731/6066820) + PDFs, Terceiros -
-     Beneficiamento (5936017) + PDF (5936047), Terceiros - Beneficiamento de
-     Fios (5935917) + PDF (5935953), Terceiros - Tecelagem (5936322) + PDF
-     (5936353), Terceiros - Confecção (5936226) + PDF (5936260), Pedido de
-     Venda TACF/CRUS/FIOS (6232696) + PDF (6232752) e Estrutura de Receitas
-     (5991477) → `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`.
+- Beneficiamento: Beneficiamento_VISION (5935343) + PDF de 132 págs.
+      (5935368), Certificação Gestão e Engenharia de Produto (5969196) + PDF
+      (5969238), Aulas 1–4 (6066543/6066646/6066731/6066820) + PDFs, Terceiros -
+      Beneficiamento (5936017) + PDF (5936047), Terceiros - Beneficiamento de
+      Fios (5935917) + PDF (5935953), Terceiros - Tecelagem (5936322) + PDF
+      (5936353), Terceiros - Confecção (5936226) + PDF (5936260), Pedido de
+      Venda TACF/CRUS/FIOS (6232696) + PDF (6232752) e Estrutura de Receitas
+      (5991477) → `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`.
+  - TAGs/etiquetas/cores (2026-09-07): Geração de TAG's sem OP (5999113),
+     Coleta de Peças Devolvidas de Depósitos de TAG (5999326), Etiquetas
+     (6235454), Alteração de cores no estoque (5906946) e Cadastro de Motivos
+     de Cancelamento (5999437) →
+     `.agent/docs/systextil-tags-etiquetas-cores.md`.
 - Download de anexos via REST anônimo confirmado:
   `.../wiki/rest/api/content/{pageId}/child/attachment` (lista; `mediaType` em
   `extensions`) e `.../child/attachment/{attId}/download` (arquivo).
@@ -673,3 +737,16 @@ Conteúdo completo em `.agent/docs/systextil-beneficiamento-tinturaria-estampas.
    CONVERSÃO UNID P/KG, pcpb_f410/725/470/475, agrupamento 7) e estamparia
    (basi_f562, TIPO PRODUTO 2 estampado) — fonte
    `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`.
+- 0.1.0 (2026-09-07, 9ª rodada): adicionadas TAGs sem OP (parâmetros de OP/OC
+   em Estoques aba `++`, Movimentação de Tags sem OP, origem NF devolução ou
+   pedido compra, situação 9→1/4), coleta de peças devolvidas em depósitos de
+   TAG (Palm, situação 4/9, Confirmação de Devolução), segmento Vendas de
+   Etiquetas (VENDA DE ETIQUETA, nível 2, basi_f135/136 grupos/variedades,
+   coeficientes basi_f821/825/826/831/832/834/835, pedi_f130 CRITÉRIO 3/4/5
+   bloqueio 88, pedi_f123 variantes/cores/ENSACADO/REPETIÇÃO, CALCULA/FINALIZA
+   PEDIDO → basi_f390, pcpb_f065/pedi_f315 produção, pcpb_f265 apontamento
+   com UNIDADES/BATIDAS no acabamento, efic_f030/e035 perdas estágio 00 área
+   00, fatu_f050→f055→f190, fatu_e002 por tear), cores no estoque
+   (BASI_030 COR_DE_ESTOQUE vs COR_DE_SORTIDO, basi_f080 vs ftec_f700) e
+   motivos de cancelamento de OS (obrf_f500) — fonte
+   `.agent/docs/systextil-tags-etiquetas-cores.md`.
