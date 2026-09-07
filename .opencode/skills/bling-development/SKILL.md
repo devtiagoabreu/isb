@@ -2,7 +2,7 @@
 name: bling-development
 description: Desenvolver e manter integrações com o ERP Bling (API v3). Use ao implementar ou depurar chamadas à API do Bling, autenticação OAuth 2.0 (Authorization Code + JWT), endpoints /produtos, /estoques, /pedidos/vendas, /nfe, /contas, webhooks X-Bling-Signature-256, formação de SKU, regras de estoque, rate limits, ou o fluxo Bling -> Systêxtil (NF-e/vendas) no projeto ISB.
 category: integration
-version: 0.3.0
+version: 0.4.0
 author: devtiagoabreu
 license: MIT
 provenance:
@@ -177,6 +177,11 @@ Regras críticas:
   receber/pagar (+`/baixar`), boletos/Pix (`linkQRCodePix`, `linkBoleto`,
   situação 1–7), caixas e bancos (situação R/E/H/N/P/C), contas contábeis,
   borderôs, formas de pagamento, ocorrência (recorrência/parcelamento).
+- `.agent/docs/bling-reconciliacao.md` — taxonomia + de-para (5ª rodada):
+  `/situacoes/modulos/{id}/acoes|transicoes`, schemas `SituacoesModuloDTO`/
+  `SituacoesDTO`/`SituacoesAcaoDTO`/`SituacoesTransicaoDTO`, IDs runtime,
+  códigos de situação de pedido 1/2/3/6 (`valor`), de-para completo fluxos A/B
+  + financeiro com Systêxtil, regras de reconciliação ISB.
 - `.agent/docs/api-bling.md` — referência conceitual da API v3.
 - `.agent/docs/bling-openapi.md` — Swagger JSON cru (27k linhas).
 - `.agent/docs/manual-integracao-versao-1.md` — arquitetura/domínio ISB.
@@ -246,3 +251,18 @@ Regras críticas:
   origem caixa/duplicata/bordero/estoque; contas contábeis, borderôs, formas de
   pagamento, ocorrência recorrente `3`–`8`/parcelada `2`; fluxos ISB venda→NF-e
   autorizada→conta→baixa). De-para com Systêxtil esboçado nos dois docs.
+- 0.4.0 (2026-09-07, 5ª rodada): **taxonomia de situações/transições +
+  reconciliação de-para** — `.agent/docs/bling-reconciliacao.md`: endpoints
+  `/situacoes/modulos` + `/{id}` + `/{id}/acoes|transicoes` (GET), `POST|PUT|
+  DELETE /situacoes[*]` e `/situacoes/transicoes[*]`; schemas
+  `SituacoesModuloDTO` (nome/descricao/criarSituacoes),
+  `SituacoesModuloBaseDTO`, `SituacoesDTO`, `SituacoesAcaoDTO` (ex.
+  `estornarEstoque`), `SituacoesTransicaoDTO` (origem/destino/acoes[id]),
+  `SituacoesDadosDTO` (idHerdado/cor); **IDs de módulo/situação são runtime**
+  (resolver via runtime; `valor` 1/2/3/6 = semântica estável de pedido, `id`
+  varia por conta; `PATCH /pedidos/vendas/{id}/situacoes/{idSituacao}` usa
+  `id`). De-para completo fluxos A/B + financeiro com APIs Systêxtil
+  (`/pessoa/v1/cliente`, `/venda/v1/pedido/venda`, `/fiscal/v1/documento/entrada`,
+  `/financeiro/v1/titulo/receber|pagar`, `/cobr/instrucoes-bancarias`) +
+  regras de reconciliação (idempotência, não reemitir NF-e, estoque por
+  inventário, IBS/CBS).
