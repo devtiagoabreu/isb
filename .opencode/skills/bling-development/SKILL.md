@@ -2,7 +2,7 @@
 name: bling-development
 description: Desenvolver e manter integrações com o ERP Bling (API v3). Use ao implementar ou depurar chamadas à API do Bling, autenticação OAuth 2.0 (Authorization Code + JWT), endpoints /produtos, /estoques, /pedidos/vendas, /nfe, /contas, webhooks X-Bling-Signature-256, formação de SKU, regras de estoque, rate limits, ou o fluxo Bling -> Systêxtil (NF-e/vendas) no projeto ISB.
 category: integration
-version: 0.4.0
+version: 0.5.0
 author: devtiagoabreu
 license: MIT
 provenance:
@@ -182,6 +182,11 @@ Regras críticas:
   `SituacoesDTO`/`SituacoesAcaoDTO`/`SituacoesTransicaoDTO`, IDs runtime,
   códigos de situação de pedido 1/2/3/6 (`valor`), de-para completo fluxos A/B
   + financeiro com Systêxtil, regras de reconciliação ISB.
+- `.agent/docs/bling-sandbox-limites.md` — sandbox/limites + confirmações
+  (6ª rodada): sem sandbox p/ app privado; 429 com `error.limit`/`period` e sem
+  Retry-After; bloqueios por IP; 413/422 não documentados (validação = 400);
+  webhooks v1 oficiais (payload NF-e created/updated/deleted, `product.updated`);
+  estorno de baixa inexistente na API; rejeição SEFAZ = situação 1–11 + artigos.
 - `.agent/docs/api-bling.md` — referência conceitual da API v3.
 - `.agent/docs/bling-openapi.md` — Swagger JSON cru (27k linhas).
 - `.agent/docs/manual-integracao-versao-1.md` — arquitetura/domínio ISB.
@@ -266,3 +271,22 @@ Regras críticas:
   `/financeiro/v1/titulo/receber|pagar`, `/cobr/instrucoes-bancarias`) +
   regras de reconciliação (idempotência, não reemitir NF-e, estoque por
   inventário, IBS/CBS).
+- 0.5.0 (2026-09-07, 6ª rodada): **sandbox/limitações + confirmações oficiais**
+  — `.agent/docs/bling-sandbox-limites.md`: **não há sandbox p/ apps privados**
+  (homologação só p/ públicos, 10 usuários antes); 429 = corpo `error.limit`
+  (3/s, 120k/dia) + `error.period` (changelog v318), **sem header
+  Retry-After/X-RateLimit**; bloqueios IP 300 err/10s, 600 req/10s → 10 min,
+  `/oauth/token` 20/min → 60 min; **413/422 não documentados** — validação de
+  campos é 400 (`VALIDATION_ERROR`), enum `error.type` oficial completo,
+  códigos de resposta presentes 200/201/204/302/400/403/404, paginação máx 100;
+  webhooks v1 confirmados (payload NF-e `invoice`/`consumer_invoice`
+  `{id,tipo,situacao,numero,dataEmissao,dataOperacao,contato,naturezaOperacao,
+  loja}`, `deleted` = `{id}` reduzido, exemplo completo `product.updated`,
+  situação→excluído gera `updated`, máx servidores/URLs **não documentado**);
+  **estorno de baixa não existe na API** (`POST .../baixar` cria; sem
+  `estornar-baixa`; estorno/teste manual via Gerenciar Recebimentos;
+  `estornar-contas|estoque` só de documento/pedido/NF-e); rejeição SEFAZ =
+  situação 1–11 canônica do Swagger (`1 Pendente … 11 Bloqueada`) + artigos
+  oficiais por código (539/209/105/704/1026, NCM, tPag) — API não retorna texto
+  do motivo. Decisão ISB: fila com ≤3 req/s + backoff por `period`, não há
+  reversão programática de baixa, nunca excluir nota rejeitada.
