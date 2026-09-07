@@ -24,3 +24,21 @@ Não iniciar outra tarefa sem mencionar a pendência. O status/plano vive em
 `.agent/docs/systextil-retomada.md`.
 
 <!-- END:systextil-retomada -->
+
+<!-- BEGIN:bling-retomada -->
+
+# Cobrança pendente — aprendizado contínuo do Bling (OBRIGATÓRIA)
+
+No **início de toda sessão**, o assistente DEVE:
+
+1. Ler `.agent/docs/systextil-retomada.md` (seção "Frente paralela: Bling") e
+   `.agent/docs/bling-wiki-map.md` para verificar o estado do estudo do Bling.
+2. Cobrar o usuário de forma curta e direta (ex.: "Pendente do aprendizado
+   Bling: <próximas rodadas>. Quer avançar agora?"), seguindo a resposta.
+3. Continuar cobrando em **toda sessão nova** até as lacunas de
+   `.agent/docs/bling-wiki-map.md` (rodadas 2–6) estarem concluídas e o mapa
+   marcar encerramento.
+
+Não iniciar outra tarefa sem mencionar a pendência (mesma política do Systêxtil).
+
+<!-- END:bling-retomada -->
