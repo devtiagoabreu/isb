@@ -433,6 +433,91 @@ Conteúdo completo em `.agent/docs/systextil-producao-engenharia.md`,
   transferência por Movimentação de Estoques "abre o rolo" (registro por rolo)
   para venda por peso.
 
+### 8ª rodada (2026-09-06): Beneficiamento, receitas, tinturaria, estamparia e rama
+
+Conteúdo completo em `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`
+(manual de 132 págs. do PCP Beneficiamento, 5935343/PDF 5935368 + Certificação
+5969196, Aulas 1–4 e manuais de Terceiros 5936017/5935917/5936322/5936226).
+
+- **Receitas de beneficiamento** (divisão 5, código 15 posições como tecido):
+  `basi_f200` (PASTA BANHO 0/1 — estamparia/tingimento foulard + Transferência
+  de Químicos entre Depósitos; SERVIÇO 1=externo/terceiro só codifica,
+  2=interno obriga estrutura) → `basi_f210` (subgrupo; **FATOR ABSORÇÃO** p/
+  pasta banho) → `basi_f220` (sortimento, NR GRÁFICO TINGIMENTO).
+- **Estrutura de receitas:** `basi_f390` → F9 → `basi_f395` (SEQ, UM, **CONS
+  REC** ex. `2%` ou `20g/l`, TIPO CÁLCULO `basi_f330`, PERDA, **LETRA**,
+  **ESTÁGIO**, **GRÁFICO**, CENTRO CUSTO). Conceito: cadastrar **sub-receitas**
+  (purga, lavação, tingimento, acabamento, mercerização, amaciamento) e
+  **compor** a receita principal.
+- **Materiais comprados (divisão 9, `basi_f280`):** **TPQ** 1=corante (consume
+  por peso do produto) / 2=auxiliar (consume por **volume de banho**);
+  tolerância: Ctrl+Z → `basi_f281`. **TMP** (`basi_f800`, campo **PESAR**):
+  0 baixa automática / 1 baixa manual na pesagem (`produtos pesados ⇒ sempre 1`)
+  / 2 não é químico / 3 peças / 4 não baixa estoque.
+- **Ficha técnica tecido acabado (`ftec_f600`):** 3 blocos (NR DESENVOLVIMENTO,
+  composição, complementos); botão **DADOS TÉCNICOS (`ftec_f630`)** = GRAMATURA,
+  TIPO ACABAMENTO, LARGURA, PESO ROLO, PERDAS ANTES DE TINGIR, GRUPO TING;
+  capacidade por máquina de tingimento em `mqop_f060` (máx/mín quilos/rolos).
+- **Máquinas (`mqop_f010→f025→f033`):** TIPO OPERAÇÃO **6 – LOTE (TINTURARIA)**,
+  PERMITE ORDEM EM VÁRIAS MAQ, **RELAÇÃO BANHO** (litros/kg), **VL. MIN/MAX**
+  (litros do equipamento), OPERAÇÃO MANU p/ máquina simbólica. Estágios:
+  Preparação, **Desengomagem, Mercerização, Alvejamento, Tingimento, Acabamento**
+  (e Estamparia no fluxo); T.E./E.F. simultâneos vs sequenciais; responsáveis
+  `mqop_f006`. **Roteiro (`mqop_f800`)**: operação que PEDE PROD abre componentes
+  da receita; relacionar receita de tingimento via F9.
+- **Gráfico de Tingimento (`mqop_f760/762/840`):** TEMPERATURA, TEMPO, TEMPO
+  TOTAL, LETRA, NOVO BANHO/TRANSBORDO, TIPO DOSAGEM; insumos extras (água,
+  vapor, gás, energia) aparecem na receita mesmo sem estrutura.
+- **Parâmetros (Beneficiamento → Global):** TINTURARIA TECIDOS (estágio de
+  emissão da receita, deve estar nas OBs), ESTOQUE NA PREPARAÇÃO (0 rolo/1
+  estrutura/2 peso padrão ficha/3 sem saída da malha crua), FORMA ENTRADA
+  ESTOQUE, ESTÁGIO ALTERA DESTINO DA OB, **ESTÁGIO DE ACABAMENTO** (rejeição por
+  rolo), **BLOQUEIO ESTÁGIO TINT. SE NÃO PESOU QUÍMICO**, ATUALIZA RELAÇÃO DE
+  VOLUME DE BANHO, RPTs (ORD. TINGIMENTO, REPROCESSO, ORDEM BENEFICIAMENTO,
+  FICH.ACOMP., ETIQUETA PESAGEM).
+- **Planejamento:** períodos `tmrp_f070` (área produção, situação 0–3, data
+  limite, liberação); replanejar `tmrp_f340` → Ctrl+Z → `tmrp_f342`. Usuário
+  Beneficiamento `oper_f500/504`: tipo ordem 0/1/2/3/4/9, liberação na pesagem,
+  OB de teste, re-pesagem, reserva/alocação de rolos.
+- **OB (`pcpb_f010/f015/f018`):** tecido + **alternativa e roteiro** + destinos
+  (1 PROGRAMADO, 2 PREVISÃO, 3 PEDIDO, 4 CONFECÇÃO, 5 CLIENTE, **7 ORDEM
+  ESTAMPADO/TRANSFER**, 8 ORDEM PLANEJAMENTO). Preparação: leitura óptica
+  `pcpb_f660` (associa rolos crus; consulta `pcpb_f663`; pré-romaneio
+  `estq_f170`) ou `pcpb_f120` (receita a emitir). Baixa: `pcpb_f070` (estágios
+  c/ data/hora) ou balança `pcpb_f180–184`; rolos cortados `pcpt_f200`.
+- **Ordens de Tingimento (`pcpb_f600`):** **junção de OBs de mesmo tecido e
+  mesma cor** em lotes; máquina tipo 6 + estágio no roteiro + ordem preparada;
+  MÁQUINAS (F2) → `pcpb_f603` define relação de banho (`mqop_f060`) e volume
+  (`mqop_f033`); impressora → **`pcpb_e116`** (Receita de Ordens Relacionadas,
+  gera OT + necessidade de químicos).
+- **Rama / processo contínuo (`pcpb_f610`, tipo de ordem 6):** agrupa OBs **de
+  cores diferentes** para aproveitar receita de máquina em que o tecido **passa
+  por solução**; informar **PICK-UP = % de absorção por quilo de tecido**.
+- **Pesagem de químicos (`pcpb_f679`):** OT (`pcpb_f681`→balança `pcpb_f684`;
+  balança fora → liberação `pcpb_f685` com senha) ou OB (`pcpb_f862`);
+  respeita tolerância `basi_f281`; etiqueta (RPT específico); bloqueio do
+  estágio de tinturaria se não pesou.
+- **Qualidade/rejeições:** testes `basi_f660` relacionados em DADOS TÉCNICOS;
+  laudos `pcpb_f270/275` (classif. 1 solidez/2 encolh. largura/3 comprimento/5
+  largura/6 gramatura/999); rejeição por rolo no **ESTÁGIO DE ACABAMENTO** com
+  usuário REJEIÇÃO DE TECIDO ACABADOS=1; motivos com TD (1 MP/2 falha/3
+  equipamento); classificação do defeito 1–9 (4 Fora do Padrão, 6/7 Produzido
+  ±, 8 Fora de Cor, **9 Reprocessar**); apontamento `efic_f400–420` ou
+  Automasoft `pcpb_f674`; reprocesso: tipo ordem **1** (manual, com OB a
+  REPROCESSAR + rolos) ou **4** (via relacionamento, abre receitas a usar).
+- **Beneficiamento de materiais/aviamentos:** TIPO PROGRAMAÇÃO **10 – OUTRAS
+  M.P.** (`ftec_f550` via `ftec_f125`), FATOR CONVERSÃO UNID P/KG (botão 1g →
+  `0,001000`; grosa → `0,144000`), estrutura com material cru + receita,
+  estágio PREPARAÇÃO área 2; OB `pcpb_f410` TIPO BENEFICIAMENTO **9**; ordem de
+  fio agrupamento **7**; entrada produção sem volume `pcpb_f470/475` (QT. UNID.
+  é o que entra no estoque); FAL nível produto 9.
+- **Estamparia:** TIPO PRODUTO **2 – Tecido estampado**; Cadastro de Estampas
+  `basi_f562` (cores `basi_f560`); PASTA BANHO + FATOR ABSORÇÃO; destino 7;
+  estágio ESTAMPARIA. **Relatórios do beneficiamento:** `pcpb_e061` (carteira),
+  `e116` (receita OT), `e117` (receita conferência), `e290` (emissão OB),
+  `e320` (giro), `e340` (FAL), `e440` (OBs a preparar); endereçamento
+  `pcpb_f940/e900` e rolos `inte_p016/inte_f170/estq_f170`.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -503,6 +588,14 @@ Conteúdo completo em `.agent/docs/systextil-producao-engenharia.md`,
      Estoque_WEB (5937388), Fechamento de Estoques_WEB (5938379), Sugestão de
      Faturamento de Peças (6101407) e Rastreamento de rolos em vendas por
      quilo (5992829) → `.agent/docs/systextil-estoques-depositos.md`.
+  - Beneficiamento: Beneficiamento_VISION (5935343) + PDF de 132 págs.
+     (5935368), Certificação Gestão e Engenharia de Produto (5969196) + PDF
+     (5969238), Aulas 1–4 (6066543/6066646/6066731/6066820) + PDFs, Terceiros -
+     Beneficiamento (5936017) + PDF (5936047), Terceiros - Beneficiamento de
+     Fios (5935917) + PDF (5935953), Terceiros - Tecelagem (5936322) + PDF
+     (5936353), Terceiros - Confecção (5936226) + PDF (5936260), Pedido de
+     Venda TACF/CRUS/FIOS (6232696) + PDF (6232752) e Estrutura de Receitas
+     (5991477) → `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`.
 - Download de anexos via REST anônimo confirmado:
   `.../wiki/rest/api/content/{pageId}/child/attachment` (lista; `mediaType` em
   `extensions`) e `.../child/attachment/{attId}/download` (arquivo).
@@ -561,3 +654,22 @@ Conteúdo completo em `.agent/docs/systextil-producao-engenharia.md`,
    `.agent/docs/systextil-producao-engenharia.md`,
    `.agent/docs/systextil-producao-ops.md` e
    `.agent/docs/systextil-estoques-depositos.md`.
+- 0.1.0 (2026-09-06, 8ª rodada): adicionado o PCP **Beneficiamento**
+   (manual de 132 págs. + Certificação + Aulas + Terceiros): receitas de
+   beneficiamento (basi_f200/f210/f220, PASTA BANHO, SERVIÇO, FATOR ABSORÇÃO),
+   estrutura de receitas (basi_f390→basi_f395, CONS REC, TIPO CÁLCULO,
+   LETRA/ESTÁGIO/GRÁFICO), materiais comprados divisão 9 (TPQ/TMP/PESAR,
+   tolerância basi_f281), ficha técnica tecido (ftec_f600/ftec_f630,
+   mqop_f060), máquinas (TIPO OPERAÇÃO 6 LOTE TINTURARIA, RELAÇÃO BANHO,
+   VL MIN/MAX), gráfico de tingimento (mqop_f760/840), planejamento/programação
+   (tmrp_f070/f340/f342, oper_f500/504), OB (pcpb_f010/015/018, destinos 1–8,
+   7 ESTAMPADO/TRANSFER), preparação (pcpb_f660/120), baixas (pcpb_f070/
+   f180–184), OT de tingimento (pcpb_f600/603, pcpb_e116), processo contínuo
+   Rama (pcpb_f610, PICK-UP %), pesagem de químicos (pcpb_f679–685/862,
+   bloqueio estágio tint), endereçamento (pcpb_f940/840), qualidade/rejeições
+   (basi_f660, pcpb_f270/275, empr_f834 ESTÁGIO ACABAMENTO, efic_f400–420,
+   classificação defeito 1–9, reprocesso tipo 1/4, pcpb_f615/674), relatórios
+   (pcpb_e061–e440), beneficiamento de materiais (TIPO PROGRAMAÇÃO 10, FATOR
+   CONVERSÃO UNID P/KG, pcpb_f410/725/470/475, agrupamento 7) e estamparia
+   (basi_f562, TIPO PRODUTO 2 estampado) — fonte
+   `.agent/docs/systextil-beneficiamento-tinturaria-estampas.md`.
