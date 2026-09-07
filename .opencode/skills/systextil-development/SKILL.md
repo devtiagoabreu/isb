@@ -763,6 +763,118 @@ Conteúdo completo em `.agent/docs/systextil-apis-vendas-financeiro.md`.
   `quantidade_reservada`/`quantidade_areceber` por produto e
   `periodo_producao` (datas início/fim) — conecta com o DPV (11ª).
 
+### 13ª rodada (2026-09-07): APIs Cloud — cadastros, pedido de venda e compras
+
+Continuação no portal GitBook (`api/systextil-apis/*`), completando o núcleo
+que o projeto ISB consome. Conteúdo completo em
+`.agent/docs/systextil-apis-cadastros-compras-venda.md`.
+
+- **Pedido de Venda (`/venda/v1/pedido/venda` + `PUT .../{codigo}/cancelar`):**
+  chave `codigo_pedido`; `tipo_peca_pedido` 1 Peças/2 Tecidos/4 Tecidos
+  Crus/7 Fios; `tipo_pedido` **0 Programado/1 Pronta Entrega**;
+  `tipo_produto_pedido` 1 1ª qual./2 2ª qual./3 retalho/4 amostragem/
+  5 exportação/6 desenvolvimento; `criterio_pedido` 0 sem/1 com/3 pedido
+  completo/4 item completo/5 proporcional; `tipo_frete` 1–7 e `via_transporte`
+  1–5 (+ redespacho tipo 1 pago/2 a pagar); **`situacao_venda`** 0 liberado/
+  5 suspenso/50 sem itens/51 menor qtd mín./52 menor valor mínimo/54 maior
+  qtd máx./56 maior valor máx./62 cliente inativo/64 análise de cotas/
+  66 análise de crédito/87 Suframa vencido/70 bloqueado manual/9 faturado
+  parcial/10 faturado total/15 NF cancelada; `status_pedido` 0 Digitado/
+  1 Financeiro/2 Liberado/3 Faturamento/4 A cancelar/5 Cancelado/9 Aberto
+  web; `status_comercial` 0 Sugerir/1 Não Sugerir/2 Não Faturar/3 Não
+  Desempenhar; `status_expedicao` 0–5/9 Faturado; tabela de preço pela chave
+  `colecao_tabela`+`mes_tabela`+`sequencia_tabela`; itens com
+  `<grupo_id,subgrupo_id,item_id>` + `item_ativo` 0 Ativo/1 Inativo/
+  2 Lançamento, descontos, `natureza_operacao_item`; sub-objeto
+  `despesas_adicionais` (frete/seguro/despesas/desconto especial);
+  cancelamento por itens (`cancelamento_id`+`cancelamento_item_id`+data).
+- **Produto (`/material/v1/produto`, CRUD):** chave `nivel_produto`(1 Peça/
+  2 Tecido/4 Cru/5 Serviços/7 Fio/8 Largura/9 Comprado)+`grupo_id`+
+  `subgrupo_id`+`item_estrutura_id`; `situacao_produto` 0–2; `origem_produto`
+  1 nacional/2 importado/3 sem classif.; `tipo_codigo_ean` 1 por cor/2 por
+  tamanho (+`cor_de_estoque`); composições 1–5 com símbolo/percentual;
+  produtos químicos: `tipo_materia_prima` 0 não/1 **CORANTES** (consome por
+  peso)/2 **AUXILIAR** (consome por volume de banho — conecta 8ª rodada);
+  sub-objetos `acompanhamentos` (obrigatório `codigo_acompanhamento`),
+  `infos_diversas_grupo/item` (segmento, imagem), `colecoes_item`
+  (`situacao_colecao` 0 Ativa/1 Inativa/2 Lançamento; `classificacao_colecao`
+  1 cor principal/2 comum/3 pilotagem), `natureza_rendimento` (REINF).
+- **Coleção (`/material/v1/colecao`):** chave `colecao_id`+`colecao_descricao`;
+  `disponivel_internet` true/false.
+- **Cliente (`/pessoa/v1/cliente`, CRUD):** schema grande (180+ campos) com
+  `financeiro` (limites/crédito, forma de pagamento da loja), `comercial`
+  (`unidade_limite_ped` **1 quantidade/2 valor** → `situacao_venda` 54/56),
+  `ref_bancos`, `coligados` (forma de pagamento 1 individual/2 centralizada),
+  `contatos_socios`, `endereco_entrega_cobranca`, `credito_cobranca`,
+  `natureza_operacoes`, `informacao_credito`, `referencias_clientes`,
+  `marketing`, `atributos`, `marcas`, `mensagens_nf`; PUT chave `cnpj_9/4/2`.
+- **Fornecedor (`/pessoa/v1/fornecedor`, CRUD):** sub-objetos `contatos[]`,
+  `portadores[]` (`tipo_conta` 1 Normal/2 Poupança), `socios[]`,
+  `produtos_fornecidos[]`, `coligados[]`, `atributo` (EDI/CNTE), `pix[]`
+  (`tipo_chave_pix` 1 CPF/CNPJ/2 email/3 celular/4 aleatória → cobrança da
+  12ª), `imposto` (IRRF/ISS/INSS/PIS/COFINS/CSL/CSRF → retenções da 12ª).
+- **Representante (`/venda/v1/representante`, CRUD):** `tipo_comissao[]`
+  (obrigatório no PUT), `marcas[]`, `sub_regioes[]`,
+  `outras_representacoes[]`, `informacao_pessoal`.
+- **Grupo Econômico (`/pessoa/v1/grupo/economico`):** chave
+  `grupo_economico_id`+descricao+`unidade_limite_ped` (1 qtd/2 valor) — base
+  dos relatórios por representante (12ª).
+- **Pedido de Compra (`/compra/v1/pedido/compra`, CRUD + cancelar):** espelha
+  o de venda com fornecedor (`cnpj_9/4/2_fornecedor`) + comprador; `tipo_frete`
+  e redespacho; inclui adiantamentos/adiantamento previsto e valores; itens
+  com `nivel_produto` 1–9 e CFOP.
+- **Requisição de Compra (`/compra/v1/requisicao/compra`)** e **Requisição de
+  Estoque:** cabeçalho com `situacao_requisicao`, itens com produto + data de
+  necessidade; item de compra convertido em item de pedido.
+- **Pagamento — compra:** `/compra/v1/forma/pagamento` (`tipo_baixa`
+  0 dinheiro/1 cheque/2 transferência/3 pag. eletrônico/4 aproveit. de
+  crédito; `lote_liberado` true/false) e `/compra/v1/condicao/pagamento`
+  (parcelas com `vencimento` em dias + `percentual_vencimento`).
+- **Pagamento — venda:** `/venda/v1/forma/pagamento` (só GET): `tipo_forma`
+  0 normal/1 cartão TEF/2 consulta cheque/3 dinheiro; `leitura_cheque`
+  0 manual/1 CMC7; **`forma_pagamento_nfe`** 01 dinheiro/02 cheque/03 cartão
+  crédito/04 débito/05 crédito loja/10 vale alimentação/11 refeição/
+  12 presente/13 combustível/14 duplicata mercantil/90 sem pagamento/99
+  outros; operadora/bandeira (01 Visa…99); `taxas[]`+`condicoes_de_pagamento[]`.
+  `/venda/v1/condicao/pagamento`: `divisao_produto` 0 todos/1 Peças/2 Tecido
+  Acabado/4 Cru/7 Fio/9 Loja; `avista` 0 prazo/1 só à vista; `gera_boleto`,
+  `gera_danfe`, `considera_limite_credito`, `pedido_via_web`,
+  `informa_data_valor` 0 intervalo%/1 data+valor; parcela com data ou dias.
+- **Tabela de Preço (`/venda/v1/preco/tabela` + `/preco/venda`):** chave
+  `colecao_tabela`+`mes_tabela`+`sequencia_tabela`; `tipo_preco`
+  A Atacado/C Confecção/E Exportação/F Fator/R Franquia/V Varejo/O Outros/
+  S Serviço/T Transferência; `fator_conversao`, `desconto_maximo`,
+  `tabela_ativa`, `disponivel_internet/b2b/loja`, `casas_decimais`,
+  `unidade_medida_faturamento` 0 UM produto/1 UM faturamento, `catalogo_id`;
+  itens por produto via `GET /venda/v1/preco/item/{colecao}/{mes}/{seq}`
+  (`valor_tabela_preco`, `data_formacao_preco`); `/preco/venda` retorna
+  `itens_tabela_preco[]` só de produtos com valor > 0.
+- **Motivo de Cancelamento (`/venda/v1/motivo/cancelamento`):**
+  `cancelamento_id`+descrição; `tipo_cancelamento` 1 Cliente/2 Financeiro/
+  3 Comercial/4 Devolução/5 Produção — conecta pedido de venda e
+  obrf_f500 (9ª).
+- **Unidade de Medida (`/material/v1/unidademedida`):** chave
+  `unidade_medida_id` + descrição/abreviatura + `fator_conversao` +
+  `unidade_medida_fci` (importação).
+- **Depósito (`/estoque/v1/deposito`, só GET):** `tipo_volume` 0 sem/1 Tag/
+  2 Rolo Acabado/4 Rolo Cru/7 Fio/9 Lote Algodão; `rolo_mini` (1 mini rolo
+  por pedido), `pronta_entrega`, `tipo_produto_deposito` 1 1ª qual./2 2ª/
+  3 retalho/4 amostra, `tipo_propriedade_deposito` 1 próprio/2 próprio em 3º/
+  3 de terceiros, `tipo_valorizacao` 1 MP/2 em elaboração/3 semiacabado/
+  4 fabricado, `aceita_requisicao_almoxarifado`, `sugere_pedido` — conecta
+  Estoque/Movimento (12ª) e quantidade sugerida.
+- **Transações/SPH (`/venda/v1/transacoes`, GET/POST):** POST gera a
+  transação (empresa, origem, pedido_de_venda, cnpj9/4/2_cliente,
+  data_de_expiracao); GET retorna `numero_referencia` (chave p/ localizar),
+  `link_pagamento_sph`, `pix_copia_e_cola`, `qr_code_base64`, `situacao_sph`,
+  `codigo_pedido_sph`, cartão (nsu) e regras de `documento_origem`
+  (ANTECIPACAO→seq antecipação; RENEGOCIACAO→nº; PEDIDO DE VENDA/CRM→0) —
+  complementa cobrança eletrônica da 12ª.
+- **Padrões confirmados na 13ª:** body sempre `{items:[...]}`; `sync` em
+  POST/PUT; erro `erro`/`erro_pedido` com `message[]` (cnpj9/4/2 ou
+  codigo_pedido) + `mensagem[]{nivel,campo,valor,mensagem}`; **406** mais de
+  um item; **408** registro não existe; **409** já cadastrado.
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -859,16 +971,23 @@ Conteúdo completo em `.agent/docs/systextil-apis-vendas-financeiro.md`.
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
   `https://bitbucket.org/systextildevelopers/systextil/wiki/Development`.
-- Portal de documentação oficial (GitBook — **11ª e 12ª rodadas**, SEPARADO da wiki
+- Portal de documentação oficial (GitBook — **11ª a 13ª rodadas**, SEPARADO da wiki
   BCST): `https://ajuda.systextil.com.br` com índice em `.../llms.txt` (Visão
   Geral dos módulos, Manuais, release notes 2026 mensais/diários e APIs Cloud
   em `api/systextil-apis/*`). Páginas do portal podem ser baixadas em markdown
   acrescentando `.md` ao final da URL. Mecanismo `?ask=<pergunta>` para
-  consultas dinâmicas com trechos-fontes. → `.agent/docs/systextil-apis-cloud-integracao.md`
-  (11ª) e `.agent/docs/systextil-apis-vendas-financeiro.md` (12ª: estoque,
-  movimento de estoque, documento saída/entrada, título a receber/pagar,
-  sugestões de rolos alocar/cancelar/status + rolos-sugeridos, carteira e
-  títulos por representante, planejamento industrial).
+  consultas dinâmicas com trechos-fontes. →
+  `.agent/docs/systextil-apis-cloud-integracao.md` (11ª),
+  `.agent/docs/systextil-apis-vendas-financeiro.md` (12ª: estoque, movimento
+  de estoque, documento saída/entrada, título a receber/pagar, sugestões de
+  rolos alocar/cancelar/status + rolos-sugeridos, carteira e títulos por
+  representante, planejamento industrial) e
+  `.agent/docs/systextil-apis-cadastros-compras-venda.md` (13ª: pedido de
+  venda + cancelamento com `situacao_venda`, produto, coleção, cliente,
+  fornecedor, representante, grupo econômico, pedido/requisição de compra e
+  de estoque, formas/condições de pagamento de compra e venda
+  (`forma_pagamento_nfe` 01–99), tabela de preço de venda, motivo de
+  cancelamento, unidade de medida, depósito e transações/SPH).
 - Referência antiga da API: `https://ajuda.systextil.com.br/api`.
 - Suporte: `suporte@systextil.com.br`.
 
@@ -990,6 +1109,30 @@ Renegociação de Títulos (tipo 0 manual/1 CMC7, SIMULACAO/EFETIVACAO,
    multa/juros/desp. cartório), fluxo de sugestões de rolos (rolos-sugeridos,
    alocar-sugestao, cancelar-sugestao, status-sugestao), relatórios por
    representante (carteira de pedidos e títulos com boletos/Pix:
-   link_pagamento, pix_copiacola, bolepix) e Planejamento Industrial
-   (reservas/a receber por período de produção) — fonte
-   `.agent/docs/systextil-apis-vendas-financeiro.md`.
+link_pagamento, pix_copiacola, bolepix) e Planejamento Industrial
+    (reservas/a receber por período de produção) — fonte
+    `.agent/docs/systextil-apis-vendas-financeiro.md`.
+- 0.1.0 (2026-09-07, 13ª rodada): adicionadas APIs Cloud de **cadastros,
+   pedido de venda e compras** — Pedido de Venda (`tipo_peca_pedido` 1/2/4/7,
+   `tipo_pedido` 0 Programado/1 Pronta Entrega, `tipo_produto_pedido` 1–6,
+   `criterio_pedido` 0/1/3/4/5, `tipo_frete` 1–7 + redespacho,
+   `situacao_venda` 0/5/50/51/52/54/56/62/64/66/87/70/9/10/15,
+   status_pedido/comercial/expedicao, itens com `item_ativo` 0–2, cancelamento
+   por itens), Produto (`nivel_produto` 1–9, `origem_produto` 1–3,
+   `tipo_codigo_ean` 1 cor/2 tamanho, composições 1–5, químicos CORANTE/
+   AUXILIAR por peso/volume de banho, `acompanhamentos`, `colecoes_item`,
+   `natureza_rendimento`), Coleção, Cliente (schema 180+ campos, financeiro/
+   comercial/ref_bancos/coligados/endereço cobrança/credito_cobranca),
+   Fornecedor (`portadores` tipo_conta 1/2, `pix[]` tipo_chave 1–4, `imposto`
+   retenções, produtos_fornecidos), Representante (`tipo_comissao`),
+   Grupo Econômico (`unidade_limite_ped`), Pedido de Compra, Requisição de
+   Compra e de Estoque, Forma/Condição de Pagamento de Compra (`tipo_baixa`
+   0–4) e de Venda (`tipo_forma` 0–3, `leitura_cheque` 0/1 CMC7,
+   **`forma_pagamento_nfe` 01–99**, bandeiras 01–99, `divisao_produto`,
+   `avista`, `gera_boleto/danfe`), Tabela de Preço (chave colecao_tabela+
+   mes_tabela+sequencia_tabela, `tipo_preco` A/C/E/F/R/V/O/S/T, itens via
+   /preco/item/{colecao}/{mes}/{seq}), Motivo de Cancelamento (tipo 1–5),
+   Unidade de Medida (`unidade_medida_fci`), Depósito (tipo_volume 0/1/2/4/7/9,
+   rolo_mini, tipo_propriedade 1–3, tipo_valorizacao 1–4) e Transações/SPH
+   (`numero_referencia`, link/pix/qr_code) — fonte
+   `.agent/docs/systextil-apis-cadastros-compras-venda.md`.
