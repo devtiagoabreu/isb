@@ -698,6 +698,71 @@ Conteúdo completo em `.agent/docs/systextil-apis-cloud-integracao.md`.
 - Nota: o portal GitBook tem o mecanismo `?ask=<pergunta>` para consultas
   dinâmicas com trechos-fontes — útil em rodadas futuras.
 
+### 12ª rodada (2026-09-07): APIs Cloud — vendas, financeiro, estoque e sugestões
+
+Continuação da 11ª rodada no mesmo portal GitBook (`api/systextil-apis/*`).
+Conteúdo completo em `.agent/docs/systextil-apis-vendas-financeiro.md`.
+
+- **Estoque (`GET /estoque/v1/estoque`):** saldo por lote/depósito/empresa —
+  `quantidade_empenhada`, `quantidade_estoque_atual/anterior/mes`,
+  `quantidade_em_pedido` (em pedidos de venda), `quantidade_sugerida`,
+  datas de entrada/saída/inventário.
+- **Movimento de Estoque (`GET|POST /material/v1/movimento-estoque`):**
+  ficha/razão (GET por depósito + estrutura + data + sequência, com
+  `saldo_fisico`, `saldo_financeiro`, `preco_medio`, valores contábeis,
+  OP/OS/NF de origem, contabilização) e lançamento (POST). **Atenção: body do
+  POST em camelCase** (`depositoId`, `produtoId`, `dataMovimento`, `nrLote`,
+  `nrDocumento`, `serieDocumento`, `cnpjDocumento`, `seqDocumento`,
+  `transacaoId`, `centroCustoId`, `quantidade`, `valorUnitario`,
+  `grupoMaq`/`subgrupoMaq`/`nrMaq`, projeto/subprojeto/servico; `sync` =
+  síncrono/assíncrono) enquanto as consultas retornam **snake_case**.
+- **Documento Saída (`GET /notafiscal/v1/documento/saida`):** NF completa
+  (cabeçalho + itens + processo referenciado). `tipo_nota_fiscal`
+  **1** Normal/**2** Complementar/**3** Ajuste/**9** relacionadas;
+  `numero_danfe_nfe` = chave de acesso; `tipo_frete` 1 pago/2 a pagar/
+  3 terceiros/4 cortesia/6 próprios/7 destinatário/9 sem frete;
+  `situacao_nota` **0** calculada/**1** emitida(100) ou rejeitada/**2**
+  cancelada/inutilizada/**3** verificar/**4** confirmada entrada outra
+  empresa/**5** incompleta sem duplicata/**6** incompleta c/ duplicata no
+  OBRF; `nivel_produto` **1** Peça/**2** Tecido/**4** Tecido Cru/**5**
+  Serviços/**7** Fio/**8** Largura Tecido/**9** Material Comprado; itens com
+  IPI/ICMS/PIS/COFINS/ICMS-ST (CST + `origem_produto` 0–8), devolução e
+  `pedido_venda_item`.
+- **Documento Entrada (`GET|POST /notafiscal/v1/documento/entrada`, POST com
+  `sync`):** cabeçalho espelha o de saída; `situacao_entrada` **4** NF
+  Fornecedor/**5** incompleta; `tipo_conhecimento` 0 NF Entrada/1 Conhec. c/
+  NF/3 c/ conjunto; retenções IRRF/ISS/INSS/PIS/COFINS/CSL; itens com pedido
+  de compra, OP, origem/devolução e patrimônio; duplicatas com
+  `tipo_titulo_id`, portador, moeda+cotação e retenções por tipo de título.
+  POST: `406` mais de 1 item, `409` já cadastrado.
+- **Título a Receber (`/financeiro/v1/titulo/receber`, GET/POST/PUT/DELETE):**
+  obrigatórios `empresa_id` + `cnpj9/4_cliente` + `duplicata` + `duplicata_parcela`;
+  `situacao_duplicata` **0** aberto/**1** pago total/**2** cancelado/**3** pago
+  a menor/**4** pago a maior; `duplicata_emitida` 0 liberado/1 selecionado/
+  3 em cobrança/4 liquidado/5 aguardando/7 borderô/8 Obrigações Fiscais;
+  `previsao` 0 confirmado/1 previsão; `renegociado` true/false; sub-arrays
+  `recebimentos[]`, `informacoes_gerais[]`, `cheques_terceiro[]`.
+- **Título a Pagar (`/financeiro/v1/titulo/pagar`, CRUD):** fornecedor,
+  `tipo_titulo_id`, `rateio_despesa`; sub-objetos `retencao_imposto` (IRRF/
+  ISS/INSS/PIS/COFINS/CSL/CSRF + `natureza_rendimento` REINF),
+  `rateio_centro_custo` e `pagamento` (`valor_multa`, `valor_juros`,
+  `valor_despesas_cartorio`, `valor_outras_despesas`, portador/conta).
+- **Sugestões (fluxo Força de Vendas, complementa 11ª):**
+  `GET /crm/v1/rolos-sugeridos/{id}` (rolos da sugestão com `pontos_qualidade`,
+  `cod_nuance`, `ordem_producao`, `endereco`), `POST /crm/v1/alocar-sugestao`
+  (confirmar; body `id_crm`+`usuario`+opcional pedido/seq), `POST /crm/v1/
+  cancelar-sugestao` (**omitir `produto` cancela todos**; `id_pedido_forca_vendas`
+  e `id_crm` mutuamente exclusivos) e `GET /crm/v1/status-sugestao/{id}`.
+- **Relatórios por representante:** `GET relatorio/v1/carteira/repres/{rep}`
+  (carteira de pedidos: qtde pedida/faturada/saldo, valor, condições,
+  coleção, NF e cancelamento) e
+  `GET relatorio/v1/titulo/repres/{rep}/{grupo_economico}` (títulos por
+  repres. com comissões e cobrança eletrônica: `cod_barras`,
+  `linha_digitavel`, `link_pagamento`, `pix_copiacola`, `bolepix`).
+- **Planejamento Industrial (`GET /Planejamentoindustrial/v1/planejamentoindustrial`):**
+  `quantidade_reservada`/`quantidade_areceber` por produto e
+  `periodo_producao` (datas início/fim) — conecta com o DPV (11ª).
+
 ## Como a skill ajuda no projeto ISB
 
 - O CRUD genérico (`/api/crud/[provider]/[entity]`) usa o provider `systextil`
@@ -794,12 +859,16 @@ Conteúdo completo em `.agent/docs/systextil-apis-cloud-integracao.md`.
   (corpo) e `/child/attachment` + `/download` (anexos).
 - Bitbucket público dos desenvolvedores (exige login):
   `https://bitbucket.org/systextildevelopers/systextil/wiki/Development`.
-- Portal de documentação oficial (GitBook — **11ª rodada**, SEPARADO da wiki
+- Portal de documentação oficial (GitBook — **11ª e 12ª rodadas**, SEPARADO da wiki
   BCST): `https://ajuda.systextil.com.br` com índice em `.../llms.txt` (Visão
   Geral dos módulos, Manuais, release notes 2026 mensais/diários e APIs Cloud
   em `api/systextil-apis/*`). Páginas do portal podem ser baixadas em markdown
   acrescentando `.md` ao final da URL. Mecanismo `?ask=<pergunta>` para
-  consultas dinâmicas com trechos-fontes. → `.agent/docs/systextil-apis-cloud-integracao.md`.
+  consultas dinâmicas com trechos-fontes. → `.agent/docs/systextil-apis-cloud-integracao.md`
+  (11ª) e `.agent/docs/systextil-apis-vendas-financeiro.md` (12ª: estoque,
+  movimento de estoque, documento saída/entrada, título a receber/pagar,
+  sugestões de rolos alocar/cancelar/status + rolos-sugeridos, carteira e
+  títulos por representante, planejamento industrial).
 - Referência antiga da API: `https://ajuda.systextil.com.br/api`.
 - Suporte: `suporte@systextil.com.br`.
 
@@ -906,6 +975,21 @@ Conteúdo completo em `.agent/docs/systextil-apis-cloud-integracao.md`.
    de qualidade, ordenação 0/1/2), Sugerir Rolos + Sugerir Rolos DPV
    (/crm/v1, saldoDPV e períodos de produção), Quebra DPV, Tracking Pedido
    (status 1–10), Ordem Beneficiamento, Fila Máquina e Roteiro (/industrial/v1),
-   Renegociação de Títulos (tipo 0 manual/1 CMC7, SIMULACAO/EFETIVACAO,
-   tipo_reajuste 1/2/3) e Instruções Bancárias (bloqueio de exclusão) —
-   fonte `.agent/docs/systextil-apis-cloud-integracao.md`.
+Renegociação de Títulos (tipo 0 manual/1 CMC7, SIMULACAO/EFETIVACAO,
+    tipo_reajuste 1/2/3) e Instruções Bancárias (bloqueio de exclusão) —
+    fonte `.agent/docs/systextil-apis-cloud-integracao.md`.
+- 0.1.0 (2026-09-07, 12ª rodada): adicionadas APIs Cloud de **vendas/
+   financeiro/estoque** — Estoque (GET /estoque/v1/estoque), Movimento de
+   Estoque (GET|POST /material/v1/movimento-estoque, POST em camelCase e GET
+   em snake_case), Documento Saída (tipo_nota_fiscal 1/2/3/9, situacao_nota
+   0–6, numero_danfe_nfe chave de acesso, tipo_frete, nivel_produto 1–9),
+   Documento Entrada (situacao_entrada 4/5, retenções, duplicatas com
+   tipo_titulo/portador/moeda), Título a Receber (situacao_duplicata 0–4,
+   duplicata_emitida 0–8, renegociado, recebimentos/cheques de terceiros),
+   Título a Pagar (retenções + REINF, rateio_centro_custo, pagamento com
+   multa/juros/desp. cartório), fluxo de sugestões de rolos (rolos-sugeridos,
+   alocar-sugestao, cancelar-sugestao, status-sugestao), relatórios por
+   representante (carteira de pedidos e títulos com boletos/Pix:
+   link_pagamento, pix_copiacola, bolepix) e Planejamento Industrial
+   (reservas/a receber por período de produção) — fonte
+   `.agent/docs/systextil-apis-vendas-financeiro.md`.
