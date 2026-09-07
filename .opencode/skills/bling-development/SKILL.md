@@ -2,7 +2,7 @@
 name: bling-development
 description: Desenvolver e manter integrações com o ERP Bling (API v3). Use ao implementar ou depurar chamadas à API do Bling, autenticação OAuth 2.0 (Authorization Code + JWT), endpoints /produtos, /estoques, /pedidos/vendas, /nfe, /contas, webhooks X-Bling-Signature-256, formação de SKU, regras de estoque, rate limits, ou o fluxo Bling -> Systêxtil (NF-e/vendas) no projeto ISB.
 category: integration
-version: 0.2.0
+version: 0.3.0
 author: devtiagoabreu
 license: MIT
 provenance:
@@ -169,6 +169,14 @@ Regras críticas:
 - `.agent/docs/bling-fluxo-nfe.md` — fluxos fiscais (3ª rodada): NF-e/NFC-e/
   NFS-e criar→enviar→lançar estoque/contas→estorno, enum situacao 1–11,
   endpoints de situações/transições.
+- `.agent/docs/bling-produtos-estoque.md` — produtos avançados + estoque
+  (4ª rodada): variações, estruturas/componentes, lotes (controle/saldo/
+  lançamentos tip 1–3), estoque multi-depósito (`B`/`E`/`S`,
+  `/estoques/saldos/{deposito}`), de-para Systêxtil.
+- `.agent/docs/bling-financeiro.md` — financeiro a fundo (4ª rodada): contas
+  receber/pagar (+`/baixar`), boletos/Pix (`linkQRCodePix`, `linkBoleto`,
+  situação 1–7), caixas e bancos (situação R/E/H/N/P/C), contas contábeis,
+  borderôs, formas de pagamento, ocorrência (recorrência/parcelamento).
 - `.agent/docs/api-bling.md` — referência conceitual da API v3.
 - `.agent/docs/bling-openapi.md` — Swagger JSON cru (27k linhas).
 - `.agent/docs/manual-integracao-versao-1.md` — arquitetura/domínio ISB.
@@ -223,3 +231,18 @@ Regras críticas:
   `/situacoes/modulos/{id}`+`/acoes`+`/transicoes`; Reforma Tributária 2026
   IBS/CBS CRT=3). `bling-schemas-key.md` **regenerado** adicionando seções
   OrdensProducao, FormasPagamentos, Categorias, UnidadeNegocio/Vendedor/Loja.
+- 0.3.0 (2026-09-07, 4ª rodada): **produtos avançados + estoque multi-depósito +
+  financeiro** — `.agent/docs/bling-produtos-estoque.md` (variações
+  `GET /produtos/variacoes/{idPai}` + `POST .../atributos/gerar-combinacoes`,
+  `ProdutosVariacaoDTO` nome `Tamanho:G;Cor:Verde`; estruturas/componentes
+  `POST .../estruturas/{id}/componentes`; lotes `controla-lote`/`LotesDTO`
+  (fabricação/validade/agregação) + saldo por depósito/soma + lançamentos tip
+  `1` Entrada/`2` Saída/`3` Balanço; estoque `EstoquesDadosBaseDTO`
+  `operacao` `B`/`E`/`S`, saldos `/estoques/saldos/{deposito}`,
+  `DepositosDadosDTO` `padrao`/`desconsiderarSaldo`, saldo físico/virtual) e
+  `.agent/docs/bling-financeiro.md` (contas receber/pagar CRUD + `PATCH/baixar`,
+  `ContasReceberDadosListDTO` situação 1–7 `linkQRCodePix`/`linkBoleto`;
+  caixas e bancos `CaixasBancosLancamentoDTO` debCred D/C, situação R/E/H/N/P/C,
+  origem caixa/duplicata/bordero/estoque; contas contábeis, borderôs, formas de
+  pagamento, ocorrência recorrente `3`–`8`/parcelada `2`; fluxos ISB venda→NF-e
+  autorizada→conta→baixa). De-para com Systêxtil esboçado nos dois docs.
