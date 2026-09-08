@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
+import { Dialog } from "@/app/components/dialog";
 
 interface PerfilRow {
   id: number;
@@ -356,8 +357,12 @@ export default function PerfisClient() {
         </button>
       </div>
 
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {notice && (
+        <p role="status" className="text-sm text-emerald-600">
+          {notice}
+        </p>
+      )}
+      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
       {carregando && perfis.length === 0 ? (
         <p className="text-sm text-zinc-500">Carregando perfis…</p>
@@ -407,12 +412,16 @@ export default function PerfisClient() {
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col gap-4 overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {modal === "new" ? "Novo perfil" : `Editar perfil`}
-              </h2>
+        <Dialog
+          open={Boolean(modal)}
+          onClose={() => setModal(null)}
+          labelledBy="perfil-form-title"
+          maxWidthClass="max-w-3xl"
+        >
+          <div className="flex items-center justify-between">
+            <h2 id="perfil-form-title" className="text-lg font-semibold">
+              {modal === "new" ? "Novo perfil" : `Editar perfil`}
+            </h2>
               <button
                 onClick={() => setModal(null)}
                 className="text-zinc-400 hover:text-zinc-600"
@@ -691,7 +700,7 @@ export default function PerfisClient() {
               valores atuais de todos os produtos selecionados.
             </p>
 
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
             <div className="flex items-center justify-end gap-2">
               <button
@@ -710,20 +719,24 @@ export default function PerfisClient() {
                   : `Salvar${camposUsadosCount() > 0 ? ` (${camposUsadosCount()})` : ""}`}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-lg font-semibold">Excluir perfil</h2>
+        <Dialog
+          open={Boolean(deleting)}
+          onClose={() => setDeleting(null)}
+          labelledBy="perfil-delete-title"
+        >
+          <h2 id="perfil-delete-title" className="text-lg font-semibold">
+            Excluir perfil
+          </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Confirmar exclusão do perfil{" "}
               <span className="font-medium">{deleting.nome}</span>? Produtos que
               já receberam o perfil não são alterados.
             </p>
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleting(null)}
@@ -739,8 +752,7 @@ export default function PerfisClient() {
                 {excluindo ? "Excluindo…" : "Excluir"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

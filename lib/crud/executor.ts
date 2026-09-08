@@ -251,19 +251,28 @@ async function blingUpdate(
   const id = String(data[schema.idField] ?? "");
   if (!id) throw new Error(`Campo "${schema.idField}" ausente para atualização.`);
 
-  // GET do recurso atual para merge (o PUT substitui o objeto inteiro).
+  // GET do recurso atual para merge (o PUT substitui o objeto inteiro). Se o
+  // GET falhar, aborta: atualizar só com os campos enviados apagaria os demais.
   const current = await blingRequest({
     method: "GET",
     path: `${schema.basePath}/${id}`,
   });
-  let merged: Record<string, unknown> = { ...data };
-  if (current.ok) {
-    const body = (current.bodyJson ?? {}) as { data?: unknown };
-    const currentData = body.data;
-    if (currentData && typeof currentData === "object" && !Array.isArray(currentData)) {
-      merged = { ...(currentData as Record<string, unknown>), ...data };
-    }
+  if (!current.ok) {
+    throw new Error(
+      `Não foi possível carregar "${schema.entity}" (${id}) para atualização (HTTP ${current.status}). Tente novamente.`
+    );
   }
+  const body = (current.bodyJson ?? {}) as { data?: unknown };
+  const currentData = body.data;
+  if (!currentData || typeof currentData !== "object" || Array.isArray(currentData)) {
+    throw new Error(
+      `Resposta inesperada ao carregar "${schema.entity}" (${id}) para atualização.`
+    );
+  }
+  const merged: Record<string, unknown> = {
+    ...(currentData as Record<string, unknown>),
+    ...data,
+  };
 
   const res = await blingRequest({
     method: "PUT",

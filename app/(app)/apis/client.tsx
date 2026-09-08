@@ -192,8 +192,12 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
         </button>
       </div>
 
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {notice && (
+        <p role="status" className="text-sm text-emerald-600">
+          {notice}
+        </p>
+      )}
+      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
 
       {apis.length === 0 ? (
         <p className="text-sm text-zinc-500">

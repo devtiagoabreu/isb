@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 const DEFAULT_TOKEN_URL =
   "https://idcs-03651be63851489595548b9127721fa1.identity.oraclecloud.com/oauth2/v1/token";
 
+const REQUEST_TIMEOUT_MS = 15_000;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export interface SystextilConfig {
   apiUrl: string | null;
   apiKey: string | null;
@@ -142,6 +145,7 @@ async function oauthClientCredentialsToken(
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: body.toString(),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -205,7 +209,10 @@ export async function listaProdutos(
   url.searchParams.set("offset", String(offset));
   if (options.q) url.searchParams.set("q", options.q);
 
-  const res = await fetch(url.toString(), { headers });
+  const res = await fetch(url.toString(), {
+    headers,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   const text = await res.text();
   let json: unknown = null;
   try {
@@ -267,27 +274,51 @@ export async function systextilRequest(
     }
   }
   const headers = await authHeaders(cfg);
-  const start = Date.now();
-  const res = await fetch(url.toString(), {
-    method: input.method,
-    headers: {
-      ...headers,
-      "Content-Type": "application/json",
-    },
-    body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
-  });
-  const bodyText = await res.text();
-  let bodyJson: unknown = null;
-  try {
-    bodyJson = bodyText ? JSON.parse(bodyText) : null;
-  } catch {
-    bodyJson = null;
+
+  // 3 tentativas: timeout/falha de rede ou 5xx/429 → backoff curto.
+  // Não reenvia 4xx (erro do cliente) nem repete mutações cegamente.
+  for (let attempt = 0; ; attempt++) {
+    const start = Date.now();
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), {
+        method: input.method,
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (attempt >= 2) {
+        const msg = error instanceof Error ? error.message : String(error);
+        throw new Error(`Falha de rede no Systêxtil (${msg})`);
+      }
+      await sleep(600 * (attempt + 1));
+      continue;
+    }
+    const bodyText = await res.text();
+    if (
+      !res.ok &&
+      (res.status === 429 || res.status >= 500) &&
+      attempt < 2
+    ) {
+      await sleep(600 * (attempt + 1));
+      continue;
+    }
+    let bodyJson: unknown = null;
+    try {
+      bodyJson = bodyText ? JSON.parse(bodyText) : null;
+    } catch {
+      bodyJson = null;
+    }
+    return {
+      status: res.status,
+      ok: res.ok,
+      bodyText,
+      bodyJson,
+      durationMs: Date.now() - start,
+    };
   }
-  return {
-    status: res.status,
-    ok: res.ok,
-    bodyText,
-    bodyJson,
-    durationMs: Date.now() - start,
-  };
 }

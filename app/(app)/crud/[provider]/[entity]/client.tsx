@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
+import { Dialog } from "@/app/components/dialog";
 import type { CrudEntitySchema, CrudField, CrudFieldInfo } from "@/lib/crud/types";
 
 type Row = Record<string, unknown>;
@@ -290,8 +291,12 @@ export default function CrudClient({
         )}
       </div>
 
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {notice && (
+        <p role="status" className="text-sm text-emerald-600">
+          {notice}
+        </p>
+      )}
+      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
       {!connected && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
@@ -422,12 +427,16 @@ export default function CrudClient({
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-4 overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {modal === "new" ? "Novo registro" : `Editar ${schema.entity}`}
-              </h2>
+        <Dialog
+          open={Boolean(modal)}
+          onClose={() => setModal(null)}
+          labelledBy="crud-form-title"
+          maxWidthClass="max-w-2xl"
+        >
+          <div className="flex items-center justify-between">
+            <h2 id="crud-form-title" className="text-lg font-semibold">
+              {modal === "new" ? "Novo registro" : `Editar ${schema.entity}`}
+            </h2>
               <button
                 onClick={() => setModal(null)}
                 className="text-zinc-400 hover:text-zinc-600"
@@ -501,7 +510,7 @@ export default function CrudClient({
               ))}
             </div>
 
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
             <div className="flex items-center justify-end gap-2">
               <button
@@ -518,21 +527,21 @@ export default function CrudClient({
                 {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {info && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setInfo(null)}
+        <Dialog
+          open={Boolean(info)}
+          onClose={() => setInfo(null)}
+          labelledBy="crud-info-title"
+          maxWidthClass="max-w-lg"
+          onOverlayClick={() => setInfo(null)}
         >
-          <div
-            className="flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">{info.label}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="crud-info-title" className="text-lg font-semibold">
+              {info.label}
+            </h2>
               <button
                 onClick={() => setInfo(null)}
                 className="text-zinc-400 hover:text-zinc-600"
@@ -583,19 +592,23 @@ export default function CrudClient({
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-lg font-semibold">Excluir registro</h2>
+        <Dialog
+          open={Boolean(deleting)}
+          onClose={() => setDeleting(null)}
+          labelledBy="crud-delete-title"
+        >
+          <h2 id="crud-delete-title" className="text-lg font-semibold">
+            Excluir registro
+          </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Confirmar exclusão do registro&nbsp;
               <span className="font-mono">{idValue(deleting)}</span>?
             </p>
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleting(null)}
@@ -611,8 +624,7 @@ export default function CrudClient({
                 {excluindo ? "Excluindo…" : "Excluir"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

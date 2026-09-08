@@ -6,8 +6,15 @@ import {
   safeNext,
   verifyPassword,
 } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+function clientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string; next?: string };
@@ -27,6 +34,21 @@ export async function POST(request: Request) {
       { error: "Informe e-mail e senha." },
       { status: 400 }
     );
+  }
+
+  // Rate limit por IP e por e-mail (anti brute-force), antes de validar credenciais.
+  const ip = clientIp(request);
+  for (const key of [ip, email]) {
+    const rl = checkRateLimit(`login:${key}`);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: "Muitas tentativas. Aguarde alguns minutos." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
+        }
+      );
+    }
   }
 
   const user = await prisma.user.findUnique({

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PERMISSOES, PERMISSAO_KEYS } from "@/lib/permissions";
 import { InfoTitle } from "@/app/components/info-button";
+import { Dialog } from "@/app/components/dialog";
 
 interface RoleRef {
   id: number;
@@ -377,12 +378,16 @@ export default function AdminClient({
       </section>
 
       {modalUsuario !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <Dialog
+          open={Boolean(modalUsuario)}
+          onClose={() => setModalUsuario(null)}
+          labelledBy="usuario-form-title"
+        >
           <form
             onSubmit={salvarUsuario}
-            className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
+            className="flex w-full flex-col gap-4"
           >
-            <h3 className="text-lg font-semibold">
+            <h3 id="usuario-form-title" className="text-lg font-semibold">
               {modalUsuario === "novo" ? "Novo usuário" : `Editar ${modalUsuario.email}`}
             </h3>
             <label className="flex flex-col gap-1 text-sm">
@@ -449,16 +454,20 @@ export default function AdminClient({
               </button>
             </div>
           </form>
-        </div>
+        </Dialog>
       )}
 
       {modalRole !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <Dialog
+          open={Boolean(modalRole)}
+          onClose={() => setModalRole(null)}
+          labelledBy="role-form-title"
+        >
           <form
             onSubmit={salvarRole}
-            className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
+            className="flex w-full flex-col gap-4"
           >
-            <h3 className="text-lg font-semibold">
+            <h3 id="role-form-title" className="text-lg font-semibold">
               {modalRole === "novo" ? "Nova role" : "Editar role"}
             </h3>
             <label className="flex flex-col gap-1 text-sm">
@@ -511,7 +520,7 @@ export default function AdminClient({
               </button>
             </div>
           </form>
-        </div>
+        </Dialog>
       )}
     </main>
   );

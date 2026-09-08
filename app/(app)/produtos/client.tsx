@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
+import { Dialog } from "@/app/components/dialog";
 import type { BlingProdutoItem } from "@/lib/products";
 
 const TIPO_OPTIONS = [
@@ -382,8 +383,12 @@ export default function ProdutosClient({
         )}
       </div>
 
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {notice && (
+        <p role="status" className="text-sm text-emerald-600">
+          {notice}
+        </p>
+      )}
+      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
       {!connected && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
@@ -571,12 +576,16 @@ export default function ProdutosClient({
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-4 overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {modal === "new" ? "Novo produto" : `Editar ${editing?.codigo}`}
-              </h2>
+        <Dialog
+          open={Boolean(modal)}
+          onClose={() => setModal(null)}
+          labelledBy="produto-form-title"
+          maxWidthClass="max-w-2xl"
+        >
+          <div className="flex items-center justify-between">
+            <h2 id="produto-form-title" className="text-lg font-semibold">
+              {modal === "new" ? "Novo produto" : `Editar ${editing?.codigo}`}
+            </h2>
               <button
                 onClick={() => setModal(null)}
                 className="text-zinc-400 hover:text-zinc-600"
@@ -732,7 +741,7 @@ export default function ProdutosClient({
               </label>
             </div>
 
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
 
             <div className="flex items-center justify-end gap-2">
               <button
@@ -749,21 +758,25 @@ export default function ProdutosClient({
                 {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-lg font-semibold">Excluir produto</h2>
+        <Dialog
+          open={Boolean(deleting)}
+          onClose={() => setDeleting(null)}
+          labelledBy="produto-delete-title"
+        >
+          <h2 id="produto-delete-title" className="text-lg font-semibold">
+            Excluir produto
+          </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Confirmar exclusão de{" "}
               <span className="font-mono">{deleting.codigo}</span> ·{" "}
               {deleting.nome}? O produto será marcado como excluído e
               removido definitivamente no Bling.
             </p>
-            {erro && <p className="text-sm text-red-500">{erro}</p>}
+            {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleting(null)}
@@ -779,31 +792,44 @@ export default function ProdutosClient({
                 {excluindo ? "Excluindo…" : "Excluir"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     {aplicarPerfil && contagemSel === 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Nenhum produto selecionado para aplicar o perfil.
-            </p>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setAplicarPerfil(null)}
-                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              >
-                Fechar
-              </button>
-            </div>
+        <Dialog
+          open={Boolean(aplicarPerfil) && contagemSel === 0}
+          onClose={() => setAplicarPerfil(null)}
+          labelledBy="produto-aplicar-title"
+        >
+          <h2 id="produto-aplicar-title" className="sr-only">
+            Aplicar perfil
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Nenhum produto selecionado para aplicar o perfil.
+          </p>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setAplicarPerfil(null)}
+              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Fechar
+            </button>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {aplicarPerfil && contagemSel > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex w-full max-w-lg flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-lg font-semibold">Aplicar perfil</h2>
+        <Dialog
+          open={Boolean(aplicarPerfil) && contagemSel > 0}
+          onClose={() => setAplicarPerfil(null)}
+          labelledBy="produto-aplicar-confirmar-title"
+          maxWidthClass="max-w-lg"
+        >
+          <h2
+            id="produto-aplicar-confirmar-title"
+            className="text-lg font-semibold"
+          >
+            Aplicar perfil
+          </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Aplicar o perfil{" "}
               <span className="font-medium">{aplicarPerfil.nome}</span> em{" "}
@@ -841,8 +867,7 @@ export default function ProdutosClient({
                 {aplicando ? "Aplicando…" : "Aplicar agora"}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

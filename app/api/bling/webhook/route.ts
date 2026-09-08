@@ -1,12 +1,36 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
+import { apiRequire } from "@/lib/auth";
 import type { Prisma } from "@/prisma/generated/client";
 
 const SIGNATURE_HEADER = "x-bling-signature-256";
 
-function verifySignature(raw: string, signature: string | null): boolean {
-  const secret = process.env.BLING_CLIENT_SECRET;
+// Fonte de verdade da chave do webhook: variável dedicada BLING_WEBHOOK_SECRET,
+// com fallback para a secret do app (compatibilidade/redeployment) e depois
+// para a config salva na página de Integrações (banco).
+async function webhookSecret(): Promise<string | null> {
+  const env =
+    process.env.BLING_WEBHOOK_SECRET?.trim() ||
+    process.env.BLING_CLIENT_SECRET?.trim();
+  if (env) return env;
+  const config = await prisma.apiConfig.findUnique({
+    where: { handle: "bling" },
+    include: { vars: true },
+  });
+  const map = new Map(config?.vars.map((v) => [v.chave, v.valor]) ?? []);
+  return (
+    map.get("BLING_WEBHOOK_SECRET")?.trim() ||
+    map.get("BLING_CLIENT_SECRET")?.trim() ||
+    null
+  );
+}
+
+function verifySignature(
+  raw: string,
+  signature: string | null,
+  secret: string
+): boolean {
   if (!secret || !signature?.startsWith("sha256=")) return false;
   const expected = crypto
     .createHmac("sha256", secret)
@@ -19,7 +43,11 @@ function verifySignature(raw: string, signature: string | null): boolean {
 
 export async function POST(request: Request) {
   const raw = await request.text();
-  if (!verifySignature(raw, request.headers.get(SIGNATURE_HEADER))) {
+  const secret = await webhookSecret();
+  if (
+    !secret ||
+    !verifySignature(raw, request.headers.get(SIGNATURE_HEADER), secret)
+  ) {
     return NextResponse.json(
       { ok: false, error: "invalid signature" },
       { status: 401 }
@@ -66,6 +94,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const denied = await apiRequire("bling.read");
+  if (denied) return denied;
   const events = await prisma.blingWebhook.findMany({
     orderBy: { id: "desc" },
     take: 20,

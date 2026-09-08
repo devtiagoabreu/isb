@@ -579,6 +579,24 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             <li key={item.id} className="flex flex-col gap-1.5">
               <div
                 draggable
+                tabIndex={0}
+                role="group"
+                aria-label="Item do menu: use as setas ↑ e ↓ para reordenar, ou arraste para mover."
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    void aplicarMovimento(sel!, item.id, {
+                      parentId,
+                      index: idx - 1,
+                    });
+                  } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    void aplicarMovimento(sel!, item.id, {
+                      parentId,
+                      index: idx + 2,
+                    });
+                  }
+                }}
                 onDragStart={() => {
                   setDraggingId(item.id);
                   setDragParentId(parentId);
@@ -610,7 +628,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                   setDragParentId(null);
                   setDropHint(null);
                 }}
-                className={`${itemRowCls} ${
+                className={`${itemRowCls} focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                   isGroup
                     ? "border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/70"
                     : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900"

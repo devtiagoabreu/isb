@@ -4,6 +4,8 @@ const TOKEN_URL = "https://www.bling.com.br/Api/v3/oauth/token";
 const AUTHORIZE_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
 export const BLING_API_BASE = "https://api.bling.com.br/Api/v3";
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 export type BlingMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface BlingRequestInput {
@@ -83,6 +85,7 @@ async function oauthRequest(form: URLSearchParams): Promise<OAuthTokenResponse> 
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: form.toString(),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -102,7 +105,20 @@ export async function exchangeCode(code: string): Promise<OAuthTokenResponse> {
   );
 }
 
+// Refresh único em toda a instância (lock em memória): o Bling rotaciona o
+// refresh_token a cada refresh; requisições concorrentes usariam o token antigo
+// e causariam `invalid_grant`/500 em cadeia. Sempre reler o token persistido.
+let refreshInFlight: Promise<OAuthTokenResponse> | null = null;
+
 export async function refreshBlingToken(): Promise<OAuthTokenResponse> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefreshBlingToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+async function doRefreshBlingToken(): Promise<OAuthTokenResponse> {
   const store = await prisma.blingToken.findUnique({ where: { id: 1 } });
   if (!store?.refreshToken) {
     throw new Error("Sem refresh token salvo. Conecte o Bling primeiro.");
@@ -139,15 +155,19 @@ export async function saveToken(token: OAuthTokenResponse): Promise<void> {
 }
 
 async function getValidAccessToken(): Promise<string> {
-  const store = await prisma.blingToken.findUnique({ where: { id: 1 } });
+  const readToken = () => prisma.blingToken.findUnique({ where: { id: 1 } });
+  let store = await readToken();
   if (!store) {
     throw new Error("Cliente não autorizado. Conecte pelo console primeiro.");
   }
   const expired = store.expiresAt.getTime() - 60_000 < Date.now();
-  if (expired) {
-    await refreshBlingToken();
-    return (await prisma.blingToken.findUnique({ where: { id: 1 } }))!
-      .accessToken;
+  if (!expired) return store.accessToken;
+  // Expirou: aguarda o refresh (lock). Outras chamadas que expiraram no mesmo
+  // instante compartilham o mesmo refresh e relêem o token já rotacionado.
+  await refreshBlingToken();
+  store = await readToken();
+  if (!store) {
+    throw new Error("Cliente não autorizado. Conecte pelo console primeiro.");
   }
   return store.accessToken;
 }
@@ -175,6 +195,7 @@ async function runOnce(
       "Content-Type": "application/json",
     },
     body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   const bodyText = await res.text();
   let bodyJson: unknown = null;
@@ -199,24 +220,45 @@ async function runOnce(
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Falha de rede/timeout: repete 2x com backoff curto (sem repetir 4xx).
+async function runOnceWithRetry(
+  input: BlingRequestInput,
+  token: string
+): Promise<BlingResponse> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await runOnce(input, token);
+    } catch (error) {
+      if (attempt >= 2) throw error;
+      await sleep(500 * (attempt + 1));
+    }
+  }
+}
+
 export async function blingRequest(
   input: BlingRequestInput
 ): Promise<BlingResponse> {
-  let token = await getValidAccessToken();
-  let result = await runOnce(input, token);
   let refreshed = false;
+  let token = await getValidAccessToken();
+  let result = await runOnceWithRetry(input, token);
 
   for (let attempt = 0; attempt < 3 && (result.status === 429 || result.status === 401); attempt++) {
     if (result.status === 429) {
+      // Nunca refrescar token durante 429 (pode agravar bloqueio de IP).
       await sleep((result.retryAfterMs ?? 2000) + attempt * 1000);
-    }
-    if (!refreshed) {
-      await refreshBlingToken();
-      token = (await prisma.blingToken.findUnique({ where: { id: 1 } }))!
-        .accessToken;
+    } else if (!refreshed) {
+      // 401: outra request pode já ter refrescado (rotação). Só refaz o refresh
+      // se o token que usamos ainda for o persistido.
+      const store = await prisma.blingToken.findUnique({ where: { id: 1 } });
+      if (store && store.accessToken === token) {
+        await refreshBlingToken();
+      }
+      token =
+        (await prisma.blingToken.findUnique({ where: { id: 1 } }))?.accessToken ??
+        token;
       refreshed = true;
     }
-    result = await runOnce(input, token);
+    result = await runOnceWithRetry(input, token);
   }
   return result;
 }
