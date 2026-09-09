@@ -10,6 +10,7 @@ const detalhes = {
   pautas: { orderBy: { ordem: "asc" as const } },
   participantes: { orderBy: { id: "asc" as const } },
   encaminhamentos: { orderBy: { id: "asc" as const } },
+  links: { orderBy: { ordem: "asc" as const } },
 };
 
 export async function GET(
@@ -69,12 +70,24 @@ export async function PUT(
     await prisma.$transaction([
       prisma.reuniao.update({
         where: { id: reuniaoId },
-        data: { titulo: v.titulo, projeto: v.projeto, data: v.data, local: v.local, status: v.status },
+        data: {
+          titulo: v.titulo,
+          projeto: v.projeto,
+          data: v.data,
+          local: v.local,
+          status: v.status,
+          resumoCurto: v.resumoCurto,
+          resumoDetalhado: v.resumoDetalhado,
+          resumoItensAcao: v.resumoItensAcao,
+          transcricao: v.transcricao,
+          videoUrl: v.videoUrl,
+        },
       }),
       prisma.reuniaoPauta.deleteMany({ where: { reuniaoId } }),
       prisma.reuniaoParticipante.deleteMany({ where: { reuniaoId } }),
       prisma.reuniaoEncaminhamento.deleteMany({ where: { reuniaoId } }),
       prisma.reuniaoAta.deleteMany({ where: { reuniaoId } }),
+      prisma.reuniaoLink.deleteMany({ where: { reuniaoId } }),
       prisma.reuniaoPauta.createMany({
         data: v.pautas.map((p, i) => ({ reuniaoId, ordem: i + 1, descricao: p.descricao })),
       }),
@@ -93,6 +106,15 @@ export async function PUT(
           responsavel: e.responsavel,
           prazo: e.prazo,
           status: e.status ?? "PENDENTE",
+        })),
+      }),
+      prisma.reuniaoLink.createMany({
+        data: v.links.map((l, i) => ({
+          reuniaoId,
+          rotulo: l.rotulo,
+          url: l.url,
+          descricao: l.descricao,
+          ordem: i + 1,
         })),
       }),
       ...(v.ata

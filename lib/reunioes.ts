@@ -59,17 +59,29 @@ export interface ReuniaoEncaminhamentoInput {
   status?: string;
 }
 
+export interface ReuniaoLinkInput {
+  rotulo: string;
+  url: string;
+  descricao?: string | null;
+}
+
 export interface ReuniaoInput {
   titulo: string;
   projeto: ProjetoKey;
   data: Date;
   local?: string | null;
   status: string;
+  resumoCurto?: string | null;
+  resumoDetalhado?: string | null;
+  resumoItensAcao?: string | null;
+  transcricao?: string | null;
+  videoUrl?: string | null;
   ata?: string | null;
   criadoPor?: string | null;
   pautas: ReuniaoPautaInput[];
   participantes: ReuniaoParticipanteInput[];
   encaminhamentos: ReuniaoEncaminhamentoInput[];
+  links: ReuniaoLinkInput[];
 }
 
 type Validado =
@@ -87,6 +99,13 @@ function strTrim(value: unknown): string | null | undefined {
   if (typeof value !== "string") return undefined;
   const t = value.trim();
   return t === "" ? null : t;
+}
+
+function parseUrl(value: unknown): string | null | undefined {
+  const t = strTrim(value);
+  if (t === undefined || t === null) return t;
+  if (!/^https?:\/\//i.test(t)) return undefined;
+  return t;
 }
 
 export function validarReuniao(body: unknown): Validado {
@@ -116,6 +135,16 @@ export function validarReuniao(body: unknown): Validado {
   }
 
   const local = strTrim(b.local) ?? null;
+
+  const resumoCurto = strTrim(b.resumoCurto) ?? null;
+  const resumoDetalhado = strTrim(b.resumoDetalhado) ?? null;
+  const resumoItensAcao = strTrim(b.resumoItensAcao) ?? null;
+  const transcricao = strTrim(b.transcricao) ?? null;
+  const videoUrlRaw = parseUrl(b.videoUrl);
+  if (videoUrlRaw === undefined && b.videoUrl !== undefined && b.videoUrl !== null) {
+    return { ok: false, erro: "Link do vídeo inválido (use http:// ou https://)." };
+  }
+  const videoUrl = videoUrlRaw ?? null;
 
   const ataRaw = strTrim(b.ata);
   const ata = ataRaw !== undefined && ataRaw !== null && ataRaw !== "" ? ataRaw : null;
@@ -161,6 +190,22 @@ export function validarReuniao(body: unknown): Validado {
     });
   }
 
+  const rawLinks = Array.isArray(b.links) ? b.links : [];
+  const links: ReuniaoLinkInput[] = [];
+  for (const item of rawLinks) {
+    if (!item || typeof item !== "object") continue;
+    const urlRaw = parseUrl(item.url as unknown);
+    if (urlRaw === undefined || urlRaw === null) {
+      return { ok: false, erro: "Link inválido (use http:// ou https://)." };
+    }
+    const rotulo = strTrim(item.rotulo as unknown) ?? "Link";
+    links.push({
+      rotulo,
+      url: urlRaw,
+      descricao: strTrim(item.descricao as unknown) ?? null,
+    });
+  }
+
   return {
     ok: true,
     valor: {
@@ -169,11 +214,17 @@ export function validarReuniao(body: unknown): Validado {
       data,
       local,
       status,
+      resumoCurto,
+      resumoDetalhado,
+      resumoItensAcao,
+      transcricao,
+      videoUrl,
       ata,
       criadoPor,
       pautas,
       participantes,
       encaminhamentos,
+      links,
     },
   };
 }

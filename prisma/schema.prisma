@@ -217,18 +217,24 @@ model PerfilProduto {
 }
 
 model Reuniao {
-  id              Int                       @id @default(autoincrement())
-  titulo          String
-  projeto         String                    @default("INTERNA")
-  data            DateTime
-  local           String?
-  status          String                    @default("AGENDADA")
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
-  ata             ReuniaoAta?
-  pautas          ReuniaoPauta[]
-  participantes   ReuniaoParticipante[]
-  encaminhamentos ReuniaoEncaminhamento[]
+  id               Int                       @id @default(autoincrement())
+  titulo           String
+  projeto          String                    @default("INTERNA")
+  data             DateTime
+  local            String?
+  status           String                    @default("AGENDADA")
+  resumoCurto      String?
+  resumoDetalhado  String?
+  resumoItensAcao  String?
+  transcricao      String?
+  videoUrl         String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  ata              ReuniaoAta?
+  pautas           ReuniaoPauta[]
+  participantes    ReuniaoParticipante[]
+  encaminhamentos  ReuniaoEncaminhamento[]
+  links            ReuniaoLink[]
 
   @@index([data])
   @@index([projeto])
@@ -281,4 +287,18 @@ model ReuniaoEncaminhamento {
 
   @@index([reuniaoId])
   @@map("reuniao_encaminhamentos")
+}
+
+model ReuniaoLink {
+  id         Int      @id @default(autoincrement())
+  reuniaoId  Int
+  reuniao    Reuniao  @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  rotulo     String
+  url        String
+  descricao  String?
+  ordem      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([reuniaoId])
+  @@map("reuniao_links")
 }

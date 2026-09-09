@@ -20,14 +20,20 @@ interface ReuniaoRow {
   data: string;
   local: string | null;
   status: string;
+  videoUrl: string | null;
   _count: {
     pautas: number;
     participantes: number;
     encaminhamentos: number;
+    links: number;
   };
 }
 
 interface ReuniaoDetalhe extends ReuniaoRow {
+  resumoCurto: string | null;
+  resumoDetalhado: string | null;
+  resumoItensAcao: string | null;
+  transcricao: string | null;
   ata: { conteudo: string } | null;
   pautas: { id: number; ordem: number; descricao: string }[];
   participantes: { id: number; nome: string; empresa: string | null; papel: string | null }[];
@@ -37,6 +43,13 @@ interface ReuniaoDetalhe extends ReuniaoRow {
     responsavel: string | null;
     prazo: string | null;
     status: string;
+  }[];
+  links: {
+    id: number;
+    rotulo: string;
+    url: string;
+    descricao: string | null;
+    ordem: number;
   }[];
 }
 
@@ -60,16 +73,29 @@ interface EncDraft {
   prazo: string;
 }
 
+interface LinkDraft {
+  key: number;
+  rotulo: string;
+  url: string;
+  descricao: string;
+}
+
 interface FormState {
   titulo: string;
   projeto: string;
   data: string;
   local: string;
   status: string;
+  resumoCurto: string;
+  resumoDetalhado: string;
+  resumoItensAcao: string;
+  transcricao: string;
+  videoUrl: string;
   ata: string;
   pautas: ItemDraft[];
   participantes: PartDraft[];
   encaminhamentos: EncDraft[];
+  links: LinkDraft[];
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -126,10 +152,16 @@ function emptyForm(): FormState {
     data: toLocalInput(new Date().toISOString()),
     local: "",
     status: "AGENDADA",
+    resumoCurto: "",
+    resumoDetalhado: "",
+    resumoItensAcao: "",
+    transcricao: "",
+    videoUrl: "",
     ata: "",
     pautas: [],
     participantes: [],
     encaminhamentos: [],
+    links: [],
   };
 }
 
@@ -140,6 +172,11 @@ function toForm(r: ReuniaoDetalhe): FormState {
     data: toLocalInput(r.data),
     local: r.local ?? "",
     status: r.status,
+    resumoCurto: r.resumoCurto ?? "",
+    resumoDetalhado: r.resumoDetalhado ?? "",
+    resumoItensAcao: r.resumoItensAcao ?? "",
+    transcricao: r.transcricao ?? "",
+    videoUrl: r.videoUrl ?? "",
     ata: r.ata?.conteudo ?? "",
     pautas: r.pautas.map((p) => ({ key: p.id, descricao: p.descricao })),
     participantes: r.participantes.map((p) => ({
@@ -154,6 +191,12 @@ function toForm(r: ReuniaoDetalhe): FormState {
       status: e.status,
       responsavel: e.responsavel ?? "",
       prazo: toDateInput(e.prazo),
+    })),
+    links: r.links.map((l) => ({
+      key: l.id,
+      rotulo: l.rotulo,
+      url: l.url,
+      descricao: l.descricao ?? "",
     })),
   };
 }
@@ -260,6 +303,11 @@ export default function ReunioesClient() {
       data: new Date(form.data).toISOString(),
       local: form.local.trim() || null,
       status: form.status,
+      resumoCurto: form.resumoCurto.trim() || null,
+      resumoDetalhado: form.resumoDetalhado.trim() || null,
+      resumoItensAcao: form.resumoItensAcao.trim() || null,
+      transcricao: form.transcricao.trim() || null,
+      videoUrl: form.videoUrl.trim() || null,
       ata: form.ata.trim() || null,
       pautas: form.pautas
         .filter((p) => p.descricao.trim() !== "")
@@ -278,6 +326,13 @@ export default function ReunioesClient() {
           responsavel: e.responsavel.trim() || null,
           prazo: e.prazo ? new Date(`${e.prazo}T12:00:00`).toISOString() : null,
           status: e.status,
+        })),
+      links: form.links
+        .filter((l) => l.url.trim() !== "")
+        .map((l) => ({
+          rotulo: l.rotulo.trim() || "Link",
+          url: l.url.trim(),
+          descricao: l.descricao.trim() || null,
         })),
     };
   }
@@ -438,8 +493,18 @@ export default function ReunioesClient() {
                       {r._count.participantes} participante(s)
                     </span>
                     <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {r._count.encaminhamentos} encaminhamento(s)
+                      {r._count.encaminhamentos} tarefa(s)
                     </span>
+                    {r._count.links > 0 && (
+                      <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        {r._count.links} link(s)
+                      </span>
+                    )}
+                    {r.videoUrl && (
+                      <span className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-red-600 dark:bg-red-950 dark:text-red-300">
+                        ▶ vídeo
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -671,6 +736,38 @@ export default function ReunioesClient() {
           </div>
 
           <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-zinc-500">
+              Resumo e detalhes
+            </h3>
+            <Labeled label="Resumo curto">
+              <input
+                className={inputCls}
+                value={form.resumoCurto}
+                onChange={(e) => setField("resumoCurto", e.target.value)}
+                placeholder="Uma frase com a essência da reunião"
+              />
+            </Labeled>
+            <label className="flex flex-col gap-1 text-sm">
+              Resumo detalhado (com citação)
+              <textarea
+                className={`${inputCls} min-h-[100px] whitespace-pre-wrap`}
+                value={form.resumoDetalhado}
+                onChange={(e) => setField("resumoDetalhado", e.target.value)}
+                placeholder="Discussões em mais detalhe, com citações/referências de origem…"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Resumo de itens de ação
+              <textarea
+                className={`${inputCls} min-h-[80px] whitespace-pre-wrap`}
+                value={form.resumoItensAcao}
+                onChange={(e) => setField("resumoItensAcao", e.target.value)}
+                placeholder="Decisões e itens de ação consolidados…"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold text-zinc-500">Ata</h3>
             <textarea
               className={`${inputCls} min-h-[120px] whitespace-pre-wrap`}
@@ -681,9 +778,118 @@ export default function ReunioesClient() {
           </div>
 
           <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-zinc-500">Transcrição</h3>
+            <textarea
+              className={`${inputCls} min-h-[120px] whitespace-pre-wrap font-mono text-xs`}
+              value={form.transcricao}
+              onChange={(e) => setField("transcricao", e.target.value)}
+              placeholder="Transcrição completa da gravação (cole aqui)…"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              Link do vídeo da gravação
+              <input
+                type="url"
+                className={inputCls}
+                value={form.videoUrl}
+                onChange={(e) => setField("videoUrl", e.target.value)}
+                placeholder="https://… (Meet, Teams, Drive, etc.)"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-zinc-500">
-                Encaminhamentos
+                Links úteis (documentos e sites)
+              </h3>
+              <button
+                type="button"
+                onClick={() =>
+                  setField("links", [
+                    ...form.links,
+                    { key: nextKey(), rotulo: "", url: "", descricao: "" },
+                  ])
+                }
+                className={btnGhost}
+              >
+                + Link útil
+              </button>
+            </div>
+            {form.links.length === 0 && (
+              <p className="text-xs text-zinc-500">Nenhum link adicionado.</p>
+            )}
+            <div className="flex flex-col gap-2">
+              {form.links.map((l) => (
+                <div key={l.key} className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-2 dark:border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={`${inputCls} flex-[2]`}
+                      value={l.rotulo}
+                      onChange={(ev) =>
+                        setField(
+                          "links",
+                          form.links.map((x) =>
+                            x.key === l.key ? { ...x, rotulo: ev.target.value } : x
+                          )
+                        )
+                      }
+                      placeholder="Rótulo (ex.: Gravação, Relatório, Wiki)"
+                    />
+                    <input
+                      type="url"
+                      className={`${inputCls} flex-[3]`}
+                      value={l.url}
+                      onChange={(ev) =>
+                        setField(
+                          "links",
+                          form.links.map((x) =>
+                            x.key === l.key ? { ...x, url: ev.target.value } : x
+                          )
+                        )
+                      }
+                      placeholder="URL (https://…) *"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={`${inputCls} flex-1`}
+                      value={l.descricao}
+                      onChange={(ev) =>
+                        setField(
+                          "links",
+                          form.links.map((x) =>
+                            x.key === l.key ? { ...x, descricao: ev.target.value } : x
+                          )
+                        )
+                      }
+                      placeholder="Descrição do link"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setField(
+                          "links",
+                          form.links.filter((x) => x.key !== l.key)
+                        )
+                      }
+                      className={btnDanger}
+                      aria-label="Remover link"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-500">
+                Tarefas (itens de ação)
               </h3>
               <button
                 type="button"
@@ -695,12 +901,12 @@ export default function ReunioesClient() {
                 }
                 className={btnGhost}
               >
-                + Encaminhamento
+                + Tarefa
               </button>
             </div>
             {form.encaminhamentos.length === 0 && (
               <p className="text-xs text-zinc-500">
-                Nenhum encaminhamento registrado.
+                Nenhuma tarefa registrada.
               </p>
             )}
             <div className="flex flex-col gap-2">

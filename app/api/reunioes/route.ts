@@ -18,6 +18,7 @@ export async function GET() {
         data: true,
         local: true,
         status: true,
+        videoUrl: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -25,6 +26,7 @@ export async function GET() {
             pautas: true,
             participantes: true,
             encaminhamentos: true,
+            links: true,
           },
         },
       },
@@ -62,6 +64,11 @@ export async function POST(request: Request) {
         data: result.valor.data,
         local: result.valor.local,
         status: result.valor.status,
+        resumoCurto: result.valor.resumoCurto,
+        resumoDetalhado: result.valor.resumoDetalhado,
+        resumoItensAcao: result.valor.resumoItensAcao,
+        transcricao: result.valor.transcricao,
+        videoUrl: result.valor.videoUrl,
         ata: result.valor.ata
           ? {
               create: { conteudo: result.valor.ata, criadoPor: criadoPor ?? result.valor.criadoPor },
@@ -86,6 +93,14 @@ export async function POST(request: Request) {
             responsavel: e.responsavel,
             prazo: e.prazo,
             status: e.status ?? "PENDENTE",
+          })),
+        },
+        links: {
+          create: result.valor.links.map((l, i) => ({
+            rotulo: l.rotulo,
+            url: l.url,
+            descricao: l.descricao,
+            ordem: i + 1,
           })),
         },
       },
