@@ -32,7 +32,7 @@ interface TestRecord {
   responseAt: string;
 }
 
-const METHODS = ["GET", "POST", "PUT", "DELETE"];
+const METHODS = ["GET"];
 
 export default function SystextilConsoleClient({
   initialStatus,

@@ -41,7 +41,7 @@ interface WebhookRecord {
   receivedAt: string;
 }
 
-const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const METHODS = ["GET"];
 
 export default function ConsoleClient({
   initialStatus,
