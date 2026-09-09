@@ -21,6 +21,7 @@ interface ReuniaoRow {
   local: string | null;
   status: string;
   videoUrl: string | null;
+  links: { id: number; rotulo: string; url: string }[];
   _count: {
     pautas: number;
     participantes: number;
@@ -495,18 +496,35 @@ export default function ReunioesClient() {
                     <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                       {r._count.encaminhamentos} tarefa(s)
                     </span>
-                    {r._count.links > 0 && (
-                      <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                        {r._count.links} link(s)
-                      </span>
-                    )}
-                    {r.videoUrl && (
-                      <span className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-red-600 dark:bg-red-950 dark:text-red-300">
-                        ▶ vídeo
-                      </span>
-                    )}
                   </span>
                 </div>
+                {(r.links.length > 0 || r.videoUrl) && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {r.videoUrl && (
+                      <a
+                        href={r.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={r.videoUrl}
+                        className="inline-flex items-center gap-1 rounded border border-red-300 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                      >
+                        ▶ Vídeo da gravação ↗
+                      </a>
+                    )}
+                    {r.links.map((l) => (
+                      <a
+                        key={l.id}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={l.url}
+                        className="inline-flex items-center gap-1 rounded border border-blue-300 px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-950"
+                      >
+                        {l.rotulo} ↗
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex shrink-0 gap-2">
                 <button

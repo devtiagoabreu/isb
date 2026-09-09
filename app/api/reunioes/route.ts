@@ -19,6 +19,10 @@ export async function GET() {
         local: true,
         status: true,
         videoUrl: true,
+        links: {
+          select: { id: true, rotulo: true, url: true },
+          orderBy: { ordem: "asc" },
+        },
         createdAt: true,
         updatedAt: true,
         _count: {
