@@ -11,6 +11,9 @@ export const PERMISSOES = {
   "systextil.read": "Systêxtil: ver registros",
   "systextil.write": "Systêxtil: criar e editar registros",
   "systextil.delete": "Systêxtil: excluir registros",
+  "reunioes.read": "Reuniões: ver",
+  "reunioes.write": "Reuniões: criar e editar",
+  "reunioes.delete": "Reuniões: excluir",
   "users.manage": "Usuários e permissões",
 } as const;
 

@@ -215,3 +215,70 @@ model PerfilProduto {
 
   @@map("product_profiles")
 }
+
+model Reuniao {
+  id              Int                       @id @default(autoincrement())
+  titulo          String
+  projeto         String                    @default("INTERNA")
+  data            DateTime
+  local           String?
+  status          String                    @default("AGENDADA")
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  ata             ReuniaoAta?
+  pautas          ReuniaoPauta[]
+  participantes   ReuniaoParticipante[]
+  encaminhamentos ReuniaoEncaminhamento[]
+
+  @@index([data])
+  @@index([projeto])
+  @@map("reunioes")
+}
+
+model ReuniaoAta {
+  id        Int      @id @default(autoincrement())
+  reuniaoId Int      @unique
+  reuniao   Reuniao  @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  conteudo  String
+  criadoPor String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reuniao_atas")
+}
+
+model ReuniaoPauta {
+  id        Int     @id @default(autoincrement())
+  reuniaoId Int
+  reuniao   Reuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  ordem     Int     @default(0)
+  descricao String
+
+  @@index([reuniaoId])
+  @@map("reuniao_pautas")
+}
+
+model ReuniaoParticipante {
+  id        Int     @id @default(autoincrement())
+  reuniaoId Int
+  reuniao   Reuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  nome      String
+  empresa   String?
+  papel     String?
+
+  @@index([reuniaoId])
+  @@map("reuniao_participantes")
+}
+
+model ReuniaoEncaminhamento {
+  id          Int      @id @default(autoincrement())
+  reuniaoId   Int
+  reuniao     Reuniao  @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  descricao   String
+  responsavel String?
+  prazo       DateTime?
+  status      String   @default("PENDENTE")
+
+  @@index([reuniaoId])
+  @@map("reuniao_encaminhamentos")
+}

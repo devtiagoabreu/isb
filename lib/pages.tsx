@@ -16,6 +16,7 @@ export const PAGE_ICONES: Record<string, ReactNode> = {
   "pedidos-venda": <><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></>,
   link: <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />,
   api: <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4zM12 8l2.5 1.5v3L12 14l-2.5-1.5v-3L12 8z" />,
+  reunioes: <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="m9 16 2 2 4-4" /></>,
 };
 
 export function pageIconPath(name: string | null | undefined): ReactNode {
