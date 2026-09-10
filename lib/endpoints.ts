@@ -64,4 +64,16 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     path: "/formas-pagamentos",
     params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
   },
+  {
+    label: "Saldos de estoque por depósito",
+    method: "GET",
+    path: "/estoques/saldos/{idDeposito}",
+    params: [{ key: "idDeposito", value: "14889183873" }],
+  },
+  {
+    label: "NF-e (listagem)",
+    method: "GET",
+    path: "/nfe",
+    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "5" }],
+  },
 ];
