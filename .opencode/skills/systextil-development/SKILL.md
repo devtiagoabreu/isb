@@ -1,6 +1,6 @@
 ---
 name: systextil-development
-description: Desenvolver e manter integrações com o ERP Systêxtil Cloud e seu Web Service (SWS). Use ao implementar ou depurar chamadas à API do Systêxtil, autenticação OAuth2 (Oracle IDCS) ou APIKey, endpoints /material/v1, /pessoa/v1, /venda/v1, /fiscal/v1, /financeiro/v1, formação de SKU, regras de estoque fracionado em metros ou cadastros CRUD systextil:* (cliente, fornecedor, produto, colecao, pedido-venda).
+description: Desenvolver e manter integrações com o ERP Systêxtil Cloud e seu Web Service (SWS). Use ao implementar ou depurar chamadas à API do Systêxtil, autenticação OAuth2 (Oracle IDCS) ou APIKey, endpoints /material/v1, /estoque/v1, /pessoa/v1, /venda/v1, /compra/v1, /notafiscal/v1, /financeiro/v1, /contabilidade/v1, /industrial/v1, /crm/v1, /webhook/v1, formação de SKU, regras de estoque fracionado em metros ou cadastros CRUD systextil:* (cliente, fornecedor, produto, colecao, pedido-venda, deposito, titulo-receber, titulo-pagar, etc.).
 category: integration
 version: 0.1.0
 author: devtiagoabreu
@@ -66,30 +66,139 @@ Config é lida do banco (`prisma.apiConfig` handle `systextil`) com fallback par
 
 ## Endpoints
 
-### Confirmados (proxy api-promoda)
+### Catálogo completo de endpoints (lib/systextil-endpoints.ts)
 
-| Método | Caminho | Observação |
-|--------|---------|------------|
-| GET | `/material/v1/produto` | Listagem/filtros; limit máx 100 |
+A allowlist de testes está em `lib/systextil-endpoints.ts` com **50+ endpoints**
+organizados por módulo. Endpoints marcados ✅ confirmados no proxy; ⚠️ doc oficial
+sem teste no proxy; ❌ retornam 404 nesta conta.
 
-Filtros suportados (`lib/systemextil-endpoints.ts`): `q`, `descricao`,
-`grupo_id`, `subgrupo_id`, `item_estrutura_id`, `linha_produto_id`,
-`colecao_id`, `artigo_id`, `nivel_produto`, `limit`, `offset`.
+**Materiais:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET | `/material/v1/produto` | ✅ | Listagem/filtros; limit 1–100 |
+| CRUD | `/material/v1/produto` | ✅ | Chave: nivel+grupo+subgrupo+item |
+| CRUD | `/material/v1/colecao` | ⚠️ | colecao_id+descricao |
+| CRUD | `/material/v1/unidademedida` | ⚠️ | fator_conversao, FCI |
+| GET/POST | `/material/v1/movimento-estoque` | ⚠️ | GET=razão, POST=lançamento (camelCase body) |
 
-Payload do produto (`SystextilProduto`): `nivel_produto`, `grupo_id`,
+**Estoque:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET | `/estoque/v1/estoque` | ⚠️ | Saldos por lote/depósito/empresa |
+| GET | `/estoque/v1/deposito` | ⚠️ | Depósitos: tipo_volume 0–9, pronta_entrega |
+
+**Pessoas:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/pessoa/v1/cliente` | ⚠️ | 180+ campos; PUT por cnpj_9/4/2 |
+| CRUD | `/pessoa/v1/fornecedor` | ⚠️ | portadores, pix[], imposto |
+| CRUD | `/pessoa/v1/funcionario` | ⚠️ | empresa_id+funcionario_id; permissões |
+| CRUD | `/venda/v1/representante` | ⚠️ | tipo_comissao[], marcas[] |
+| CRUD | `/pessoa/v1/grupo/economico` | ⚠️ | unidade_limite_ped 1/2 |
+| GET | `/pessoa/v1/centro-custo` | ⚠️ | Schema truncado na doc |
+| CRUD | `/pessoa/v1/usuario_centrocusto` | ⚠️ | permissões requisitar/entregar |
+| GET | `/empresa/v1/empresa` | ⚠️ | tipo_empresa 0–4 |
+| GET | `/credito/v1/consulta` | ⚠️ | situacao_credito 1/2; limites |
+
+**Vendas:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/venda/v1/pedido/venda` | ⚠️ | situacao_venda 0–15; cancelar via PUT |
+| GET | `/venda/v1/pedido/{codigo}/tracking` | ⚠️ | Status 1–10 |
+| CRUD | `/venda/v1/preco/tabela` | ⚠️ | tipo_preco A/C/E/F/R/V/O/S/T |
+| GET | `/venda/v1/preco/item/{c}/{m}/{s}` | ⚠️ | Itens da tabela |
+| GET | `/venda/v1/preco/venda` | ⚠️ | Preços com valor > 0 |
+| GET | `/venda/v1/preco/calcular-preco/{venda}` | ⚠️ | Cálculo por forma/condição |
+| GET | `/venda/v1/forma/pagamento` | ⚠️ | forma_pagamento_nfe 01–99 |
+| CRUD | `/venda/v1/condicao/pagamento` | ⚠️ | parcelas, avista, gera_boleto/danfe |
+| CRUD | `/venda/v1/motivo/cancelamento` | ⚠️ | tipo 1–5 |
+
+**Compras:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/compra/v1/pedido/compra` | ⚠️ | espelha venda; adiantamentos |
+| CRUD | `/compra/v1/requisicao/compra` | ⚠️ | situacao_requisicao |
+| CRUD | `/compra/v1/requisicao/estoque` | ⚠️ | converte em requisição compra |
+| CRUD | `/compra/v1/forma/pagamento` | ⚠️ | tipo_baixa 0–4 |
+| CRUD | `/compra/v1/condicao/pagamento` | ⚠️ | parcelas com dias+percentual |
+| CRUD | `/comprador/v1/comprador` | ⚠️ | comprador_id, email, ramal |
+| CRUD | `/comprador/v1/grupocomprador` | ⚠️ | equipe+comprador+produto |
+
+**Fiscal:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET | `/notafiscal/v1/documento/saida` | ⚠️ | tipo_nota 1–9, situacao 0–6 |
+| GET/POST | `/notafiscal/v1/documento/entrada` | ⚠️ | POST sync; 406/409 erros |
+| GET | `/notafiscal/v1/xmlnfe` | ⚠️ | campo xml (conteúdo XML) |
+
+**Financeiro:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/financeiro/v1/titulo/receber` | ⚠️ | situacao 0–4, emitida 0–8 |
+| CRUD | `/financeiro/v1/titulo/pagar` | ⚠️ | retenções, rateio, pagamento |
+| POST | `/financeiro/v1/recebimento` | ⚠️ | Baixa título a receber; sync |
+
+**Contábil:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/contabilidade/v1/conta/contabil` | ⚠️ | natureza_conta 1–6/9 |
+| CRUD | `/contabilidade/v1/lancamento/contabil` | ⚠️ | partidas[] D/C |
+
+**Industrial:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET | `/Planejamentoindustrial/v1/planejamentoindustrial` | ⚠️ | Reservas por período |
+| POST | `/producao/v1/baixa-ordem-confeccao` | ⚠️ | Baixa OP; sync |
+| GET | `/industrial/v1/ordembeneficiamento` | ⚠️ | OB, receita, máquina |
+| GET | `/industrial/v1/filamaquina` | ⚠️ | Alocação em máquinas |
+| GET | `/industrial/v1/roteiro` | ⚠️ | Roteiro produto×op×estágio |
+
+**CRM / Sugestão:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| POST | `/crm/v1/sugerir-rolos` | ⚠️ | Sugere rolos para venda |
+| GET/POST | `/crm/v1/sugerir-rolos-dpv` | ⚠️ | Por DPV |
+| GET | `/crm/v1/rolos-sugeridos/{id}` | ⚠️ | Detalhes da sugestão |
+| POST | `/crm/v1/alocar-sugestao` | ⚠️ | Confirma alocação |
+| POST | `/crm/v1/cancelar-sugestao` | ⚠️ | Cancela sugestão |
+| GET | `/crm/v1/status-sugestao/{id}` | ⚠️ | Status |
+| GET | `/crm/v1/quebra-dpv` | ⚠️ | Quebras de produção |
+
+**Relatórios:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET | `/relatorio/v1/carteira/repres/{rep}` | ⚠️ | Carteira pedidos por representante |
+| GET | `/relatorio/v1/titulo/repres/{rep}/{grupo}` | ⚠️ | Títulos+boletos/Pix |
+| GET | `/fatu/relatorios` | ⚠️ | Romaneio de rolos |
+
+**Transacional:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| GET/POST | `/venda/v1/transacoes` | ⚠️ | SPH: pix, qr_code, link_pagamento |
+
+**Webhook:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/webhook/v1/subscription` | ⚠️ | entity=entidades ISB; auth OAuth2/API_KEY/BASIC |
+
+**Cobrança/Renegociação:**
+| Método | Caminho | Status | Observação |
+|--------|---------|--------|------------|
+| CRUD | `/systextil-oauth2-api/cobr/instrucoes-bancarias` | ⚠️ | Instruções sobre duplicatas |
+| CRUD | `/systextil-oauth2-api/inte/renegociacao` | ⚠️ | Renegociação de títulos |
+
+**Filtros suportados** (`q=` FilterObject): `$eq/$ne/$lt/$lte/$gt/$gte/$instr/`
+`$ninstr/$like/$null/$notnull/$between/$and/$or/$orderby/$asof`.
+
+**Payload do produto** (`SystextilProduto`): `nivel_produto`, `grupo_id`,
 `subgrupo_id`, `item_estrutura_id`, `descricao_produto`,
 `descricao_produto_complementar`, `situacao_produto`, `classificacao_fiscal`,
 `unidade_medida_id`, `linha_produto_id`, `colecao_id`, `artigo_id`,
 `codigo_barras`, `origem_produto`, `data_atualizacao_api`. Resposta pode ser
 array direto ou `{items: []}`.
 
-### Documentados pelo SWS mas não expostos pelo proxy (verificar antes de usar)
-
-- `POST /pessoa/v1/cliente` — garantir cliente
-- `POST /venda/v1/pedido/venda` — criar pedido de venda
-- `POST /fiscal/v1/documento/entrada` — registrar XML de entrada (baixa estoque Depósito 50)
-- `POST /financeiro/v1/titulo/receber` — contas a receber
-- `POST /material/v1/movimento/estoque` — baixa/movimento de estoque
+**Códigos de erro comuns:** 406 (mais de 1 item no POST), 408 (registro não
+existe), 409 (já cadastrado), 413 (entidade muito grande).
 
 ### Mid-surface: tabelas internas (DB Oracle do ERP) e mapeamento DB↔API
 

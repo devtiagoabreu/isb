@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { type SystextilMethod, systextilRequest } from "@/lib/systextil";
+import {
+  type SystextilMethod,
+  systextilRequest,
+} from "@/lib/systextil";
 import { prisma } from "@/lib/db";
 import { apiRequire } from "@/lib/auth";
 import { SYSTEXTIL_TEST_ENDPOINTS } from "@/lib/systextil-endpoints";
@@ -12,23 +15,40 @@ interface TestPayload {
   body?: unknown;
 }
 
-// Proxy de teste: refletir método+path arbitrário deixaria o console executar
-// POST/PUT/DELETE em qualquer recurso do Systêxtil com as credenciais da
-// integração. Só é permitido executar GET em endpoints da allowlist.
+/**
+ * Verifica se a combinação method+path está na allowlist.
+ * Para GET, qualquer endpoint da lista é aceito.
+ * Para POST/PUT/DELETE, o endpoint deve declarar o método na sua lista `method`.
+ */
 function isAllowedTest(
   method: SystextilMethod,
   path: string,
   params: Record<string, string>,
 ): boolean {
-  if (method !== "GET") return false;
   const base = path.split("?")[0]!.split("{")[0]!.replace(/\/+$/, "");
   return SYSTEXTIL_TEST_ENDPOINTS.some((ep) => {
     const prefix = ep.path.split("{")[0]!.replace(/\/+$/, "");
     if (prefix && base !== prefix && !base.startsWith(`${prefix}/`)) {
       return false;
     }
-    const declared = new Set((ep.params ?? []).map((p) => p.key));
-    return Object.keys(params).every((k) => declared.has(k));
+
+    // Verificar se o método é permitido
+    const allowedMethods = Array.isArray(ep.method) ? ep.method : [ep.method];
+    if (!allowedMethods.includes(method)) {
+      // Para GET, permitir se o endpoint existe (retrocompatibilidade)
+      if (method === "GET" && allowedMethods.includes("GET")) {
+        // ok
+      } else if (method !== "GET") {
+        return false;
+      }
+    }
+
+    // Para GET, verificar parâmetros declarados
+    if (method === "GET") {
+      const declared = new Set((ep.params ?? []).map((p) => p.key));
+      return Object.keys(params).every((k) => declared.has(k));
+    }
+    return true;
   });
 }
 
@@ -55,7 +75,10 @@ export async function POST(request: Request) {
 
   if (!isAllowedTest(method, path, params)) {
     return NextResponse.json(
-      { error: "Operação não permitida. Use GET em um endpoint da allowlist." },
+      {
+        error:
+          "Operação não permitida. Use um endpoint+method da allowlist (lib/systextil-endpoints.ts).",
+      },
       { status: 403 },
     );
   }
