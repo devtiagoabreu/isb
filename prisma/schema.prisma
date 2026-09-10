@@ -205,6 +205,20 @@ model ApiEndpoint {
   @@map("api_endpoints")
 }
 
+model IntegracaoParam {
+  id        Int      @id @default(autoincrement())
+  chave     String   @unique
+  valor     String
+  escopo    String   @default("geral") // systextil | bling | geral
+  categoria String?
+  descricao String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("integracao_params")
+}
+
 model PerfilProduto {
   id        Int      @id @default(autoincrement())
   nome      String   @unique
