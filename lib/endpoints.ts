@@ -52,4 +52,16 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     method: "GET",
     path: "/situacoes/modulos",
   },
+  {
+    label: "Condições de pagamento",
+    method: "GET",
+    path: "/condicoes-pagamentos",
+    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
+  },
+  {
+    label: "Formas de pagamento",
+    method: "GET",
+    path: "/formas-pagamentos",
+    params: [{ key: "pagina", value: "1" }, { key: "limite", value: "50" }],
+  },
 ];
