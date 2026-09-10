@@ -18,8 +18,8 @@ CREATE UNIQUE INDEX "integracao_params_chave_key" ON "integracao_params"("chave"
 
 -- Seed: parametros padrao (tabela de de-para da secao 4 do plano)
 INSERT INTO "integracao_params" ("chave", "valor", "escopo", "categoria", "descricao", "ativo", "updatedAt") VALUES
-('deposito.systextil.ecommerce', '34', 'systextil', 'estoque', 'Depósito e-commerce (Systêxtil) - fonte de verdade do estoque', TRUE, CURRENT_TIMESTAMP),
-('deposito.bling.espelho34', '14889183873', 'bling', 'estoque', 'Depósito Bling que espelha o 34 (DEPÓSITO 034, padrao=true, ativo)', TRUE, CURRENT_TIMESTAMP),
+('deposito.systextil.ecommerce', '20', 'systextil', 'estoque', 'Depósito e-commerce (Systêxtil) = 20 TECIDO 1ª QUALIDADE CASA - fonte de verdade do estoque (34 PRODUTOS E-COMMERCE está sem saldo)', TRUE, CURRENT_TIMESTAMP),
+('deposito.bling.espelho34', '14889183873', 'bling', 'estoque', 'Depósito Bling que espelha o estoque e-commerce / dep. 20 (DEPÓSITO 034, padrao=true, ativo)', TRUE, CURRENT_TIMESTAMP),
 ('serie.nfe.ecommerce', '2 / EPF001', 'systextil', 'fiscal', 'Série da NF-e usada em pedido de venda e doc. de entrada', TRUE, CURRENT_TIMESTAMP),
 ('cfop.sp', '5.102', 'systextil', 'fiscal', 'Natureza de operação (CFOP) venda interna SP', TRUE, CURRENT_TIMESTAMP),
 ('cfop.transferencia', '6.102', 'systextil', 'fiscal', 'Natureza de operação (CFOP) transferência/interestadual', TRUE, CURRENT_TIMESTAMP),

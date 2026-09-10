@@ -11,7 +11,7 @@ export type BlingMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export interface BlingRequestInput {
   method: BlingMethod;
   path: string;
-  params?: Record<string, string | number | boolean>;
+  params?: Record<string, string | number | boolean | Array<string | number>>;
   body?: unknown;
 }
 
@@ -177,7 +177,13 @@ async function buildUrl(input: BlingRequestInput): Promise<string> {
   const url = new URL(`${cfg.apiBase}${input.path}`);
   if (input.params) {
     for (const [k, v] of Object.entries(input.params)) {
-      url.searchParams.set(k, String(v));
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          url.searchParams.append(k, String(item));
+        }
+      } else {
+        url.searchParams.set(k, String(v));
+      }
     }
   }
   return url.toString();

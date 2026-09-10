@@ -70,10 +70,11 @@ model User {
   createdAt    DateTime  @default(now())
   roleId       Int?
   role         Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  sessions     Session[]
-  menus        Menu[]
-  homePageId   Int?
-  homePage     Page?     @relation(fields: [homePageId], references: [id], onDelete: SetNull)
+  sessions        Session[]
+  menus           Menu[]
+  reconciliacoes  ReconciliacaoEstoque[]
+  homePageId      Int?
+  homePage        Page?     @relation(fields: [homePageId], references: [id], onDelete: SetNull)
 
   @@index([homePageId])
   @@map("users")
@@ -315,4 +316,32 @@ model ReuniaoLink {
 
   @@index([reuniaoId])
   @@map("reuniao_links")
+}
+
+// Log de execução da reconciliação de estoque (Fase 2, Fluxo A):
+// espelha o saldo do depósito 34 do Systêxtil no depósito espelho do Bling
+// via POST /estoques operacao "B" (balanço absoluto).
+model ReconciliacaoEstoque {
+  id                Int      @id @default(autoincrement())
+  modo              String // "dry-run" | "executar"
+  status            String // "ok" | "erro"
+  depositoSystextil Int
+  depositoBling     String
+  saldosLidos       Int      @default(0)
+  produtosBling     Int      @default(0)
+  previstos         Int      @default(0)
+  divergentes       Int      @default(0)
+  semProdutoBling   Int      @default(0)
+  enviados          Int      @default(0)
+  erros             Int      @default(0)
+  diff              Json?
+  resumo            String?
+  erro              String?
+  criadoPorId       Int?
+  criadoPor         User?    @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  iniciadoEm        DateTime @default(now())
+  finalizadoEm      DateTime?
+
+  @@index([criadoPorId])
+  @@map("reconciliacao_estoque")
 }

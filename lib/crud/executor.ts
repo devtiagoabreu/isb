@@ -159,7 +159,10 @@ async function systextilList(
   const offset = Math.max(params.offset ?? 0, 0);
   const searchParams: Record<string, string | number> = { limit, offset };
   const term = params.term?.trim();
-  if (term) searchParams.q = JSON.stringify(buildSystextilFilter(schema, term));
+  // "none" desativa a busca textual (endpoints que não aceitam q — ex.: estoque)
+  if (term && schema.searchParamName !== "none") {
+    searchParams.q = JSON.stringify(buildSystextilFilter(schema, term));
+  }
 
   const res = await systextilRequest({
     method: "GET",

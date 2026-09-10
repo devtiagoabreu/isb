@@ -68,7 +68,10 @@ export const TEST_ENDPOINTS: TestEndpoint[] = [
     label: "Saldos de estoque por depósito",
     method: "GET",
     path: "/estoques/saldos/{idDeposito}",
-    params: [{ key: "idDeposito", value: "14889183873" }],
+    params: [
+      { key: "idDeposito", value: "14889183873" },
+      { key: "idsProdutos[]", value: "16704116671,16704116390" },
+    ],
   },
   {
     label: "NF-e (listagem)",
