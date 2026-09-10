@@ -168,7 +168,7 @@ export async function reconciliarEstoque(input: {
   criadoPorId?: number;
 }): Promise<ResultadoReconciliacao> {
   const depositoSystextil = Number(
-    await lerParametroChave("deposito.systextil.ecommerce", "20")
+    await lerParametroChave("deposito.systextil.ecommerce", "34")
   );
   const depositoBling = await lerParametroChave(
     "deposito.bling.espelho34",

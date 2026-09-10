@@ -127,8 +127,8 @@ export default function ReconciliacaoEstoqueClient() {
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Reconciliação de Estoque"
-              descricao="Espelha o saldo do depósito e-commerce do Systêxtil (dep. 20 TECIDO 1ª QUALIDADE CASA) no depósito Bling espelho, usando balanço absoluto (POST /estoques, operacao B). Antes de aplicar, rode um dry-run para visualizar o que será alterado."
-              exemplo="1) Dry-run: calcula saldo do depósito 20 e compara com o saldo atual do Bling, sem alterar nada.\n2) Executar: envia balanço absoluto (quantidade = saldo atual do Systêxtil) apenas nos produtos divergentes.\n3) O log de cada execução fica gravado abaixo."
+              descricao="Espelha o saldo do depósito e-commerce do Systêxtil (dep. 034 PRODUTOS E-COMMERCE) no depósito Bling de e-commerce, usando balanço absoluto (POST /estoques, operacao B). O depósito 034 é a fonte de verdade e geralmente está vazio (o saldo entra por transferência manual). Antes de aplicar, rode um dry-run para visualizar o que será alterado."
+              exemplo="1) Dry-run: calcula saldo do depósito 034 e compara com o saldo atual do Bling, sem alterar nada.\n2) Executar: envia balanço absoluto (quantidade = saldo atual do Systêxtil) apenas nos produtos divergentes.\n3) O log de cada execução fica gravado abaixo."
             />
           </h1>
         </div>
