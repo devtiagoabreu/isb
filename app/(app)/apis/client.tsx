@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { InfoButton, InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  EmptyState,
+  Section,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+  type Tone,
+} from "@/app/components/ui/panels";
 
 interface VarData {
   id: number;
@@ -35,19 +45,19 @@ interface ApiData {
   endpoints: EndpointData[];
 }
 
-function methodColor(method: string): string {
+function methodTone(method: string): Tone {
   switch (method.toUpperCase()) {
     case "GET":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "POST":
-      return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+      return "info";
     case "PUT":
     case "PATCH":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+      return "warn";
     case "DELETE":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     default:
-      return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
+      return "neutral";
   }
 }
 
@@ -170,8 +180,8 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-start justify-between gap-4">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">
             <InfoTitle
@@ -184,184 +194,182 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
             substituem as do painel da Vercel.
           </p>
         </div>
-        <button
-          onClick={createApi}
-          className="shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+        <button onClick={createApi} className={btnPrimary}>
           Nova integração
         </button>
       </div>
 
       {notice && (
-        <p role="status" className="text-sm text-emerald-600">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
           {notice}
-        </p>
+        </div>
       )}
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {error}
+        </div>
+      )}
 
       {apis.length === 0 ? (
-        <p className="text-sm text-zinc-500">
+        <EmptyState>
           Nenhuma integração cadastrada. Clique em “Nova integração” para começar.
-        </p>
+        </EmptyState>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           {apis.map((api) => (
-            <section
+            <Section
               key={api.id}
-              className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800"
+              title={
+                <span className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-xs font-semibold dark:bg-zinc-800">
+                    {api.handle.slice(0, 2).toUpperCase()}
+                  </span>
+                  {api.nome}
+                  <InfoButton
+                    titulo={api.nome}
+                    descricao={api.descricao}
+                    exemplo={`Base: ${api.baseUrl ?? "—"}`}
+                  />
+                </span>
+              }
+              subtitle={
+                <span className="flex flex-wrap items-center gap-2">
+                  <code className="font-mono">
+                    handle: {api.handle}
+                  </code>
+                  <Badge tone={api.ativo ? "ok" : "neutral"}>
+                    {api.ativo ? "ativa" : "inativa"}
+                  </Badge>
+                </span>
+              }
+              actions={
+                <button
+                  onClick={() => setConfirmDelete(api.id)}
+                  className="shrink-0 text-xs font-medium text-red-500 hover:text-red-700"
+                >
+                  Excluir
+                </button>
+              }
             >
-              {/* Capa */}
-              <div className="flex flex-col gap-4 border-b border-zinc-100 pb-4 dark:border-zinc-800">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono font-semibold dark:bg-zinc-800">
-                      {api.handle.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        {api.nome}
-                        <InfoButton
-                          titulo={api.nome}
-                          descricao={api.descricao}
-                          exemplo={`Base: ${api.baseUrl ?? "—"}`}
-                        />
-                      </h2>
-                      <p className="text-xs text-zinc-500">
-                        handle: <code className="font-mono">{api.handle}</code> ·
-                        {api.ativo ? " ativa" : " inativa"}
-                      </p>
-                    </div>
-                  </div>
+              {confirmDelete === api.id && (
+                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-900/50 dark:bg-red-950/40">
+                  <span>Excluir “{api.nome}” e todos os seus endpoints?</span>
                   <button
-                    onClick={() => setConfirmDelete(api.id)}
-                    className="shrink-0 text-xs font-medium text-red-500 hover:text-red-700"
+                    onClick={() => removeApi(api)}
+                    className="rounded-full bg-red-600 px-3 py-1 font-medium text-white hover:bg-red-500"
                   >
-                    Excluir
+                    Confirmar
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className={btnGhost}
+                  >
+                    Cancelar
                   </button>
                 </div>
+              )}
 
-                {confirmDelete === api.id && (
-                  <div className="flex items-center gap-3 rounded-lg bg-red-50 p-3 text-sm dark:bg-red-950/40">
-                    <span>Excluir “{api.nome}” e todos os seus endpoints?</span>
-                    <button
-                      onClick={() => removeApi(api)}
-                      className="rounded-full bg-red-600 px-3 py-1 font-medium text-white hover:bg-red-500"
-                    >
-                      Confirmar
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(null)}
-                      className="rounded-full border border-zinc-300 px-3 py-1 dark:border-zinc-700"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-
-                {/* Variáveis de ambiente (capa) */}
+              {/* Variáveis de ambiente (capa) */}
+              <div className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold">
+                  <InfoTitle
+                    titulo="Variáveis de ambiente"
+                    descricao="Estas variáveis valem para todos os endpoints desta integração. Campos marcados como seguro mostram ••• e são enviados sem expor o valor. Ao salvar, elas passam a valer imediatamente para o ISB."
+                  />
+                </h3>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold">
-                    <InfoTitle
-                      titulo="Variáveis de ambiente"
-                      descricao="Estas variáveis valem para todos os endpoints desta integração. Campos marcados como seguro mostram ••• e são enviados sem expor o valor. Ao salvar, elas passam a valer imediatamente para o ISB."
-                    />
-                  </h3>
-                  <div className="flex flex-col gap-2">
-                    {api.vars.map((v) => (
-                      <div
-                        key={v.id}
-                        className="flex flex-wrap items-center gap-2 text-sm"
+                  {api.vars.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex flex-wrap items-center gap-2 text-sm"
+                    >
+                      <label className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+                          <InfoButton
+                            titulo={v.chave}
+                            descricao={v.descricao}
+                          />
+                          {v.chave}
+                          {v.segredo && (
+                            <Badge tone="neutral">seguro</Badge>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type={v.segredo && v.valor.includes("•") ? "password" : "text"}
+                            className={`${inputCls} min-w-0 flex-1 font-mono text-xs`}
+                            value={v.valor}
+                            onChange={(e) =>
+                              patchVar(api.id, v.id, (x) => ({ ...x, valor: e.target.value }))
+                            }
+                            placeholder={v.segredo ? "••••••••" : ""}
+                          />
+                        </div>
+                      </label>
+                      <button
+                        onClick={() =>
+                          patchVar(api.id, v.id, (x) => ({ ...x, segredo: !x.segredo }))
+                        }
+                        className="rounded-md border border-zinc-300 px-2 py-1.5 text-xs dark:border-zinc-700"
+                        title="Alternar se é segredo"
                       >
-                        <label className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <span className="flex items-center gap-1 text-xs text-zinc-500">
-                            <InfoButton
-                              titulo={v.chave}
-                              descricao={v.descricao}
-                            />
-                            {v.chave}
-                            {v.segredo && (
-                              <span className="rounded bg-zinc-100 px-1.5 text-[10px] uppercase dark:bg-zinc-800">
-                                seguro
-                              </span>
-                            )}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type={v.segredo && v.valor.includes("•") ? "password" : "text"}
-                              className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono text-xs dark:border-zinc-700"
-                              value={v.valor}
-                              onChange={(e) =>
-                                patchVar(api.id, v.id, (x) => ({ ...x, valor: e.target.value }))
-                              }
-                              placeholder={v.segredo ? "••••••••" : ""}
-                            />
-                          </div>
-                        </label>
-                        <button
-                          onClick={() =>
-                            patchVar(api.id, v.id, (x) => ({ ...x, segredo: !x.segredo }))
-                          }
-                          className="rounded-md border border-zinc-300 px-2 py-1.5 text-xs dark:border-zinc-700"
-                          title="Alternar se é segredo"
-                        >
-                          {v.segredo ? "🔒" : "🔓"}
-                        </button>
-                        <button
-                          onClick={() =>
-                            patchApi(api.id, (a) => ({
-                              ...a,
-                              vars: a.vars.filter((x) => x.id !== v.id),
-                            }))
-                          }
-                          className="text-xs text-red-500 hover:text-red-700"
-                          title="Remover variável"
-                        >
-                          remover
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() =>
-                      patchApi(api.id, (a) => ({
-                        ...a,
-                        vars: [
-                          ...a.vars,
-                          { id: -Date.now(), chave: "NOVA_VAR", valor: "", segredo: false, descricao: "", ordem: a.vars.length },
-                        ],
-                      }))
-                    }
-                    className="w-fit rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  >
-                    + Adicionar variável
-                  </button>
+                        {v.segredo ? "🔒" : "🔓"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          patchApi(api.id, (a) => ({
+                            ...a,
+                            vars: a.vars.filter((x) => x.id !== v.id),
+                          }))
+                        }
+                        className="text-xs text-red-500 hover:text-red-700"
+                        title="Remover variável"
+                      >
+                        remover
+                      </button>
+                    </div>
+                  ))}
                 </div>
+                <button
+                  onClick={() =>
+                    patchApi(api.id, (a) => ({
+                      ...a,
+                      vars: [
+                        ...a.vars,
+                        { id: -Date.now(), chave: "NOVA_VAR", valor: "", segredo: false, descricao: "", ordem: a.vars.length },
+                      ],
+                    }))
+                  }
+                  className={`${btnGhost} w-fit`}
+                >
+                  + Adicionar variável
+                </button>
               </div>
 
               {/* Endpoints */}
-              <div className="flex flex-col gap-2 pt-4">
-                <h3 className="text-sm font-semibold">
+              <div className="mt-5 flex flex-col gap-3 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
                   <InfoTitle
                     titulo="Endpoints"
                     descricao="Lista de endpoints disponíveis nesta API. Cada um tem um botão 'i' com explicação e um exemplo didático de chamada. Você pode adicionar, editar ou remover endpoints conforme a documentação da API."
                   />
-                  <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-normal text-zinc-500 dark:bg-zinc-800">
-                    {api.endpoints.length}
-                  </span>
+                  <Badge tone="neutral">{api.endpoints.length}</Badge>
                 </h3>
                 <div className="flex flex-col gap-2">
                   {api.endpoints.map((e) => (
                     <div
                       key={e.id}
-                      className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+                      className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <span
-                            className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${methodColor(e.method)}`}
-                          >
-                            {e.method}
-                          </span>
+                          <Badge tone={methodTone(e.method)}>{e.method}</Badge>
                           <span className="min-w-0 truncate font-mono text-xs">
                             {e.path}
                           </span>
@@ -387,12 +395,12 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                           </button>
                         </div>
                       </div>
-                      <div className="mt-2 flex flex-col gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                      <div className="mt-3 flex flex-col gap-2">
+                        <div className="flex flex-wrap items-end gap-2">
+                          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
                             Método
                             <select
-                              className="rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono text-xs dark:border-zinc-700"
+                              className={selectCls}
                               value={e.method}
                               onChange={(ev) =>
                                 patchEndpoint(api.id, e.id, (x) => ({ ...x, method: ev.target.value }))
@@ -403,20 +411,20 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                               ))}
                             </select>
                           </label>
-                          <label className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs text-zinc-500">
+                          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-zinc-500">
                             Path
                             <input
-                              className="min-w-0 rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono text-xs dark:border-zinc-700"
+                              className={`${inputCls} min-w-0 font-mono text-xs`}
                               value={e.path}
                               onChange={(ev) =>
                                 patchEndpoint(api.id, e.id, (x) => ({ ...x, path: ev.target.value }))
                               }
                             />
                           </label>
-                          <label className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs text-zinc-500">
+                          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-zinc-500">
                             Rótulo
                             <input
-                              className="min-w-0 rounded-md border border-zinc-300 bg-transparent px-2 py-1 text-xs dark:border-zinc-700"
+                              className={`${inputCls} min-w-0 text-xs`}
                               value={e.label}
                               onChange={(ev) =>
                                 patchEndpoint(api.id, e.id, (x) => ({ ...x, label: ev.target.value }))
@@ -424,20 +432,20 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                             />
                           </label>
                         </div>
-                        <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
                           Explicação
                           <textarea
-                            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1 text-xs dark:border-zinc-700"
+                            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs text-zinc-900 outline-none transition-colors focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
                             value={e.descricao ?? ""}
                             onChange={(ev) =>
                               patchEndpoint(api.id, e.id, (x) => ({ ...x, descricao: ev.target.value }))
                             }
                           />
                         </label>
-                        <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
                           Exemplo (mostrado no “i”)
                           <textarea
-                            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono text-xs dark:border-zinc-700"
+                            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 outline-none transition-colors focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
                             value={e.exemplo ?? ""}
                             onChange={(ev) =>
                               patchEndpoint(api.id, e.id, (x) => ({ ...x, exemplo: ev.target.value }))
@@ -467,22 +475,22 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                       ],
                     }))
                   }
-                  className="w-fit rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className={`${btnGhost} w-fit`}
                 >
                   + Adicionar endpoint
                 </button>
               </div>
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-5 flex justify-end border-t border-zinc-100 pt-4 dark:border-zinc-800">
                 <button
                   onClick={() => save(api)}
                   disabled={saving[api.id]}
-                  className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                  className={btnPrimary}
                 >
                   {saving[api.id] ? "Salvando…" : dirty[api.id] ? "Salvar alterações" : "Salvar"}
                 </button>
               </div>
-            </section>
+            </Section>
           ))}
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Card, btnAccent, inputCls } from "@/app/components/ui/panels";
 
 export default function SetupClient() {
   const router = useRouter();
@@ -41,8 +42,8 @@ export default function SetupClient() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 p-8 dark:border-zinc-800">
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <Card className="w-full max-w-lg p-8">
         <h1 className="text-2xl font-semibold tracking-tight">
           Criar acesso
         </h1>
@@ -51,29 +52,35 @@ export default function SetupClient() {
         </p>
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={submit}>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Nome</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              Nome
+            </span>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">E-mail</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              E-mail
+            </span>
             <input
               type="email"
               required
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Senha (mín. 8 caracteres)</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              Senha (mín. 8 caracteres)
+            </span>
             <input
               type="password"
               required
@@ -81,11 +88,13 @@ export default function SetupClient() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Confirmar senha</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              Confirmar senha
+            </span>
             <input
               type="password"
               required
@@ -93,7 +102,7 @@ export default function SetupClient() {
               minLength={8}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
 
@@ -104,12 +113,12 @@ export default function SetupClient() {
           <button
             type="submit"
             disabled={carregando}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className={`${btnAccent} w-full`}
           >
             {carregando ? "Criando..." : "Criar conta"}
           </button>
         </form>
-      </div>
+      </Card>
     </main>
   );
 }

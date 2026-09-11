@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
 import { Dialog } from "@/app/components/dialog";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Section,
+  btnAccent,
+} from "@/app/components/ui/panels";
 
 interface PerfilRow {
   id: number;
@@ -335,9 +342,9 @@ export default function PerfisClient() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Perfis de Produto"
@@ -349,67 +356,78 @@ export default function PerfisClient() {
             Perfil padrão de cadastro aplicado em massa no Bling
           </p>
         </div>
-        <button
-          onClick={abrirNovo}
-          className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
-        >
+        <button onClick={abrirNovo} className={btnAccent}>
           Novo perfil
         </button>
       </div>
 
       {notice && (
-        <p role="status" className="text-sm text-emerald-600">
+        <p
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
           {notice}
         </p>
       )}
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
-
-      {carregando && perfis.length === 0 ? (
-        <p className="text-sm text-zinc-500">Carregando perfis…</p>
-      ) : perfis.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-          Nenhum perfil cadastrado ainda. Crie um perfil padrão e depois use em{" "}
-          <Link href="/produtos" className="underline">
-            Produtos
-          </Link>{" "}
-          para aplicar em massa.
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
         </div>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {perfis.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-            >
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="font-medium">{p.nome}</span>
-                {p.descricao && (
-                  <span className="truncate text-xs text-zinc-500">
-                    {p.descricao}
-                  </span>
-                )}
-                <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                  {Object.keys(p.campos ?? {}).length} campo(s)
-                </span>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => abrirEdicao(p)}
-                  className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => setDeleting(p)}
-                  className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                >
-                  Excluir
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
       )}
+
+      <Section
+        title="Perfis"
+        subtitle="Perfis padrão de cadastro aplicados em massa no Bling"
+      >
+        {carregando && perfis.length === 0 ? (
+          <EmptyState dashed>Carregando perfis…</EmptyState>
+        ) : perfis.length === 0 ? (
+          <EmptyState>
+            Nenhum perfil cadastrado ainda. Crie um perfil padrão e depois use em{" "}
+            <Link href="/produtos" className="underline">
+              Produtos
+            </Link>{" "}
+            para aplicar em massa.
+          </EmptyState>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {perfis.map((p) => (
+              <li key={p.id}>
+                <Card className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="font-medium">{p.nome}</span>
+                    {p.descricao && (
+                      <span className="truncate text-xs text-zinc-500">
+                        {p.descricao}
+                      </span>
+                    )}
+                    <Badge tone="neutral" className="font-mono">
+                      {Object.keys(p.campos ?? {}).length} campo(s)
+                    </Badge>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      onClick={() => abrirEdicao(p)}
+                      className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => setDeleting(p)}
+                      className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
 
       {modal && (
         <Dialog

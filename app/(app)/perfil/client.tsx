@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Section,
+  btnPrimary,
+  inputCls,
+} from "@/app/components/ui/panels";
 
 interface Aviso {
   tipo: "ok" | "erro";
@@ -86,7 +91,7 @@ export default function PerfilClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-6 py-10">
       <header>
         <h1 className="text-2xl font-semibold">
           <InfoTitle
@@ -95,7 +100,7 @@ export default function PerfilClient({
             exemplo="Aqui você vê seu nome, e-mail e a role (ex.: admin). O que você pode fazer no app é definido pelas permissões da sua role."
           />
         </h1>
-        <p className="text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-500">
           {role ? (
             <>
               Acesso como{" "}
@@ -110,70 +115,77 @@ export default function PerfilClient({
 
       {aviso && (
         <p
-          className={`rounded-lg border px-4 py-2 text-sm ${
+          role={aviso.tipo === "ok" ? "status" : "alert"}
+          className={`rounded-xl border px-4 py-3 text-sm ${
             aviso.tipo === "ok"
-              ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400"
-              : "border-red-300 text-red-700 dark:border-red-700 dark:text-red-400"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
           }`}
         >
           {aviso.texto}
         </p>
       )}
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Dados do perfil</h2>
+      <Section title="Dados do perfil">
         <form
           onSubmit={salvarDados}
-          className="flex flex-col gap-4 rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800"
+          className="flex flex-col gap-4"
         >
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Nome</span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Nome
+            </span>
             <input
               required
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">E-mail</span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              E-mail
+            </span>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
           <button
             type="submit"
             disabled={salvandoDados}
-            className="w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className={`${btnPrimary} w-fit`}
           >
             {salvandoDados ? "Salvando…" : "Salvar dados"}
           </button>
         </form>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Alterar senha</h2>
+      <Section title="Alterar senha">
         <form
           onSubmit={salvarSenha}
-          className="flex flex-col gap-4 rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800"
+          className="flex flex-col gap-4"
         >
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Senha atual</span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Senha atual
+            </span>
             <input
               type="password"
               required
               autoComplete="current-password"
               value={senhaAtual}
               onChange={(e) => setSenhaAtual(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Nova senha (mín. 8 caracteres)</span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Nova senha (mín. 8 caracteres)
+            </span>
             <input
               type="password"
               required
@@ -181,11 +193,13 @@ export default function PerfilClient({
               minLength={8}
               value={novaSenha}
               onChange={(e) => setNovaSenha(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Confirmar nova senha</span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Confirmar nova senha
+            </span>
             <input
               type="password"
               required
@@ -193,18 +207,18 @@ export default function PerfilClient({
               minLength={8}
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${inputCls} w-full`}
             />
           </label>
           <button
             type="submit"
             disabled={salvandoSenha}
-            className="w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className={`${btnPrimary} w-fit`}
           >
             {salvandoSenha ? "Alterando…" : "Alterar senha"}
           </button>
         </form>
-      </section>
+      </Section>
     </main>
   );
 }

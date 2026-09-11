@@ -4,6 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { InfoTitle } from "@/app/components/info-button";
 import { Dialog } from "@/app/components/dialog";
 import {
+  Badge,
+  Card,
+  EmptyState,
+  Section,
+  btnAccent,
+  btnGhost,
+  inputCls,
+  selectCls,
+  type Tone,
+} from "@/app/components/ui/panels";
+import {
   PROJETOS,
   REUNIAO_STATUS,
   ENCAMINHAMENTO_STATUS,
@@ -122,27 +133,26 @@ function fmtData(iso: string): string {
   })}`;
 }
 
-function projetoBadge(projeto: string): string {
+function projetoTone(projeto: string): Tone {
   switch (projeto) {
-    case "SYSTEXTIL":
-      return "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300";
     case "BLING":
-      return "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300";
+    case "SYSTEXTIL":
+      return "info";
     case "OUTROS":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+      return "warn";
     default:
-      return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
+      return "neutral";
   }
 }
 
-function statusBadge(status: string): string {
+function statusTone(status: string): Tone {
   switch (status) {
     case "REALIZADA":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300";
+      return "ok";
     case "CANCELADA":
-      return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300";
+      return "error";
     default:
-      return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
+      return "neutral";
   }
 }
 
@@ -202,14 +212,8 @@ function toForm(r: ReuniaoDetalhe): FormState {
   };
 }
 
-const inputCls =
-  "rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 text-sm dark:border-zinc-700";
-const btnPrimary =
-  "rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50";
-const btnGhost =
-  "rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800";
 const btnDanger =
-  "rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20";
+  "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20";
 
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -403,7 +407,7 @@ export default function ReunioesClient() {
     : reunioes;
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">
@@ -417,133 +421,134 @@ export default function ReunioesClient() {
             Pauta, ata, participantes e encaminhamentos por reunião
           </p>
         </div>
-        <button onClick={abrirNovo} className={btnPrimary}>
+        <button onClick={abrirNovo} className={btnAccent}>
           Nova reunião
         </button>
       </div>
 
       {notice && (
-        <p role="status" className="text-sm text-emerald-600">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
           {notice}
-        </p>
-      )}
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Projeto
-          <select
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Todos</option>
-            {PROJETOS.map((p) => (
-              <option key={p} value={p}>
-                {projetoLabel(p)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="text-xs text-zinc-500">
-          {visiveis.length} registros
-        </span>
-      </div>
-
-      {carregando && reunioes.length === 0 ? (
-        <p className="text-sm text-zinc-500">Carregando reuniões…</p>
-      ) : visiveis.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-          {reunioes.length === 0
-            ? "Nenhuma reunião registrada ainda. Crie a primeira para começar o histórico."
-            : "Nenhuma reunião para este projeto."}
         </div>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {visiveis.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 px-4 py-3 dark:border-zinc-800"
-            >
-              <div className="flex min-w-0 flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{r.titulo}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${projetoBadge(
-                      r.projeto
-                    )}`}
-                  >
-                    {projetoLabel(r.projeto)}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadge(
-                      r.status
-                    )}`}
-                  >
-                    {reuniaoStatusLabel(r.status)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                  <span>{fmtData(r.data)}</span>
-                  {r.local && <span>· {r.local}</span>}
-                  <span className="flex gap-1.5">
-                    <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {r._count.pautas} pauta(s)
-                    </span>
-                    <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {r._count.participantes} participante(s)
-                    </span>
-                    <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {r._count.encaminhamentos} tarefa(s)
-                    </span>
-                  </span>
-                </div>
-                {(r.links.length > 0 || r.videoUrl) && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    {r.videoUrl && (
-                      <a
-                        href={r.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={r.videoUrl}
-                        className="inline-flex items-center gap-1 rounded border border-red-300 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-                      >
-                        ▶ Vídeo da gravação ↗
-                      </a>
-                    )}
-                    {r.links.map((l) => (
-                      <a
-                        key={l.id}
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={l.url}
-                        className="inline-flex items-center gap-1 rounded border border-blue-300 px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-950"
-                      >
-                        {l.rotulo} ↗
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => void abrirEdicao(r)}
-                  className={btnGhost}
-                >
-                  Detalhes / Editar
-                </button>
-                <button
-                  onClick={() => setDeleting(r)}
-                  className={btnDanger}
-                >
-                  Excluir
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
       )}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+        >
+          {erro}
+        </div>
+      )}
+
+      <Section
+        title="Reuniões"
+        subtitle={`${visiveis.length} registros`}
+        actions={
+          <label className="flex h-9 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+            Projeto
+            <select
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              className={selectCls}
+            >
+              <option value="">Todos</option>
+              {PROJETOS.map((p) => (
+                <option key={p} value={p}>
+                  {projetoLabel(p)}
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      >
+        {carregando && reunioes.length === 0 ? (
+          <EmptyState dashed>Carregando reuniões…</EmptyState>
+        ) : visiveis.length === 0 ? (
+          <EmptyState>
+            {reunioes.length === 0
+              ? "Nenhuma reunião registrada ainda. Crie a primeira para começar o histórico."
+              : "Nenhuma reunião para este projeto."}
+          </EmptyState>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {visiveis.map((r) => (
+              <Card
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-3 p-4"
+              >
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{r.titulo}</span>
+                    <Badge tone={projetoTone(r.projeto)}>
+                      {projetoLabel(r.projeto)}
+                    </Badge>
+                    <Badge tone={statusTone(r.status)}>
+                      {reuniaoStatusLabel(r.status)}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                    <span>{fmtData(r.data)}</span>
+                    {r.local && <span>· {r.local}</span>}
+                    <span className="flex flex-wrap gap-1.5">
+                      <Badge tone="neutral">{r._count.pautas} pauta(s)</Badge>
+                      <Badge tone="neutral">
+                        {r._count.participantes} participante(s)
+                      </Badge>
+                      <Badge tone="neutral">
+                        {r._count.encaminhamentos} tarefa(s)
+                      </Badge>
+                    </span>
+                  </div>
+                  {(r.links.length > 0 || r.videoUrl) && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {r.videoUrl && (
+                        <a
+                          href={r.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={r.videoUrl}
+                          className="inline-flex items-center gap-1 rounded border border-red-300 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                        >
+                          ▶ Vídeo da gravação ↗
+                        </a>
+                      )}
+                      {r.links.map((l) => (
+                        <a
+                          key={l.id}
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={l.url}
+                          className="inline-flex items-center gap-1 rounded border border-blue-300 px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-950"
+                        >
+                          {l.rotulo} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => void abrirEdicao(r)}
+                    className={btnGhost}
+                  >
+                    Detalhes / Editar
+                  </button>
+                  <button
+                    onClick={() => setDeleting(r)}
+                    className={btnDanger}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Section>
 
       {modal && (
         <Dialog
@@ -576,7 +581,7 @@ export default function ReunioesClient() {
             </Labeled>
             <Labeled label="Projeto">
               <select
-                className={inputCls}
+                className={selectCls}
                 value={form.projeto}
                 onChange={(e) => setField("projeto", e.target.value)}
               >
@@ -605,7 +610,7 @@ export default function ReunioesClient() {
             </Labeled>
             <Labeled label="Status">
               <select
-                className={inputCls}
+                className={selectCls}
                 value={form.status}
                 onChange={(e) => setField("status", e.target.value)}
               >
@@ -944,7 +949,7 @@ export default function ReunioesClient() {
                     placeholder="Descrição do encaminhamento *"
                   />
                   <select
-                    className={inputCls}
+                    className={selectCls}
                     value={e.status}
                     onChange={(ev) =>
                       setField(
@@ -1014,7 +1019,7 @@ export default function ReunioesClient() {
             <button
               onClick={salvar}
               disabled={salvando || !form.titulo.trim()}
-              className={btnPrimary}
+              className={btnAccent}
             >
               {salvando ? "Salvando…" : "Salvar"}
             </button>

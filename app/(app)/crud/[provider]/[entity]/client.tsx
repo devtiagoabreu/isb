@@ -4,6 +4,16 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
 import { Dialog } from "@/app/components/dialog";
+import {
+  EmptyState,
+  Section,
+  TableShell,
+  btnAccent,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 import type { CrudEntitySchema, CrudField, CrudFieldInfo } from "@/lib/crud/types";
 
 type Row = Record<string, unknown>;
@@ -273,33 +283,40 @@ export default function CrudClient({
   const idValue = (row: Row) => asText(row[schema.idField]);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">
             <InfoTitle titulo={schema.title} descricao={schema.description} />
           </h1>
-          <p className="text-sm text-zinc-500">{schema.description}</p>
+          <p className="mt-1 text-sm text-zinc-500">{schema.description}</p>
         </div>
         {connected && canWrite && !schema.readOnly && !schema.disableCreate && (
-          <button
-            onClick={abrirNovo}
-            className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
-          >
+          <button onClick={abrirNovo} className={btnAccent}>
             Novo registro
           </button>
         )}
       </div>
 
       {notice && (
-        <p role="status" className="text-sm text-emerald-600">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
           {notice}
-        </p>
+        </div>
       )}
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
+        </div>
+      )}
 
       {!connected && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
           A integração{" "}
           <span className="font-semibold">{schema.provider}</span> ainda não está
           configurada. Vá até o{" "}
@@ -311,75 +328,73 @@ export default function CrudClient({
       )}
 
       {schema.readOnly && connected && (
-        <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/20 dark:text-zinc-400">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
           Entidade somente leitura na API do Bling — exibição e busca, sem criar,
           editar ou excluir.
         </div>
       )}
 
       {connected && (
-        <>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Buscar
+        <Section
+          title="Registros"
+          actions={
+            <>
               <input
-                className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                className={inputCls}
                 value={term}
                 onChange={(e) => setTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && carregar(0, term)}
                 placeholder="pesquisa livre…"
               />
-            </label>
-            <button
-              onClick={() => carregar(0, term)}
-              disabled={carregando}
-              className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              {carregando ? "Carregando…" : "Buscar"}
-            </button>
-          </div>
-
+              <button
+                onClick={() => carregar(0, term)}
+                disabled={carregando}
+                className={btnPrimary}
+              >
+                {carregando ? "Carregando…" : "Buscar"}
+              </button>
+            </>
+          }
+        >
           {rows.length === 0 && !carregando ? (
-            <p className="text-sm text-zinc-500">
+            <EmptyState>
               {schema.readOnly
                 ? "Nenhum registro encontrado para os filtros atuais."
                 : `Nenhum registro encontrado. Clique em "Novo registro" para
               começar.`}
-            </p>
+            </EmptyState>
           ) : (
-            <div className="flex flex-col gap-2">
-              <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex flex-col gap-3">
+              {carregando && (
+                <p className="text-xs text-zinc-500">Carregando…</p>
+              )}
+              <div className="max-h-96 overflow-y-auto">
+                <TableShell>
+                  <thead>
                     <tr>
                       {columns.map((c) => (
-                        <th key={c.name} className="px-3 py-2 font-medium">
-                          {c.label}
-                        </th>
+                        <th key={c.name}>{c.label}</th>
                       ))}
-                      <th className="px-3 py-2 text-right font-medium">Ações</th>
+                      <th className="text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row, i) => (
-                      <tr
-                        key={`${idValue(row)}-${i}`}
-                        className="border-b border-zinc-100 last:border-0 dark:border-zinc-800"
-                      >
+                      <tr key={`${idValue(row)}-${i}`}>
                         {columns.map((c) => (
                           <td
                             key={c.name}
-                            className="max-w-[16rem] truncate px-3 py-2"
+                            className="max-w-[16rem] truncate"
                           >
                             {asText(row[c.name]) || "—"}
                           </td>
                         ))}
-                        <td className="px-3 py-2 text-right">
+                        <td className="text-right">
                           <div className="flex justify-end gap-2">
                             {canWrite && !schema.readOnly && !schema.disableUpdate && (
                               <button
                                 onClick={() => abrirEdicao(row)}
-                                className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                className={btnGhost}
                               >
                                 Editar
                               </button>
@@ -387,7 +402,7 @@ export default function CrudClient({
                             {canDelete && !schema.readOnly && !schema.disableDelete && (
                               <button
                                 onClick={() => setDeleting(row)}
-                                className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                                className="rounded-full border border-red-300 px-4 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
                               >
                                 Excluir
                               </button>
@@ -397,7 +412,7 @@ export default function CrudClient({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </TableShell>
               </div>
 
               <div className="flex items-center justify-between text-sm text-zinc-500">
@@ -408,14 +423,14 @@ export default function CrudClient({
                   <button
                     onClick={goPrev}
                     disabled={offset <= 0}
-                    className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    className={btnGhost}
                   >
                     Anterior
                   </button>
                   <button
                     onClick={goNext}
                     disabled={!hasMore}
-                    className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    className={btnGhost}
                   >
                     Próxima
                   </button>
@@ -423,7 +438,7 @@ export default function CrudClient({
               </div>
             </div>
           )}
-        </>
+        </Section>
       )}
 
       {modal && (
@@ -450,7 +465,7 @@ export default function CrudClient({
               {schema.fields.map((f) => (
                 <label
                   key={f.name}
-                  className={`flex flex-col gap-1 text-sm ${
+                  className={`flex flex-col gap-1.5 text-sm font-medium ${
                     f.type === "password" ? "sm:col-span-2" : ""
                   }`}
                 >
@@ -474,7 +489,7 @@ export default function CrudClient({
                   </span>
                   {f.type === "select" ? (
                     <select
-                      className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                      className={selectCls}
                       value={asText(form[f.name])}
                       onChange={(e) => setField(f.name, e.target.value)}
                     >
@@ -486,7 +501,7 @@ export default function CrudClient({
                     </select>
                   ) : f.type === "boolean" ? (
                     <select
-                      className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                      className={selectCls}
                       value={form[f.name] ? "true" : "false"}
                       onChange={(e) =>
                         setField(f.name, e.target.value === "true")
@@ -497,7 +512,7 @@ export default function CrudClient({
                     </select>
                   ) : (
                     <input
-                      className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                      className={inputCls}
                       type={f.type === "password" ? "password" : f.type === "date" ? "date" : "text"}
                       value={asText(form[f.name])}
                       onChange={(e) => setField(f.name, e.target.value)}
@@ -515,14 +530,14 @@ export default function CrudClient({
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setModal(null)}
-                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className={btnGhost}
               >
                 Cancelar
               </button>
               <button
                 onClick={salvar}
                 disabled={salvando}
-                className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                className={btnAccent}
               >
                 {salvando ? "Salvando…" : "Salvar"}
               </button>
@@ -612,7 +627,7 @@ export default function CrudClient({
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleting(null)}
-                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className={btnGhost}
               >
                 Cancelar
               </button>

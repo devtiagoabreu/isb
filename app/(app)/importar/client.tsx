@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  Card,
+  Section,
+  btnAccent,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 
 interface StatusData {
   configured: boolean;
@@ -210,7 +219,7 @@ export default function ImportClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-6 py-10">
       <div>
         <h1 className="text-2xl font-semibold">
           <InfoTitle
@@ -227,7 +236,7 @@ export default function ImportClient({
       </div>
 
       {!status.configured && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
           Systêxtil ainda não configurada. Preencha no <code>.env</code>:{" "}
           <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
             SYSTEXTIL_API_URL
@@ -257,211 +266,221 @@ export default function ImportClient({
         </p>
       )}
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Buscar por descrição
-          <input
-            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && buscar()}
-            placeholder="ex.: malha"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Nível
-          <select
-            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
-            value={nivel}
-            onChange={(e) => setNivel(e.target.value)}
-          >
-            <option value="">Todos</option>
-            {NIVEIS.map((n) => (
-              <option key={n.value} value={n.value}>
-                {n.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Grupo
-          <input
-            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
-            value={grupo}
-            onChange={(e) => setGrupo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && buscar()}
-            placeholder="ex.: K18"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Subgrupo
-          <input
-            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
-            value={subgrupo}
-            onChange={(e) => setSubgrupo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && buscar()}
-            placeholder="ex.: CRU"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Item de estrutura
-          <input
-            className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
-            value={item}
-            onChange={(e) => setItem(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && buscar()}
-            placeholder="ex.: 000010"
-          />
-        </label>
-        <button
-          onClick={buscar}
-          disabled={buscando}
-          className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          {buscando ? "Buscando…" : "Buscar produtos"}
-        </button>
-      </div>
+      <Section
+        title="Buscar produtos"
+        subtitle="Filtros da consulta no cadastro da Systêxtil"
+        actions={
+          <button onClick={buscar} disabled={buscando} className={btnPrimary}>
+            {buscando ? "Buscando…" : "Buscar produtos"}
+          </button>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Buscar por descrição
+            </span>
+            <input
+              className={inputCls}
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+              placeholder="ex.: malha"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Nível
+            </span>
+            <select
+              className={selectCls}
+              value={nivel}
+              onChange={(e) => setNivel(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {NIVEIS.map((n) => (
+                <option key={n.value} value={n.value}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Grupo
+            </span>
+            <input
+              className={`${inputCls} font-mono`}
+              value={grupo}
+              onChange={(e) => setGrupo(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+              placeholder="ex.: K18"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Subgrupo
+            </span>
+            <input
+              className={`${inputCls} font-mono`}
+              value={subgrupo}
+              onChange={(e) => setSubgrupo(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+              placeholder="ex.: CRU"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Item de estrutura
+            </span>
+            <input
+              className={`${inputCls} font-mono`}
+              value={item}
+              onChange={(e) => setItem(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+              placeholder="ex.: 000010"
+            />
+          </label>
+        </div>
+      </Section>
 
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
-      {aviso && <p className="text-sm text-zinc-500">{aviso}</p>}
+      {erro && (
+        <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
+      )}
+      {aviso && (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{aviso}</p>
+      )}
 
       {produtos.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {produtos.length} produto(s)
-            </h2>
+        <Section
+          title={`${produtos.length} produto(s)`}
+          subtitle="Selecione os produtos e ajuste NCM, unidade, situação, GTIN e preço"
+          actions={
             <button
               onClick={importar}
               disabled={importando || selecionadosCount === 0}
-              className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+              className={btnAccent}
             >
               {importando
                 ? "Importando…"
                 : `Importar ${selecionadosCount} produto(s) no Bling`}
             </button>
-          </div>
-
-          <ul className="flex flex-col gap-2">
+          }
+        >
+          <ul className="flex flex-col gap-3">
             {produtos.map((p) => {
               const marcado = !!selecionados[p.codigo];
               const semReferencia =
                 !p.nome.trim() || !p.ncm || !p.unidadeId;
               return (
-                <li
-                  key={p.codigo}
-                  className={`rounded-lg border p-3 text-sm dark:border-zinc-800 ${
-                    marcado
-                      ? "border-emerald-300 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-900/10"
-                      : "border-zinc-200 dark:border-zinc-800"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={marcado}
-                      onChange={() => toggle(p.codigo)}
-                      className="mt-1 h-4 w-4"
-                    />
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs text-zinc-500">
-                          {p.codigo}
-                        </span>
-                        <span className="font-medium">{p.nome}</span>
-                        {p.grupoDescricao && (
-                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs dark:bg-zinc-800">
-                            {p.grupoDescricao}
+                <li key={p.codigo}>
+                  <Card
+                    className={`${marcado
+                      ? "border-emerald-300 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-900/10"
+                      : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={marcado}
+                        onChange={() => toggle(p.codigo)}
+                        className="mt-1 h-4 w-4 accent-emerald-600"
+                      />
+                      <div className="flex min-w-0 flex-1 flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs text-zinc-500">
+                            {p.codigo}
                           </span>
-                        )}
-                        {p.situacao != null && (
-                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs dark:bg-zinc-800">
-                            {SITUACAO_LABEL[p.situacao] ?? p.situacao}
-                          </span>
-                        )}
-                        {p.unidadeId && (
-                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
-                            {p.unidadeId}
-                            {p.unidadeDescricao
-                              ? ` · ${p.unidadeDescricao}`
-                              : ""}
-                          </span>
-                        )}
-                        {p.ncm && (
-                          <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
-                            NCM {p.ncm}
-                          </span>
-                        )}
-                        {semReferencia && (
-                          <span className="rounded bg-amber-200 px-1.5 py-0.5 text-xs dark:bg-amber-900">
-                            faltam dados
-                          </span>
-                        )}
-                      </div>
+                          <span className="font-medium">{p.nome}</span>
+                          {p.grupoDescricao && (
+                            <Badge tone="neutral">{p.grupoDescricao}</Badge>
+                          )}
+                          {p.situacao != null && (
+                            <Badge tone="neutral">
+                              {SITUACAO_LABEL[p.situacao] ?? p.situacao}
+                            </Badge>
+                          )}
+                          {p.unidadeId && (
+                            <Badge tone="neutral" className="font-mono">
+                              {p.unidadeId}
+                              {p.unidadeDescricao
+                                ? ` · ${p.unidadeDescricao}`
+                                : ""}
+                            </Badge>
+                          )}
+                          {p.ncm && (
+                            <Badge tone="neutral" className="font-mono">
+                              NCM {p.ncm}
+                            </Badge>
+                          )}
+                          {semReferencia && (
+                            <Badge tone="warn">faltam dados</Badge>
+                          )}
+                        </div>
 
                       {marcado && (
-                        <div className="mt-3 flex flex-col gap-2">
-                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
-                              NCM
-                              <input
-                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
-                                value={ncms[p.codigo] ?? p.ncm}
-                                onChange={(e) => setNcm(p.codigo, e.target.value)}
-                                placeholder="ex.: 52081900"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
-                              Unidade
-                              <input
-                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
-                                value={unidades[p.codigo] ?? p.unidadeId}
-                                onChange={(e) =>
-                                  setUnidade(p.codigo, e.target.value)
-                                }
-                                placeholder="ex.: M"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
-                              Situação
-                              <select
-                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 dark:border-zinc-700"
-                                value={
-                                  situacoes[p.codigo] ??
-                                  p.situacaoBling ??
-                                  "A"
-                                }
-                                onChange={(e) =>
-                                  setSituacao(p.codigo, e.target.value)
-                                }
-                              >
-                                <option value="A">Ativo</option>
-                                <option value="I">Inativo</option>
-                              </select>
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
-                              GTIN / código de barras
-                              <input
-                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
-                                value={gtins[p.codigo] ?? p.codigoBarras}
-                                onChange={(e) =>
-                                  setGtin(p.codigo, e.target.value)
-                                }
-                                placeholder="ex.: 789..."
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs text-zinc-500">
-                              Preço de venda
-                              <input
-                                className="w-full rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono dark:border-zinc-700"
-                                value={precos[p.codigo] ?? ""}
-                                onChange={(e) =>
-                                  setPreco(p.codigo, e.target.value)
-                                }
-                                placeholder="ex.: 39,90"
-                              />
-                            </label>
-                          </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                              <label className="flex flex-col gap-1.5 text-xs text-zinc-500">
+                                NCM
+                                <input
+                                  className={`${inputCls} h-8 w-full font-mono`}
+                                  value={ncms[p.codigo] ?? p.ncm}
+                                  onChange={(e) => setNcm(p.codigo, e.target.value)}
+                                  placeholder="ex.: 52081900"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1.5 text-xs text-zinc-500">
+                                Unidade
+                                <input
+                                  className={`${inputCls} h-8 w-full font-mono`}
+                                  value={unidades[p.codigo] ?? p.unidadeId}
+                                  onChange={(e) =>
+                                    setUnidade(p.codigo, e.target.value)
+                                  }
+                                  placeholder="ex.: M"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1.5 text-xs text-zinc-500">
+                                Situação
+                                <select
+                                  className={`${selectCls} h-8 w-full`}
+                                  value={
+                                    situacoes[p.codigo] ??
+                                    p.situacaoBling ??
+                                    "A"
+                                  }
+                                  onChange={(e) =>
+                                    setSituacao(p.codigo, e.target.value)
+                                  }
+                                >
+                                  <option value="A">Ativo</option>
+                                  <option value="I">Inativo</option>
+                                </select>
+                              </label>
+                              <label className="flex flex-col gap-1.5 text-xs text-zinc-500">
+                                GTIN / código de barras
+                                <input
+                                  className={`${inputCls} h-8 w-full font-mono`}
+                                  value={gtins[p.codigo] ?? p.codigoBarras}
+                                  onChange={(e) =>
+                                    setGtin(p.codigo, e.target.value)
+                                  }
+                                  placeholder="ex.: 789..."
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1.5 text-xs text-zinc-500">
+                                Preço de venda
+                                <input
+                                  className={`${inputCls} h-8 w-full font-mono`}
+                                  value={precos[p.codigo] ?? ""}
+                                  onChange={(e) =>
+                                    setPreco(p.codigo, e.target.value)
+                                  }
+                                  placeholder="ex.: 39,90"
+                                />
+                              </label>
+                            </div>
                           <p className="text-xs text-zinc-400">
                             NCM, unidade, situação e GTIN vêm preenchidos da
                             Systêxtil — edite se necessário. Se o preço ficar
@@ -471,7 +490,7 @@ export default function ImportClient({
                             <summary className="cursor-pointer text-xs text-zinc-500">
                               ver payload que será enviado ao Bling
                             </summary>
-                            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
+                            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs dark:border-zinc-800 dark:bg-zinc-950">
                               {payloadPreview(p)}
                             </pre>
                           </details>
@@ -479,52 +498,53 @@ export default function ImportClient({
                       )}
                     </div>
                   </div>
+                  </Card>
                 </li>
               );
             })}
           </ul>
-        </section>
+        </Section>
       )}
 
       {resultado && (
-        <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <h2 className="text-lg font-semibold">Resultado da importação</h2>
-          <p className="text-sm">
-            <span className="text-emerald-600">{resultado.okCount}</span>{" "}
+        <Section
+          title="Resultado da importação"
+          subtitle="Retorno da criação dos SKUs no Bling"
+        >
+          <p className="mb-4 text-sm">
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {resultado.okCount}
+            </span>{" "}
             criados ·{" "}
-            <span className="text-red-600">{resultado.errorCount}</span>{" "}
+            <span className="font-semibold text-red-600 dark:text-red-400">
+              {resultado.errorCount}
+            </span>{" "}
             com erro
           </p>
           <ul className="flex flex-col gap-2">
             {resultado.results.map((r) => (
               <li
                 key={r.codigo}
-                className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-2 text-sm dark:border-zinc-800"
+                className="flex flex-col gap-1 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900/60"
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
-                      r.ok
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                    }`}
-                  >
+                  <Badge tone={r.ok ? "ok" : "error"} className="font-mono">
                     {r.status}
-                  </span>
+                  </Badge>
                   <span className="font-mono text-xs">{r.codigo}</span>
                 </div>
                 <details>
                   <summary className="cursor-pointer text-xs text-zinc-500">
                     ver resposta
                   </summary>
-                  <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+                  <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-200 bg-zinc-50 p-2 font-mono text-xs dark:border-zinc-800 dark:bg-zinc-950">
                     {JSON.stringify(r.payload, null, 2)}
                   </pre>
                 </details>
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       )}
     </main>
   );

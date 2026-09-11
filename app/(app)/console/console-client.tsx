@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { TEST_ENDPOINTS } from "@/lib/endpoints";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  EmptyState,
+  Section,
+  TableShell,
+  btnAccent,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 
 interface StatusData {
   connected: boolean;
@@ -154,8 +165,8 @@ export default function ConsoleClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">
             <InfoTitle
@@ -164,22 +175,23 @@ export default function ConsoleClient({
               exemplo="1) Clique em Conectar para autorizar o ISB no Bling.\n2) Depois de conectado, escolha um endpoint (ex.: GET /produtos).\n3) Clique em Testar para ver a resposta da API em tempo real."
             />
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             OAuth 2.0 e testes de endpoints
           </p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
-            connected
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-          }`}
-        >
+        <Badge tone={connected ? (status.expired ? "warn" : "ok") : "warn"}>
           {connected ? (status.expired ? "Token expirado" : "Conectado") : "Não conectado"}
-        </span>
+        </Badge>
       </div>
 
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
+      {notice && (
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
+          {notice}
+        </div>
+      )}
 
       {connected && status.expiresAt && (
         <p className="text-sm text-zinc-500">
@@ -190,21 +202,32 @@ export default function ConsoleClient({
       )}
 
       {!connected && (
-        <button
-          onClick={connect}
-          className="w-fit rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
-        >
-          Conectar com Bling
-        </button>
+        <div>
+          <button onClick={connect} className={btnAccent}>
+            Conectar com Bling
+          </button>
+        </div>
       )}
 
       {connected && (
-        <section className="flex flex-col gap-4">
+        <Section
+          title="Testar endpoint"
+          subtitle="Escolha um endpoint configurado ou um caminho customizado e execute direto contra a API"
+          actions={
+            <button
+              onClick={refreshToken}
+              disabled={running}
+              className={btnGhost}
+            >
+              Renovar token
+            </button>
+          }
+        >
           <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               Endpoint
               <select
-                className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                className={selectCls}
                 value={endpointIdx}
                 onChange={(e) => {
                   setEndpointIdx(e.target.value);
@@ -222,19 +245,19 @@ export default function ConsoleClient({
 
             {endpointIdx === "custom" && (
               <>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Path
                   <input
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+                    className={`${inputCls} font-mono`}
                     value={customPath}
                     onChange={(e) => setCustomPath(e.target.value)}
                     placeholder="/produtos?pagina=1"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Método
                   <select
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                    className={selectCls}
                     value={method}
                     onChange={(e) => setMethod(e.target.value)}
                   >
@@ -245,24 +268,16 @@ export default function ConsoleClient({
                 </label>
               </>
             )}
-
-            <button
-              onClick={refreshToken}
-              disabled={running}
-              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            >
-              Renovar token
-            </button>
           </div>
 
           {selected?.params && (
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="mt-4 flex flex-wrap items-end gap-4">
               {selected.params.map((p) => (
-                <label key={p.key} className="flex flex-col gap-1 text-sm">
+                <label key={p.key} className="flex flex-col gap-1.5 text-sm font-medium">
                   {p.key}
                   {p.required && <span className="text-xs text-red-500">*</span>}
                   <input
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+                    className={`${inputCls} font-mono`}
                     value={params[p.key] ?? ""}
                     onChange={(e) => setParam(p.key, e.target.value)}
                     placeholder={p.value}
@@ -273,10 +288,10 @@ export default function ConsoleClient({
           )}
 
           {method !== "GET" && (
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="mt-4 flex flex-col gap-1.5 text-sm font-medium">
               Body (JSON)
               <textarea
-                className="h-24 rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono text-xs dark:border-zinc-700"
+                className="h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder='{"nome":"Produto Teste"}'
@@ -284,11 +299,11 @@ export default function ConsoleClient({
             </label>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
               onClick={runTest}
               disabled={running || !effectivePath}
-              className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className={btnPrimary}
             >
               {running ? "Executando…" : "Executar teste"}
             </button>
@@ -296,117 +311,111 @@ export default function ConsoleClient({
           </div>
 
           {result && (
-            <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="mt-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
               <div className="mb-2 flex flex-wrap items-center gap-3 text-sm">
-                <span
-                  className={`rounded px-2 py-0.5 font-mono font-semibold ${
-                    result.ok
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                  }`}
-                >
-                  {result.status}
-                </span>
-                <span className="font-mono text-zinc-500">
+                <Badge tone={result.ok ? "ok" : "error"}>{result.status}</Badge>
+                <span className="font-mono text-xs text-zinc-500">
                   {result.durationMs} ms
                 </span>
               </div>
-              <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
+              <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs text-zinc-100">
                 {JSON.stringify(result.body, null, 2)}
               </pre>
             </div>
           )}
+        </Section>
+      )}
 
-          <section>
-            <h2 className="mb-2 text-lg font-semibold">Histórico</h2>
-            {tests.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nenhum teste executado.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
+      {connected && (
+        <Section title="Histórico" subtitle="Testes recentes executados no console">
+          {tests.length === 0 ? (
+            <EmptyState>Nenhum teste executado.</EmptyState>
+          ) : (
+            <TableShell>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Método</th>
+                  <th>Endpoint</th>
+                  <th className="text-right">Duração</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
                 {tests.map((t) => (
-                  <li
-                    key={t.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
-                          t.success
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                        }`}
-                      >
+                  <tr key={t.id}>
+                    <td>
+                      <Badge tone={t.success ? "ok" : "error"}>
                         {t.status ?? "—"}
+                      </Badge>
+                    </td>
+                    <td className="font-mono text-xs">{t.method}</td>
+                    <td className="truncate font-mono text-xs">{t.endpoint}</td>
+                    <td className="text-right font-mono text-xs">
+                      {t.durationMs ?? "—"} ms
+                    </td>
+                    <td className="text-xs text-zinc-500">
+                      {new Date(t.responseAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableShell>
+          )}
+        </Section>
+      )}
+
+      {connected && (
+        <Section
+          title="Webhooks recebidos"
+          actions={
+            <button onClick={refreshWebhooks} className={btnGhost}>
+              Atualizar
+            </button>
+          }
+        >
+          {webhooks.length === 0 ? (
+            <EmptyState>
+              Nenhum webhook recebido. Configure em: Área do Integrador →
+              app → aba Webhooks → servidor (
+              <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
+                https://isb-tau.vercel.app/api/bling/webhook
+              </code>
+              ) + recursos/ações.
+            </EmptyState>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {webhooks.map((w) => (
+                <li
+                  key={w.id}
+                  className="rounded-xl border border-zinc-200 px-4 py-3 text-sm dark:border-zinc-800"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Badge tone="neutral">{w.event}</Badge>
+                      <span className="truncate font-mono text-xs text-zinc-500">
+                        {w.eventId}
                       </span>
-                      <span className="font-mono text-xs text-zinc-500">
-                        {t.method}
-                      </span>
-                      <span className="truncate font-mono">{t.endpoint}</span>
                     </div>
                     <span className="shrink-0 font-mono text-xs text-zinc-500">
-                      {t.durationMs ?? "—"} ms ·{" "}
-                      {new Date(t.responseAt).toLocaleString()}
+                      {new Date(w.receivedAt).toLocaleString()}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        <section>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Webhooks recebidos</h2>
-              <button
-                onClick={refreshWebhooks}
-                className="rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              >
-                Atualizar
-              </button>
-            </div>
-            {webhooks.length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                Nenhum webhook recebido. Configure em: Área do Integrador →
-                app → aba Webhooks → servidor (
-                <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
-                  https://isb-tau.vercel.app/api/bling/webhook
-                </code>
-                ) + recursos/ações.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {webhooks.map((w) => (
-                  <li
-                    key={w.id}
-                    className="rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs font-semibold dark:bg-zinc-800">
-                          {w.event}
-                        </span>
-                        <span className="truncate font-mono text-xs text-zinc-500">
-                          {w.eventId}
-                        </span>
-                      </div>
-                      <span className="shrink-0 font-mono text-xs text-zinc-500">
-                        {new Date(w.receivedAt).toLocaleString()}
-                      </span>
-                    </div>
-                    {w.payload && w.payload !== "null" && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-xs text-zinc-500">
-                          ver payload
-                        </summary>
-                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
-                          {w.payload}
-                        </pre>
-                      </details>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </section>
+                  </div>
+                  {w.payload && w.payload !== "null" && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs text-zinc-500">
+                        ver payload
+                      </summary>
+                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100">
+                        {w.payload}
+                      </pre>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
       )}
     </main>
   );

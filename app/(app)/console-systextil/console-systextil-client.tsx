@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { SYSTEXTIL_TEST_ENDPOINTS } from "@/lib/systextil-endpoints";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Section,
+  TableShell,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 
 interface StatusData {
   configured: boolean;
@@ -113,8 +124,8 @@ export default function SystextilConsoleClient({
       : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">
             <InfoTitle
@@ -123,43 +134,39 @@ export default function SystextilConsoleClient({
               exemplo="1) Configure as credenciais na página de Integrações.\n2) Escolha um endpoint (ex.: GET /material/v1/produto).\n3) Clique em Executar teste para ver a resposta da API em tempo real."
             />
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             Autenticação e testes de endpoints
           </p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
-            status.configured
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-          }`}
-        >
+        <Badge tone={status.configured ? "ok" : "warn"}>
           {status.configured
             ? `Configurado (${authLabel ?? "?"})`
             : "Não configurado"}
-        </span>
+        </Badge>
       </div>
 
       {status.configured && (
-        <p className="text-sm text-zinc-500">
-          URL base:{" "}
-          <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
-            {status.apiUrl}
-          </code>
-          {status.authMethod === "oauth" && (
-            <>
-              {" "}
-              · escopo:{" "}
-              <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
-                {status.scope}
-              </code>
-            </>
-          )}
-        </p>
+        <Card className="p-4">
+          <p className="text-sm text-zinc-500">
+            URL base:{" "}
+            <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
+              {status.apiUrl}
+            </code>
+            {status.authMethod === "oauth" && (
+              <>
+                {" "}
+                · escopo:{" "}
+                <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-900">
+                  {status.scope}
+                </code>
+              </>
+            )}
+          </p>
+        </Card>
       )}
 
       {!status.configured && (
-        <p className="text-sm text-amber-700 dark:text-amber-300">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
           Esta integração ainda não está configurada. Vá em{" "}
           <a
             href="/apis"
@@ -169,16 +176,28 @@ export default function SystextilConsoleClient({
           </a>{" "}
           e preencha SYSTEXTIL_API_URL com o Client ID/Secret (OAuth) ou a API
           Key.
-        </p>
+        </div>
       )}
 
       {status.configured && (
-        <section className="flex flex-col gap-4">
+        <Section
+          title="Testar endpoint"
+          subtitle="Escolha um endpoint configurado ou um caminho customizado e execute direto contra a API"
+          actions={
+            <button
+              onClick={refreshStatus}
+              disabled={running}
+              className={btnGhost}
+            >
+              Verificar status
+            </button>
+          }
+        >
           <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               Endpoint
               <select
-                className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                className={selectCls}
                 value={endpointIdx}
                 onChange={(e) => {
                   setEndpointIdx(e.target.value);
@@ -196,19 +215,19 @@ export default function SystextilConsoleClient({
 
             {endpointIdx === "custom" && (
               <>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Path
                   <input
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+                    className={`${inputCls} font-mono`}
                     value={customPath}
                     onChange={(e) => setCustomPath(e.target.value)}
                     placeholder="/material/v1/produto"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Método
                   <select
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
+                    className={selectCls}
                     value={method}
                     onChange={(e) => setMethod(e.target.value)}
                   >
@@ -219,24 +238,16 @@ export default function SystextilConsoleClient({
                 </label>
               </>
             )}
-
-            <button
-              onClick={refreshStatus}
-              disabled={running}
-              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            >
-              Verificar status
-            </button>
           </div>
 
           {selected?.params && (
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="mt-4 flex flex-wrap items-end gap-4">
               {selected.params.map((p) => (
-                <label key={p.key} className="flex flex-col gap-1 text-sm">
+                <label key={p.key} className="flex flex-col gap-1.5 text-sm font-medium">
                   {p.key}
                   {p.required && <span className="text-xs text-red-500">*</span>}
                   <input
-                    className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
+                    className={`${inputCls} font-mono`}
                     value={params[p.key] ?? ""}
                     onChange={(e) => setParam(p.key, e.target.value)}
                     placeholder={p.value}
@@ -247,10 +258,10 @@ export default function SystextilConsoleClient({
           )}
 
           {method !== "GET" && (
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="mt-4 flex flex-col gap-1.5 text-sm font-medium">
               Body (JSON)
               <textarea
-                className="h-24 rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono text-xs dark:border-zinc-700"
+                className="h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder='{"descricao_produto":"Novo Tecido"}'
@@ -258,11 +269,11 @@ export default function SystextilConsoleClient({
             </label>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
               onClick={runTest}
               disabled={running || !effectivePath}
-              className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className={btnPrimary}
             >
               {running ? "Executando…" : "Executar teste"}
             </button>
@@ -270,63 +281,58 @@ export default function SystextilConsoleClient({
           </div>
 
           {result && (
-            <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="mt-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
               <div className="mb-2 flex flex-wrap items-center gap-3 text-sm">
-                <span
-                  className={`rounded px-2 py-0.5 font-mono font-semibold ${
-                    result.ok
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                  }`}
-                >
-                  {result.status}
-                </span>
-                <span className="font-mono text-zinc-500">
+                <Badge tone={result.ok ? "ok" : "error"}>{result.status}</Badge>
+                <span className="font-mono text-xs text-zinc-500">
                   {result.durationMs} ms
                 </span>
               </div>
-              <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-zinc-100 p-3 font-mono text-xs dark:bg-zinc-900">
+              <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs text-zinc-100">
                 {JSON.stringify(result.body, null, 2)}
               </pre>
             </div>
           )}
+        </Section>
+      )}
 
-          <section>
-            <h2 className="mb-2 text-lg font-semibold">Histórico</h2>
-            {tests.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nenhum teste executado.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
+      {status.configured && (
+        <Section title="Histórico" subtitle="Testes recentes executados no console">
+          {tests.length === 0 ? (
+            <EmptyState>Nenhum teste executado.</EmptyState>
+          ) : (
+            <TableShell>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Método</th>
+                  <th>Endpoint</th>
+                  <th className="text-right">Duração</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
                 {tests.map((t) => (
-                  <li
-                    key={t.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
-                          t.success
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                        }`}
-                      >
+                  <tr key={t.id}>
+                    <td>
+                      <Badge tone={t.success ? "ok" : "error"}>
                         {t.status ?? "—"}
-                      </span>
-                      <span className="font-mono text-xs text-zinc-500">
-                        {t.method}
-                      </span>
-                      <span className="truncate font-mono">{t.endpoint}</span>
-                    </div>
-                    <span className="shrink-0 font-mono text-xs text-zinc-500">
-                      {t.durationMs ?? "—"} ms ·{" "}
+                      </Badge>
+                    </td>
+                    <td className="font-mono text-xs">{t.method}</td>
+                    <td className="truncate font-mono text-xs">{t.endpoint}</td>
+                    <td className="text-right font-mono text-xs">
+                      {t.durationMs ?? "—"} ms
+                    </td>
+                    <td className="text-xs text-zinc-500">
                       {new Date(t.responseAt).toLocaleString()}
-                    </span>
-                  </li>
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            )}
-          </section>
-        </section>
+              </tbody>
+            </TableShell>
+          )}
+        </Section>
       )}
     </main>
   );

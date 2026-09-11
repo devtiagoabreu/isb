@@ -4,6 +4,14 @@ import { useRef, useState, type ReactNode } from "react";
 import { PAGE_ICONES, pageIconPath } from "@/lib/pages";
 import { permissaoLabel } from "@/lib/permissions";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  Section,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 
 interface PageDTO {
   id: number;
@@ -72,14 +80,6 @@ function Icon({ children, className }: { children: ReactNode; className?: string
   );
 }
 
-function badge(text: string): ReactNode {
-  return (
-    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-      {text}
-    </span>
-  );
-}
-
 function pageAllowed(
   page: PageDTO,
   isAdmin: boolean,
@@ -92,15 +92,6 @@ function pageAllowed(
   }
   return true;
 }
-
-const btnPrimary =
-  "rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white";
-const btnGhost =
-  "rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800";
-const inputCls =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
-const cardCls =
-  "rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950";
 
 function cloneTree(nodes: SubItemDTO[]): SubItemDTO[] {
   return nodes.map((n) => ({ ...n, filhos: cloneTree(n.filhos) }));
@@ -536,7 +527,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
         <select
           value={novoSub.icone}
           onChange={(e) => setNovoSub({ ...novoSub, icone: e.target.value })}
-          className={inputCls}
+          className={selectCls}
           style={{ width: "auto" }}
         >
           {Object.keys(PAGE_ICONES).map((k) => (
@@ -725,8 +716,14 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                     <span className="truncate font-medium">{item.page!.titulo}</span>
                     <span className="truncate text-xs text-zinc-500">{item.page!.slug}</span>
                     <span className="ml-auto flex shrink-0 items-center gap-2">
-                      {item.page!.sensivel && badge("administrador")}
-                      {item.page!.permisao && badge(permissaoLabel(item.page!.permisao))}
+                      {item.page!.sensivel && (
+                        <Badge tone="neutral">administrador</Badge>
+                      )}
+                      {item.page!.permisao && (
+                        <Badge tone="neutral">
+                          {permissaoLabel(item.page!.permisao)}
+                        </Badge>
+                      )}
                       <button
                         onClick={() => void removerItem(sel!, item.id)}
                         disabled={busy}
@@ -781,7 +778,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
   }
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
           <InfoTitle
@@ -803,9 +800,9 @@ export default function MenusClient({ initial }: { initial: Payload }) {
         </div>
       )}
 
-      <section className={cardCls}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Menu ativo na navegação</h2>
+      <Section
+        title="Menu ativo na navegação"
+        actions={
           <div className="flex gap-2">
             <input
               value={novoMenu}
@@ -821,8 +818,8 @@ export default function MenusClient({ initial }: { initial: Payload }) {
               Criar menu
             </button>
           </div>
-        </div>
-
+        }
+      >
         <div className="mt-4 flex flex-wrap gap-2">
           {menus.map((m) => (
             <button
@@ -839,11 +836,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
               }`}
             >
               {m.nome}
-              {m.ativo && (
-                <span className="ml-2 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  ativo
-                </span>
-              )}
+              {m.ativo && <Badge tone="ok">ativo</Badge>}
             </button>
           ))}
         </div>
@@ -897,7 +890,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                   onChange={(e) =>
                     setAddEm(e.target.value === "" ? null : Number(e.target.value))
                   }
-                  className={inputCls}
+                  className={selectCls}
                 >
                   <option value="">Página raiz</option>
                   {grupos.map((g) => (
@@ -919,7 +912,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                     setPaginaSel("");
                     if (id && page) void adicionarPagina(sel!, page, addEm);
                   }}
-                  className={inputCls}
+                  className={selectCls}
                 >
                   <option value="" disabled>
                     Escolha uma página para entrar no menu…
@@ -946,20 +939,23 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             </p>
           </div>
         )}
-      </section>
+      </Section>
 
-      <section className={cardCls}>
-        <h2 className="text-lg font-semibold">Página inicial</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          É a primeira página que você vê ao entrar. A padrão é o{" "}
-          <strong>Painel</strong>, com tudo o que dá para fazer e medir.
-        </p>
+      <Section
+        title="Página inicial"
+        subtitle={
+          <>
+            É a primeira página que você vê ao entrar. A padrão é o{" "}
+            <strong>Painel</strong>, com tudo o que dá para fazer e medir.
+          </>
+        }
+      >
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <select
             value={data.homePageId ?? ""}
             onChange={(e) => void escolherHome(Number(e.target.value))}
             disabled={busy}
-            className={inputCls}
+            className={selectCls}
           >
             <option value="" disabled>
               Selecione…
@@ -978,20 +974,17 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             </span>
           )}
         </div>
-      </section>
+      </Section>
 
-      <section className={cardCls}>
-        <h2 className="text-lg font-semibold">Copiar menus de outro usuário</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Escolha um usuário e decida: manter os seus menus e adicionar os dele,
-          ou assumir os menus do usuário copiado (substitui os seus). Submenus e
-          páginas são copiados juntos.
-        </p>
+      <Section
+        title="Copiar menus de outro usuário"
+        subtitle="Escolha um usuário e decida: manter os seus menus e adicionar os dele, ou assumir os menus do usuário copiado (substitui os seus). Submenus e páginas são copiados juntos."
+      >
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <select
             value={copiarDe}
             onChange={(e) => setCopiarDe(e.target.value)}
-            className={inputCls}
+            className={selectCls}
           >
             <option value="">Selecione um usuário…</option>
             {data.usuarios.map((u) => (
@@ -1026,20 +1019,18 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             Não há outros usuários no sistema para copiar.
           </p>
         )}
-      </section>
+      </Section>
 
       {data.isAdmin && (
-        <section className={cardCls}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Registrar nova página</h2>
+        <Section
+          title="Registrar nova página"
+          subtitle="Toda página registrada vira opção de escolha para qualquer usuário montar o próprio menu."
+          actions={
             <button onClick={() => setShowNovaPage((v) => !v)} className={btnGhost}>
               {showNovaPage ? "Fechar" : "Nova página"}
             </button>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Toda página registrada vira opção de escolha para qualquer usuário
-            montar o próprio menu.
-          </p>
+          }
+        >
           {showNovaPage && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <input
@@ -1064,7 +1055,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 <select
                   value={pageForm.icone}
                   onChange={(e) => setPageForm({ ...pageForm, icone: e.target.value })}
-                  className={inputCls}
+                  className={selectCls}
                 >
                   {Object.keys(PAGE_ICONES).map((k) => (
                     <option key={k} value={k}>
@@ -1075,7 +1066,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 <select
                   value={pageForm.permisao}
                   onChange={(e) => setPageForm({ ...pageForm, permisao: e.target.value })}
-                  className={inputCls}
+                  className={selectCls}
                 >
                   <option value="">Sem permissão</option>
                   {data.permKeys
@@ -1105,7 +1096,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
               </div>
             </div>
           )}
-        </section>
+        </Section>
       )}
     </main>
   );

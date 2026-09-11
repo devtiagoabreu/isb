@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
 import { Dialog } from "@/app/components/dialog";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Section,
+  btnAccent,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 import type { BlingProdutoItem } from "@/lib/products";
 
 const TIPO_OPTIONS = [
@@ -359,9 +369,9 @@ export default function ProdutosClient({
     form[k as keyof ReturnType<typeof emptyForm>];
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Produtos no Bling"
@@ -374,21 +384,28 @@ export default function ProdutosClient({
           </p>
         </div>
         {connected && (
-          <button
-            onClick={abrirNovo}
-            className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
-          >
+          <button onClick={abrirNovo} className={btnAccent}>
             Novo produto
           </button>
         )}
       </div>
 
       {notice && (
-        <p role="status" className="text-sm text-emerald-600">
+        <p
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
           {notice}
         </p>
       )}
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
+        </div>
+      )}
 
       {!connected && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
@@ -403,42 +420,42 @@ export default function ProdutosClient({
 
       {connected && (
         <>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Nome
-              <input
-                className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 dark:border-zinc-700"
-                value={buscaNome}
-                onChange={(e) => setBuscaNome(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && carregar(1)}
-                placeholder="ex.: camiseta"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Código
-              <input
-                className="rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono dark:border-zinc-700"
-                value={buscaCodigo}
-                onChange={(e) => setBuscaCodigo(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && carregar(1)}
-                placeholder="ex.: 2.K1820"
-              />
-            </label>
-            <button
-              onClick={() => carregar(1)}
-              disabled={carregando}
-              className="rounded-full bg-zinc-900 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              {carregando ? "Carregando…" : "Buscar"}
-            </button>
-          </div>
+          <Section
+            title="Produtos"
+            subtitle="SKUs cadastrados no Bling V3"
+            actions={
+              <>
+                <input
+                  className={inputCls}
+                  value={buscaNome}
+                  onChange={(e) => setBuscaNome(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && carregar(1)}
+                  placeholder="ex.: camiseta"
+                />
+                <input
+                  className={`${inputCls} font-mono`}
+                  value={buscaCodigo}
+                  onChange={(e) => setBuscaCodigo(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && carregar(1)}
+                  placeholder="ex.: 2.K1820"
+                />
+                <button
+                  onClick={() => carregar(1)}
+                  disabled={carregando}
+                  className={btnPrimary}
+                >
+                  {carregando ? "Carregando…" : "Buscar"}
+                </button>
+              </>
+            }
+          >
 
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/60">
             <span className="text-sm text-zinc-600 dark:text-zinc-400">
               <span className="font-semibold">{contagemSel}</span> selecionado(s)
             </span>
             <select
-              className="min-w-[180px] rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 text-sm dark:border-zinc-700"
+              className={`${selectCls} min-w-[180px]`}
               value={perfilId}
               onChange={(e) => setPerfilId(e.target.value)}
             >
@@ -476,18 +493,16 @@ export default function ProdutosClient({
           </div>
 
           {produtos.length === 0 && !carregando ? (
-            <p className="text-sm text-zinc-500">
+            <EmptyState dashed>
               Nenhum produto cadastrado. Clique em &quot;Novo produto&quot; para
               começar.
-            </p>
+            </EmptyState>
           ) : (
-            <div className="flex flex-col gap-2">
-              <ul className="flex flex-col gap-2">
+            <>
+              <ul className="flex flex-col gap-3">
                 {produtos.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  >
+                  <li key={p.id}>
+                    <Card className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -501,24 +516,18 @@ export default function ProdutosClient({
                     </label>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="truncate font-medium">{p.nome}</span>
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
-                          p.situacao === "A"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                        }`}
-                      >
+                      <Badge tone={p.situacao === "A" ? "ok" : "error"}>
                         {p.situacao === "A" ? "Ativo" : "Inativo"}
-                      </span>
+                      </Badge>
                       {p.tipo && (
-                        <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
+                        <Badge tone="neutral" className="font-mono">
                           {p.tipo}
-                        </span>
+                        </Badge>
                       )}
                       {p.unidade?.id && (
-                        <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
+                        <Badge tone="neutral" className="font-mono">
                           {p.unidade.id}
-                        </span>
+                        </Badge>
                       )}
                       <span className="text-xs text-zinc-500">
                         {precoFormat(p)}
@@ -544,11 +553,12 @@ export default function ProdutosClient({
                         Excluir
                       </button>
                     </div>
+                    </Card>
                   </li>
                 ))}
               </ul>
 
-              <div className="flex items-center justify-between text-sm text-zinc-500">
+              <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-sm text-zinc-500 dark:border-zinc-800">
                 <span>
                   Página {pagina}
                   {paginacao?.total != null && ` · ${paginacao.total} produto(s)`}
@@ -570,8 +580,9 @@ export default function ProdutosClient({
                   </button>
                 </div>
               </div>
-            </div>
+            </>
           )}
+          </Section>
         </>
       )}
 

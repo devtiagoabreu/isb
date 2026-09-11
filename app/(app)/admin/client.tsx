@@ -4,6 +4,18 @@ import { useState } from "react";
 import { PERMISSOES, PERMISSAO_KEYS } from "@/lib/permissions";
 import { InfoTitle } from "@/app/components/info-button";
 import { Dialog } from "@/app/components/dialog";
+import {
+  Badge,
+  Card,
+  Section,
+  Stat,
+  StatGrid,
+  TableShell,
+  btnGhost,
+  btnPrimary,
+  inputCls,
+  selectCls,
+} from "@/app/components/ui/panels";
 
 interface RoleRef {
   id: number;
@@ -213,7 +225,7 @@ export default function AdminClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-6 py-10">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">
           <InfoTitle
@@ -229,125 +241,122 @@ export default function AdminClient({
 
       {aviso && (
         <p
-          className={`rounded-lg border px-4 py-2 text-sm ${
+          role={aviso.tipo === "ok" ? "status" : "alert"}
+          className={`rounded-xl border px-4 py-3 text-sm ${
             aviso.tipo === "ok"
-              ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400"
-              : "border-red-300 text-red-700 dark:border-red-700 dark:text-red-400"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
           }`}
         >
           {aviso.texto}
         </p>
       )}
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Usuários</h2>
-          <button
-            onClick={abrirNovoUsuario}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
+      <StatGrid>
+        <Stat label="Usuários" value={users.length} />
+        <Stat label="Roles" value={roles.length} />
+      </StatGrid>
+
+      <Section
+        title="Usuários"
+        subtitle={`${users.length} usuário(s)`}
+        actions={
+          <button onClick={abrirNovoUsuario} className={btnPrimary}>
             Novo usuário
           </button>
-        </div>
-
-        <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-              <tr>
-                <th className="px-4 py-3 font-medium">Nome</th>
-                <th className="px-4 py-3 font-medium">E-mail</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-b border-zinc-100 last:border-0 dark:border-zinc-800/50"
-                >
-                  <td className="px-4 py-3">
-                    {u.name}
-                    {u.id === currentUserId && (
-                      <span className="ml-2 text-xs text-zinc-400">(você)</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={u.roleId != null ? String(u.roleId) : ""}
-                      onChange={(e) => alterarRoleUsuario(u, e.target.value)}
-                      className="rounded-lg border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        }
+      >
+        <TableShell>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Role</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id}>
+                <td>
+                  {u.name}
+                  {u.id === currentUserId && (
+                    <span className="ml-2 text-xs text-zinc-400">(você)</span>
+                  )}
+                </td>
+                <td>{u.email}</td>
+                <td>
+                  <select
+                    value={u.roleId != null ? String(u.roleId) : ""}
+                    onChange={(e) => alterarRoleUsuario(u, e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Sem role</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => abrirEditarUsuario(u)}
+                      className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
                     >
-                      <option value="">Sem role</option>
-                      {roles.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => abrirEditarUsuario(u)}
-                        className="rounded-lg border border-zinc-300 px-3 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => excluirUsuario(u)}
-                        className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => excluirUsuario(u)}
+                      className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </TableShell>
+      </Section>
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Roles e permissões</h2>
-          <button
-            onClick={abrirNovoRole}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
+      <Section
+        title="Roles e permissões"
+        subtitle={`${roles.length} role(s) definidas`}
+        actions={
+          <button onClick={abrirNovoRole} className={btnPrimary}>
             Nova role
           </button>
-        </div>
-
+        }
+      >
         <div className="flex flex-col gap-3">
           {roles.map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-col gap-3 rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <Card key={r.id} className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="font-semibold">{r.name}</span>
                   {r.builtin && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    <Badge
+                      tone="neutral"
+                      className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    >
                       nativa
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {!r.builtin && (
                     <>
                       <button
                         onClick={() => abrirEditarRole(r)}
-                        className="rounded-lg border border-zinc-300 px-3 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => excluirRole(r)}
-                        className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                        className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
                       >
                         Excluir
                       </button>
@@ -363,19 +372,16 @@ export default function AdminClient({
               <div className="flex flex-wrap gap-1.5">
                 {PERMISSAO_KEYS.map((key) =>
                   r.permissions.includes(key) ? (
-                    <span
-                      key={key}
-                      className="rounded-full border border-emerald-300 px-2.5 py-0.5 text-xs text-emerald-700 dark:border-emerald-700 dark:text-emerald-400"
-                    >
+                    <Badge key={key} tone="ok">
                       {PERMISSOES[key]}
-                    </span>
+                    </Badge>
                   ) : null
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
-      </section>
+      </Section>
 
       {modalUsuario !== null && (
         <Dialog
@@ -391,26 +397,26 @@ export default function AdminClient({
               {modalUsuario === "novo" ? "Novo usuário" : `Editar ${modalUsuario.email}`}
             </h3>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Nome</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nome</span>
               <input
                 required
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${inputCls} w-full`}
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">E-mail</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">E-mail</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${inputCls} w-full`}
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {modalUsuario === "novo" ? "Senha" : "Nova senha (opcional)"}
               </span>
               <input
@@ -420,15 +426,15 @@ export default function AdminClient({
                 placeholder={modalUsuario !== "novo" ? "Deixe em branco para manter" : ""}
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${inputCls} w-full`}
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Role</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Role</span>
               <select
                 value={roleSelecionada}
                 onChange={(e) => setRoleSelecionada(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${selectCls} w-full`}
               >
                 <option value="">Sem role</option>
                 {roles.map((r) => (
@@ -442,13 +448,13 @@ export default function AdminClient({
               <button
                 type="button"
                 onClick={() => setModalUsuario(null)}
-                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className={btnGhost}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                className={btnPrimary}
               >
                 Salvar
               </button>
@@ -471,24 +477,24 @@ export default function AdminClient({
               {modalRole === "novo" ? "Nova role" : "Editar role"}
             </h3>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Nome</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nome</span>
               <input
                 required
                 value={roleNome}
                 onChange={(e) => setRoleNome(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${inputCls} w-full`}
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Descrição</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</span>
               <input
                 value={roleDesc}
                 onChange={(e) => setRoleDesc(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`${inputCls} w-full`}
               />
             </label>
             <fieldset className="flex flex-col gap-2 text-sm">
-              <legend className="font-medium">Permissões</legend>
+              <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Permissões</legend>
               {PERMISSAO_KEYS.map((key) => (
                 <label key={key} className="flex items-center gap-2">
                   <input
@@ -508,13 +514,13 @@ export default function AdminClient({
               <button
                 type="button"
                 onClick={() => setModalRole(null)}
-                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className={btnGhost}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                className={btnPrimary}
               >
                 Salvar
               </button>
