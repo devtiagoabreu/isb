@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { pageIconPath } from "@/lib/pages";
+import ThemeToggle from "@/app/components/theme-toggle";
 
 function Icon({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -205,6 +206,7 @@ export default function AppShell({
               <p className="truncate text-xs text-zinc-500">{userEmail}</p>
             </div>
           )}
+          <ThemeToggle compact={collapsed} />
           <Link
             href="/menus"
             className={`${linkBase} ${linkIdle} ${
@@ -262,6 +264,7 @@ export default function AppShell({
                 <p className="truncate text-sm font-medium">{userName}</p>
                 <p className="truncate text-xs text-zinc-500">{userEmail}</p>
               </div>
+              <ThemeToggle compact={false} />
               <Link
                 href="/menus"
                 onClick={() => setOpenMobile(false)}

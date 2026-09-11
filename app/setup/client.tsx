@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card, btnAccent, inputCls } from "@/app/components/ui/panels";
+import ThemeToggle from "@/app/components/theme-toggle";
 
 export default function SetupClient() {
   const router = useRouter();
@@ -42,7 +43,10 @@ export default function SetupClient() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle compact />
+      </div>
       <Card className="w-full max-w-lg p-8">
         <h1 className="text-2xl font-semibold tracking-tight">
           Criar acesso

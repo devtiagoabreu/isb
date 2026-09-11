@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card, btnPrimary, inputCls } from "@/app/components/ui/panels";
+import ThemeToggle from "@/app/components/theme-toggle";
 
 export default function LoginClient({ next }: { next: string }) {
   const router = useRouter();
@@ -35,7 +36,10 @@ export default function LoginClient({ next }: { next: string }) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle compact />
+      </div>
       <Card className="w-full max-w-sm p-8">
         <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
