@@ -49,7 +49,7 @@ interface SaldoSystextil {
   saldo: number;
 }
 
-async function lerSaldosSystextil(
+export async function lerSaldosSystextil(
   depositoId: number
 ): Promise<SaldoSystextil[]> {
   const saldos: SaldoSystextil[] = [];
@@ -93,7 +93,7 @@ async function lerSaldosSystextil(
   return saldos;
 }
 
-async function carregarProdutosBling(): Promise<
+export async function carregarProdutosBling(): Promise<
   Map<string, { id: number; nome: string | null }>
 > {
   const produtos = new Map<string, { id: number; nome: string | null }>();
@@ -125,7 +125,7 @@ async function carregarProdutosBling(): Promise<
   return produtos;
 }
 
-async function carregarSaldosBling(
+export async function carregarSaldosBling(
   idsProdutos: number[],
   depositoId: number
 ): Promise<Map<number, number>> {
@@ -157,7 +157,10 @@ async function carregarSaldosBling(
   return saldos;
 }
 
-async function lerParametroChave(chave: string, padrao: string): Promise<string> {
+export async function lerParametroChave(
+  chave: string,
+  padrao: string
+): Promise<string> {
   const p = await prisma.integracaoParam.findUnique({ where: { chave } });
   const valor = (p && p.ativo ? p.valor : "").trim();
   return valor || padrao;

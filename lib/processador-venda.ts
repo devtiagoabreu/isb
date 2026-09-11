@@ -23,6 +23,24 @@ export type VendaRegistroRow = VendaRegistro;
 
 type StepsTyped = Record<string, ResultadoPasso | undefined>;
 
+// Estrutura mínima da NF-e do Bling usada pelo pipeline (GET /nfe/{id}).
+interface NfeBling {
+  id: number;
+  numero: string;
+  serie?: string;
+  chaveAcesso?: string;
+  situacao?: number;
+  emissao?: string;
+  valorNota?: number;
+  itens?: Array<Record<string, unknown>>;
+  contato?: {
+    numeroDocumento?: string;
+    nome?: string;
+    tipoPessoa?: string;
+    endereco?: { uf?: string };
+  };
+}
+
 // Divide o número do documento (CNPJ 14 ou CPF 11) na chave de pessoa do
 // Systêxtil: cnpj_9 + cnpj_4 (0000 p/ CPF) + cnpj_2.
 export function splitCnpjCpf(
@@ -245,7 +263,7 @@ async function executarPipeline(
       },
     };
   }
-  const nfe = (nfeRes.bodyJson as { data?: Record<string, unknown> })?.data;
+  const nfe = (nfeRes.bodyJson as { data?: NfeBling })?.data;
 
   if (!nfe?.numero || !nfe?.chaveAcesso) {
     return {
@@ -562,4 +580,22 @@ export async function drenarVendasPendentes(
     }
   }
   return { processados: processados.length, ids };
+}
+
+// Processa uma NF-e específica (ação manual do painel de monitoramento).
+// Enfileira uma linha vinculada à nota (eventId manual) e a processa na hora;
+// se o evento manual já existir, reprocessa a linha existente.
+export async function processarNotaBling(
+  nfeId: number
+): Promise<VendaRegistroRow> {
+  if (!Number.isInteger(nfeId) || nfeId <= 0) {
+    throw new Error("nfeId inválido.");
+  }
+  const eventId = `manual:${nfeId}`;
+  const reg = await prisma.vendaRegistro.upsert({
+    where: { eventId },
+    create: { eventId, nfeId },
+    update: {},
+  });
+  return processarVendaRegistro(reg.id);
 }
