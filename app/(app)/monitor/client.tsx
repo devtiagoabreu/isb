@@ -1,7 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  EmptyState,
+  Section,
+  Stat,
+  StatGrid,
+  TableShell,
+  btnAccent,
+  btnGhost,
+  btnInfo,
+  btnPrimary,
+  inputCls,
+  selectCls,
+  type Tone,
+} from "@/app/components/ui/panels";
 
 interface ItemEstoque {
   codigo: string;
@@ -103,44 +119,44 @@ const PASSO_LABEL: Record<string, string> = {
   titulo: "Título",
 };
 
-function filaBadge(status: string): string {
+function toneFila(status: string): Tone {
   switch (status) {
     case "concluido":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "concluido_parcial":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+      return "warn";
     case "erro":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     case "processando":
-      return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+      return "info";
     case "pendente":
-      return "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300";
+      return "info";
     default:
-      return "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400";
+      return "neutral";
   }
 }
 
-function estoqueBadge(situacao: ItemEstoque["situacao"]): string {
+function toneEstoque(situacao: ItemEstoque["situacao"]): Tone {
   switch (situacao) {
     case "igual":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "divergente":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     default:
-      return "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
+      return "neutral";
   }
 }
 
-function passoBadge(passo: Passo | undefined): string {
+function tonePasso(passo: Passo | undefined): Tone {
   switch (passo?.status) {
     case "ok":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "bloqueado":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+      return "warn";
     case "erro":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     default:
-      return "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400";
+      return "neutral";
   }
 }
 
@@ -151,9 +167,6 @@ const fmt = (v: number | null | undefined): string =>
         minimumFractionDigits: 2,
         maximumFractionDigits: 4,
       });
-
-const inputCls =
-  "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
 export default function MonitorClient() {
   const [erro, setErro] = useState("");
@@ -332,7 +345,7 @@ export default function MonitorClient() {
   }, [buscarNotas, carregarFila]);
 
   // Carrega as seções leves na abertura (setState só nos callbacks assíncronos,
-// mesmo padrão do vendas-processadas); o estoque fica sob demanda.
+  // mesmo padrão do vendas-processadas); o estoque fica sob demanda.
   useEffect(() => {
     let ativo = true;
     fetch("/api/monitor/notas-bling?limite=100&situacao=6")
@@ -406,9 +419,9 @@ export default function MonitorClient() {
   }, [saidas, buscaSaida]);
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Monitor da Integração"
@@ -417,30 +430,32 @@ export default function MonitorClient() {
             />
           </h1>
         </div>
-        <button
-          onClick={atualizarPainel}
-          className="rounded-full bg-zinc-800 px-5 py-2 font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-        >
+        <button onClick={atualizarPainel} className={btnPrimary}>
           Atualizar painel
         </button>
       </div>
 
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
+        </div>
+      )}
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Estoque — Systêxtil (dep. {estoque?.depositoSystextil ?? "…"}) ×
-            Bling (dep. {estoque?.depositoBling ?? "…"})
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
+      <Section
+        title="Estoque"
+        subtitle={`Systêxtil (dep. ${estoque?.depositoSystextil ?? "…"}) × Bling (dep. ${estoque?.depositoBling ?? "…"}) — o saldo do depósito 034 é a fonte de verdade e é espelhado no Bling`}
+        actions={
+          <>
             <input
               value={buscaEstoque}
               onChange={(e) => setBuscaEstoque(e.target.value)}
               placeholder="Buscar código ou descrição…"
               className={inputCls}
             />
-            <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <label className="flex h-9 cursor-pointer items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
               <input
                 type="checkbox"
                 checked={soDivergentes}
@@ -451,126 +466,129 @@ export default function MonitorClient() {
             <button
               onClick={carregarEstoque}
               disabled={carregandoEstoque}
-              className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
+              className={btnGhost}
             >
               {carregandoEstoque ? "Carregando…" : "Carregar estoque"}
             </button>
             <button
               onClick={() => reconciliar("dry-run")}
               disabled={reconciliando !== false}
-              className="rounded-full bg-sky-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-sky-500 disabled:opacity-50"
+              className={btnInfo}
             >
               {reconciliando === "dry-run" ? "Simulando…" : "Simular ajustes"}
             </button>
             <button
               onClick={() => reconciliar("executar")}
               disabled={reconciliando !== false}
-              className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+              className={btnAccent}
             >
               {reconciliando === "executar" ? "Executando…" : "Executar ajustes"}
             </button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {resumoReconciliacao && (
-          <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
             {resumoReconciliacao}
           </p>
         )}
 
-        {estoque && (
-          <div className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-            <span className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">
-              {estoque.totalAtivos} itens ativos
-            </span>
-            <span className="rounded bg-red-100 px-2 py-1 text-red-700 dark:bg-red-900/40 dark:text-red-300">
-              {estoque.divergentes} divergentes
-            </span>
-            <span className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">
-              {estoque.semProduto} sem produto no Bling
-            </span>
-            <span className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">
-              lido em {new Date(estoque.geradoEm).toLocaleString("pt-BR")}
-            </span>
-          </div>
-        )}
+        {estoque ? (
+          <>
+            <StatGrid>
+              <Stat label="Itens ativos" value={estoque.totalAtivos} />
+              <Stat
+                label="Divergentes"
+                value={estoque.divergentes}
+                tone="error"
+                hint="saldo diverge do Bling"
+              />
+              <Stat
+                label="Sem produto no Bling"
+                value={estoque.semProduto}
+                tone="warn"
+                hint="apenas listados, não ajustados"
+              />
+              <Stat
+                label="Última leitura"
+                value={
+                  <span className="text-sm font-semibold">
+                    {new Date(estoque.geradoEm).toLocaleString("pt-BR")}
+                  </span>
+                }
+              />
+            </StatGrid>
 
-        {carregandoEstoque && estoque === null ? (
-          <p className="text-sm text-zinc-500">Carregando saldos…</p>
-        ) : estoque === null ? (
-          <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700">
+            <div className="mt-4">
+              {estoqueFiltrado.length === 0 ? (
+                <EmptyState dashed>Nenhum item corresponde ao filtro.</EmptyState>
+              ) : (
+                <TableShell>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Descrição</th>
+                      <th className="text-right">Saldo Systêxtil</th>
+                      <th className="text-right">Saldo Bling</th>
+                      <th>Situação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {estoqueFiltrado.map((i) => (
+                      <tr key={i.codigo}>
+                        <td className="font-mono text-xs">{i.codigo}</td>
+                        <td>
+                          {i.descricao ?? "—"}
+                          {i.produtoId != null && (
+                            <span className="ml-1 text-xs text-zinc-400">
+                              #{i.produtoId}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-right font-mono text-xs">
+                          {fmt(i.saldoSystextil)}
+                        </td>
+                        <td className="text-right font-mono text-xs">
+                          {fmt(i.saldoBling)}
+                        </td>
+                        <td>
+                          <Badge tone={toneEstoque(i.situacao)}>
+                            {i.situacao === "igual"
+                              ? "em dia"
+                              : i.situacao === "divergente"
+                                ? "divergente"
+                                : "sem produto"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </TableShell>
+              )}
+            </div>
+          </>
+        ) : carregandoEstoque ? (
+          <EmptyState dashed>Carregando saldos…</EmptyState>
+        ) : (
+          <EmptyState dashed>
             Clique em “Carregar estoque” para ler os saldos dos dois sistemas
             (pode demorar: percorre os produtos do Systêxtil e do Bling).
-          </div>
-        ) : estoqueFiltrado.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            Nenhum item corresponde ao filtro.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">Código</th>
-                  <th className="px-3 py-2">Descrição</th>
-                  <th className="px-3 py-2 text-right">Saldo Systêxtil</th>
-                  <th className="px-3 py-2 text-right">Saldo Bling</th>
-                  <th className="px-3 py-2">Situação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {estoqueFiltrado.map((i) => (
-                  <tr
-                    key={i.codigo}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="px-3 py-1.5 font-mono text-xs">{i.codigo}</td>
-                    <td className="px-3 py-1.5">
-                      {i.descricao ?? "—"}
-                      {i.produtoId != null && (
-                        <span className="ml-1 text-xs text-zinc-400">
-                          #{i.produtoId}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-xs">
-                      {fmt(i.saldoSystextil)}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-xs">
-                      {fmt(i.saldoBling)}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-xs ${estoqueBadge(i.situacao)}`}
-                      >
-                        {i.situacao === "igual"
-                          ? "em dia"
-                          : i.situacao === "divergente"
-                            ? "divergente"
-                            : "sem produto"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          </EmptyState>
         )}
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Notas faturadas no Bling
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
+      <Section
+        title="Notas faturadas no Bling"
+        subtitle="NF de saída emitidas pela Pro Moda Têxtil no Bling (loja online)"
+        actions={
+          <>
             <select
               value={filtroSituacao}
               onChange={(e) => {
                 setFiltroSituacao(e.target.value);
                 void buscarNotas(e.target.value);
               }}
-              className={inputCls}
+              className={selectCls}
             >
               <option value="">Todas as situações</option>
               <option value="6">Autorizada (6)</option>
@@ -586,113 +604,99 @@ export default function MonitorClient() {
             <button
               onClick={() => buscarNotas()}
               disabled={carregandoNotas}
-              className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
+              className={btnGhost}
             >
               {carregandoNotas ? "Carregando…" : "Atualizar"}
             </button>
             <button
               onClick={processarPendentes}
               disabled={processandoPendentes}
-              className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+              className={btnAccent}
             >
               {processandoPendentes ? "Processando…" : "Processar pendentes"}
             </button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {carregandoNotas && notas.length === 0 ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <EmptyState dashed>Carregando…</EmptyState>
         ) : notasFiltradas.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            Nenhuma nota encontrada para o filtro.
-          </div>
+          <EmptyState dashed>Nenhuma nota encontrada para o filtro.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">NF</th>
-                  <th className="px-3 py-2">Série</th>
-                  <th className="px-3 py-2">Situação</th>
-                  <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2 text-right">Valor</th>
-                  <th className="px-3 py-2">Emissão</th>
-                  <th className="px-3 py-2">Systêxtil</th>
-                  <th className="px-3 py-2">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {notasFiltradas.map((n) => {
-                  const noSystextil = Boolean(
-                    n.chaveAcesso && chavesSaida.has(n.chaveAcesso)
-                  );
-                  const processando = processandoNfe === n.id;
-                  return (
-                    <tr
-                      key={n.id}
-                      className="border-t border-zinc-100 dark:border-zinc-800"
-                    >
-                      <td className="px-3 py-1.5 font-mono text-xs">
-                        {n.numero || "—"}
-                      </td>
-                      <td className="px-3 py-1.5">{n.serie || "—"}</td>
-                      <td className="px-3 py-1.5">
-                        <span className="text-zinc-600 dark:text-zinc-400">
-                          {SITUACAO_NFE[n.situacao] ?? n.situacao}
-                        </span>
-                      </td>
-                      <td className="px-3 py-1.5">{n.contatoNome ?? "—"}</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs">
-                        {fmt(n.valorTotal)}
-                      </td>
-                      <td className="px-3 py-1.5 text-xs text-zinc-500">
-                        {n.dataEmissao ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        {n.registro ? (
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-xs ${filaBadge(n.registro.status)}`}
-                            title={n.registro.erro ?? undefined}
-                          >
-                            {n.registro.status}
-                            {n.registro.tentativas > 0
-                              ? ` ${n.registro.tentativas}x`
-                              : ""}
-                          </span>
-                        ) : noSystextil ? (
-                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            saída ✓
-                          </span>
-                        ) : (
-                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
-                            —{" "}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <button
-                          onClick={() => processarNota(n.id)}
-                          disabled={processando}
-                          className="rounded-full bg-sky-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-sky-500 disabled:opacity-50"
+          <TableShell>
+            <thead>
+              <tr>
+                <th>NF</th>
+                <th>Série</th>
+                <th>Situação</th>
+                <th>Cliente</th>
+                <th className="text-right">Valor</th>
+                <th>Emissão</th>
+                <th>Systêxtil</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notasFiltradas.map((n) => {
+                const noSystextil = Boolean(
+                  n.chaveAcesso && chavesSaida.has(n.chaveAcesso)
+                );
+                const processando = processandoNfe === n.id;
+                return (
+                  <tr key={n.id}>
+                    <td className="font-mono text-xs">{n.numero || "—"}</td>
+                    <td>{n.serie || "—"}</td>
+                    <td>
+                      <span className="text-zinc-600 dark:text-zinc-400">
+                        {SITUACAO_NFE[n.situacao] ?? n.situacao}
+                      </span>
+                    </td>
+                    <td>{n.contatoNome ?? "—"}</td>
+                    <td className="text-right font-mono text-xs">
+                      {fmt(n.valorTotal)}
+                    </td>
+                    <td className="text-xs text-zinc-500">
+                      {n.dataEmissao ?? "—"}
+                    </td>
+                    <td>
+                      {n.registro ? (
+                        <Badge
+                          tone={toneFila(n.registro.status)}
+                          title={n.registro.erro ?? undefined}
                         >
-                          {processando ? "Processando…" : "Processar"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          {n.registro.status}
+                          {n.registro.tentativas > 0
+                            ? ` ${n.registro.tentativas}x`
+                            : ""}
+                        </Badge>
+                      ) : noSystextil ? (
+                        <Badge tone="ok">saída ✓</Badge>
+                      ) : (
+                        <Badge tone="neutral">—</Badge>
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => processarNota(n.id)}
+                        disabled={processando || processandoPendentes}
+                        className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        {processando ? "Processando…" : "Processar"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableShell>
         )}
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Notas de saída no Systêxtil (série 2 — faturadas no Bling)
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
+      <Section
+        title="Notas de saída no Systêxtil"
+        subtitle="Série 2 — as NF faturadas no Bling e escrituradas no Systêxtil pelo fluxo"
+        actions={
+          <>
             <input
               value={buscaSaida}
               onChange={(e) => setBuscaSaida(e.target.value)}
@@ -702,145 +706,128 @@ export default function MonitorClient() {
             <button
               onClick={buscarSaidas}
               disabled={carregandoSaidas}
-              className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
+              className={btnGhost}
             >
               {carregandoSaidas ? "Carregando…" : "Atualizar"}
             </button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {carregandoSaidas && saidas.length === 0 ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <EmptyState dashed>Carregando…</EmptyState>
         ) : saidasFiltradas.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            Nenhuma nota de saída encontrada.
-          </div>
+          <EmptyState dashed>Nenhuma nota de saída encontrada.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">NF</th>
-                  <th className="px-3 py-2">Série</th>
-                  <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2">CNPJ</th>
-                  <th className="px-3 py-2">Emissão</th>
-                  <th className="px-3 py-2">Situação</th>
+          <TableShell>
+            <thead>
+              <tr>
+                <th>NF</th>
+                <th>Série</th>
+                <th>Cliente</th>
+                <th>CNPJ</th>
+                <th>Emissão</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {saidasFiltradas.map((e, idx) => (
+                <tr key={`${e.notaFiscal}-${e.serie}-${idx}`}>
+                  <td className="font-mono text-xs">{e.notaFiscal || "—"}</td>
+                  <td>{e.serie || "—"}</td>
+                  <td>{e.cliente || "—"}</td>
+                  <td className="font-mono text-xs">{e.cnpj}</td>
+                  <td className="text-xs text-zinc-500">{e.dataEmissao ?? "—"}</td>
+                  <td>
+                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                      {SITUACAO_NOTA_SAIDA[e.situacao] ?? e.situacao}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {saidasFiltradas.map((e, idx) => (
-                  <tr
-                    key={`${e.notaFiscal}-${e.serie}-${idx}`}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="px-3 py-1.5 font-mono text-xs">
-                      {e.notaFiscal || "—"}
-                    </td>
-                    <td className="px-3 py-1.5">{e.serie || "—"}</td>
-                    <td className="px-3 py-1.5">{e.cliente || "—"}</td>
-                    <td className="px-3 py-1.5 font-mono text-xs">{e.cnpj}</td>
-                    <td className="px-3 py-1.5 text-xs text-zinc-500">
-                      {e.dataEmissao ?? "—"}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                        {SITUACAO_NOTA_SAIDA[e.situacao] ?? e.situacao}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableShell>
         )}
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Fila de processamento (últimas)
-        </h2>
+      <Section
+        title="Fila de processamento"
+        subtitle="Últimas vendas — veja a página Vendas Processadas para o histórico completo"
+        actions={
+          <Link href="/vendas-processadas" className={btnGhost}>
+            Ver histórico completo →
+          </Link>
+        }
+      >
         {carregandoFila && fila.length === 0 ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <EmptyState dashed>Carregando…</EmptyState>
         ) : fila.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          <EmptyState>
             Nenhuma venda na fila ainda. Veja a página Vendas Processadas para o
             histórico completo.
-          </div>
+          </EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">NF</th>
-                  <th className="px-3 py-2">Contato</th>
-                  <th className="px-3 py-2 text-right">Valor</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Passos</th>
-                  <th className="px-3 py-2">Atualizado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fila.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="px-3 py-1.5">{r.id}</td>
-                    <td className="px-3 py-1.5 font-mono text-xs">
-                      {r.numero ?? "—"}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      {r.contatoNome ?? "—"}
-                      {r.contatoCnpj && (
-                        <span className="ml-1 font-mono text-xs text-zinc-500">
-                          {r.contatoCnpj}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-xs">
-                      {r.valorTotal ?? "—"}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-xs ${filaBadge(r.status)}`}
-                      >
-                        {r.status}
+          <TableShell>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>NF</th>
+                <th>Contato</th>
+                <th className="text-right">Valor</th>
+                <th>Status</th>
+                <th>Passos</th>
+                <th>Atualizado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fila.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.id}</td>
+                  <td className="font-mono text-xs">{r.numero ?? "—"}</td>
+                  <td>
+                    {r.contatoNome ?? "—"}
+                    {r.contatoCnpj && (
+                      <span className="ml-1 font-mono text-xs text-zinc-500">
+                        {r.contatoCnpj}
                       </span>
-                      {r.tentativas > 0 && (
-                        <span className="ml-1 text-xs text-zinc-500">
-                          {r.tentativas}x
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <div className="flex flex-wrap gap-1">
-                        {PASSO_ORDER.map((key) => {
-                          const p = r.steps?.[key];
-                          if (!p) return null;
-                          return (
-                            <span
-                              key={key}
-                              className={`rounded px-1.5 py-0.5 text-xs ${passoBadge(p)}`}
-                              title={p.mensagem}
-                            >
-                              {PASSO_LABEL[key]}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-3 py-1.5 text-xs text-zinc-500">
-                      {new Date(r.atualizadoEm).toLocaleString("pt-BR")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </td>
+                  <td className="text-right font-mono text-xs">
+                    {r.valorTotal ?? "—"}
+                  </td>
+                  <td>
+                    <Badge tone={toneFila(r.status)}>{r.status}</Badge>
+                    {r.tentativas > 0 && (
+                      <span className="ml-1 text-xs text-zinc-500">
+                        {r.tentativas}x
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {PASSO_ORDER.map((key) => {
+                        const p = r.steps?.[key];
+                        if (!p) return null;
+                        return (
+                          <Badge
+                            key={key}
+                            tone={tonePasso(p)}
+                            title={p.mensagem}
+                          >
+                            {PASSO_LABEL[key]}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td className="text-xs text-zinc-500">
+                    {new Date(r.atualizadoEm).toLocaleString("pt-BR")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </TableShell>
         )}
-      </section>
+      </Section>
     </main>
   );
 }

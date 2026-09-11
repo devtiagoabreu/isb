@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  EmptyState,
+  Section,
+  Stat,
+  StatGrid,
+  TableShell,
+  btnAccent,
+  btnGhost,
+  type Tone,
+} from "@/app/components/ui/panels";
 
 interface RunRow {
   id: number;
@@ -53,6 +64,28 @@ interface Resultado {
 
 function num(v: number): string {
   return v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+}
+
+function toneDiff(d: ItemDiff): Tone {
+  if (d.semProduto) return "error";
+  if (d.divergente) {
+    if (d.erro) return "error";
+    if (d.enviado) return "info";
+    return "warn";
+  }
+  return "ok";
+}
+
+function labelDiff(d: ItemDiff): string {
+  if (d.semProduto) return "sem produto";
+  if (d.divergente) return d.enviado ? "enviado" : d.erro ? "erro" : "divergente";
+  return "ok";
+}
+
+function toneRun(status: string): Tone {
+  if (status === "ok") return "ok";
+  if (status === "erro") return "error";
+  return "neutral";
 }
 
 export default function ReconciliacaoEstoqueClient() {
@@ -121,9 +154,9 @@ export default function ReconciliacaoEstoqueClient() {
   const diffs = resultado?.diff ?? [];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Reconciliação de Estoque"
@@ -132,111 +165,111 @@ export default function ReconciliacaoEstoqueClient() {
             />
           </h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => executar("dry-run")}
             disabled={rodando !== null}
-            className="rounded-full border border-zinc-300 px-5 py-2 font-medium transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className={btnGhost}
           >
             {rodando === "dry-run" ? "Calculando…" : "Executar dry-run"}
           </button>
           <button
             onClick={() => executar("executar")}
             disabled={rodando !== null}
-            className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={btnAccent}
           >
             {rodando === "executar" ? "Aplicando…" : "Executar (aplica saldos)"}
           </button>
         </div>
       </div>
 
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
+        </div>
+      )}
       {rodando && (
-        <p className="text-sm text-zinc-500">
-          Rodando {rodando === "dry-run" ? "dry-run" : "execução"}… pode
-          levar alguns minutos.
-        </p>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          Rodando {rodando === "dry-run" ? "dry-run" : "execução"}… pode levar
+          alguns minutos.
+        </div>
       )}
 
       {resultado && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Resultado da execução #{resultado.runId}
-          </h2>
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500">Saldos lidos (dep. {resultado.depositoSystextil})</p>
-              <p className="text-lg font-semibold">{num(resultado.saldosLidos)}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500">Produtos no Bling</p>
-              <p className="text-lg font-semibold">{num(resultado.produtosBling)}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500">Divergentes</p>
-              <p className="text-lg font-semibold text-amber-600">
-                {num(resultado.divergentes)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500">Sem produto no Bling</p>
-              <p className="text-lg font-semibold text-red-500">
-                {num(resultado.semProdutoBling)}
-              </p>
-            </div>
-          </div>
-          {resultado.erros > 0 && (
-            <p className="text-sm text-red-500">
-              Erros: {resultado.erros}
-            </p>
-          )}
+        <Section
+          title={`Resultado da execução #${resultado.runId}`}
+          subtitle={`${resultado.modo === "dry-run" ? "Simulação (nada foi enviado)" : "Ajustes aplicados"} · dep. Systêxtil ${resultado.depositoSystextil} → dep. Bling ${resultado.depositoBling}`}
+        >
+          <StatGrid>
+            <Stat
+              label="Saldos lidos"
+              value={num(resultado.saldosLidos)}
+              hint={`dep. ${resultado.depositoSystextil}`}
+            />
+            <Stat
+              label="Produtos no Bling"
+              value={num(resultado.produtosBling)}
+            />
+            <Stat
+              label="Divergentes"
+              value={num(resultado.divergentes)}
+              tone="warn"
+            />
+            <Stat label="Previstos" value={num(resultado.previstos)} />
+          </StatGrid>
+
           {resultado.modo === "executar" && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Enviados: <strong>{num(resultado.enviados)}</strong> · Erros:{" "}
-              <strong>{num(resultado.erros)}</strong> · Synapse entre dep.{" "}
-              {resultado.depositoSystextil} → {resultado.depositoBling}.
-            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Stat
+                label="Enviados"
+                value={num(resultado.enviados)}
+                tone="ok"
+              />
+              <Stat
+                label="Sem produto no Bling"
+                value={num(resultado.semProdutoBling)}
+                tone="error"
+              />
+              <Stat
+                label="Erros"
+                value={num(resultado.erros)}
+                tone={resultado.erros > 0 ? "error" : "ok"}
+              />
+            </div>
           )}
-          <p className="text-sm">{resultado.resumo}</p>
+
+          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+            {resultado.resumo}
+          </p>
 
           {diffs.length > 0 && (
-            <div className="max-h-96 overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
+            <div className="mt-4 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 px-0 dark:border-zinc-800">
+              <TableShell>
+                <thead>
                   <tr>
-                    <th className="px-3 py-2">Código</th>
-                    <th className="px-3 py-2">Descrição</th>
-                    <th className="px-3 py-2 text-right">Bling (atual)</th>
-                    <th className="px-3 py-2 text-right">Systêxtil (novo)</th>
-                    <th className="px-3 py-2">Situação</th>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th className="text-right">Bling (atual)</th>
+                    <th className="text-right">Systêxtil (novo)</th>
+                    <th>Situação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {diffs.map((d) => (
-                    <tr
-                      key={`${d.codigo}`}
-                      className="border-t border-zinc-100 dark:border-zinc-800"
-                    >
-                      <td className="px-3 py-1.5 font-mono text-xs">{d.codigo}</td>
-                      <td className="px-3 py-1.5">{d.descricao ?? "—"}</td>
-                      <td className="px-3 py-1.5 text-right">
+                    <tr key={`${d.codigo}`}>
+                      <td className="font-mono text-xs">{d.codigo}</td>
+                      <td>{d.descricao ?? "—"}</td>
+                      <td className="text-right">
                         {d.saldoAnterior === null ? "—" : num(d.saldoAnterior)}
                       </td>
-                      <td className="px-3 py-1.5 text-right">{num(d.saldoNovo)}</td>
-                      <td className="px-3 py-1.5">
-                        {d.semProduto ? (
-                          <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                            sem produto
-                          </span>
-                        ) : d.divergente ? (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                            {d.enviado ? "enviado" : d.erro ? "erro" : "divergente"}
-                          </span>
-                        ) : (
-                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            ok
-                          </span>
-                        )}
+                      <td className="text-right">{num(d.saldoNovo)}</td>
+                      <td>
+                        <Badge tone={toneDiff(d)} title={d.erro ?? undefined}>
+                          {labelDiff(d)}
+                        </Badge>
                         {d.erro && (
                           <span className="ml-1 text-xs text-red-500">{d.erro}</span>
                         )}
@@ -244,76 +277,59 @@ export default function ReconciliacaoEstoqueClient() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </TableShell>
             </div>
           )}
-        </section>
+        </Section>
       )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Execuções recentes
-        </h2>
+      <Section
+        title="Execuções recentes"
+        subtitle="Histórico de dry-runs e ajustes aplicados"
+      >
         {carregando && runs.length === 0 ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <EmptyState dashed>Carregando…</EmptyState>
         ) : runs.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            Nenhuma execução registrada ainda.
-          </div>
+          <EmptyState>Nenhuma execução registrada ainda.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">Modo</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-right">Saldos</th>
-                  <th className="px-3 py-2 text-right">Diverg.</th>
-                  <th className="px-3 py-2 text-right">Enviados</th>
-                  <th className="px-3 py-2 text-right">Erros</th>
-                  <th className="px-3 py-2">Iniciado</th>
-                  <th className="px-3 py-2">Quem</th>
+          <TableShell>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Modo</th>
+                <th>Status</th>
+                <th className="text-right">Saldos</th>
+                <th className="text-right">Diverg.</th>
+                <th className="text-right">Enviados</th>
+                <th className="text-right">Erros</th>
+                <th>Iniciado</th>
+                <th>Quem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.id}</td>
+                  <td className="capitalize">{r.modo}</td>
+                  <td>
+                    <Badge tone={toneRun(r.status)}>{r.status}</Badge>
+                  </td>
+                  <td className="text-right">{num(r.saldosLidos)}</td>
+                  <td className="text-right">{num(r.divergentes)}</td>
+                  <td className="text-right">{num(r.enviados)}</td>
+                  <td className="text-right">{num(r.erros)}</td>
+                  <td className="text-xs text-zinc-500">
+                    {new Date(r.iniciadoEm).toLocaleString("pt-BR")}
+                  </td>
+                  <td className="text-xs text-zinc-500">
+                    {r.criadoPor?.name ?? "—"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {runs.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="px-3 py-1.5">{r.id}</td>
-                    <td className="px-3 py-1.5">{r.modo}</td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-xs ${
-                          r.status === "ok"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                            : r.status === "erro"
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                            : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                        }`}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-right">{num(r.saldosLidos)}</td>
-                    <td className="px-3 py-1.5 text-right">{num(r.divergentes)}</td>
-                    <td className="px-3 py-1.5 text-right">{num(r.enviados)}</td>
-                    <td className="px-3 py-1.5 text-right">{num(r.erros)}</td>
-                    <td className="px-3 py-1.5 text-xs text-zinc-500">
-                      {new Date(r.iniciadoEm).toLocaleString("pt-BR")}
-                    </td>
-                    <td className="px-3 py-1.5 text-xs text-zinc-500">
-                      {r.criadoPor?.name ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableShell>
         )}
-      </section>
+      </Section>
     </main>
   );
 }

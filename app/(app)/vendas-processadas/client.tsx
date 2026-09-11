@@ -1,7 +1,17 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { InfoTitle } from "@/app/components/info-button";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Section,
+  Stat,
+  StatGrid,
+  btnAccent,
+  type Tone,
+} from "@/app/components/ui/panels";
 
 interface Passo {
   status: "ok" | "erro" | "ignorado" | "bloqueado";
@@ -39,34 +49,33 @@ const PASSO_LABEL: Record<string, string> = {
   titulo: "Título",
 };
 
-function passoBadge(passo: Passo | undefined): string {
+function tonePasso(passo: Passo | undefined): Tone {
   switch (passo?.status) {
     case "ok":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "bloqueado":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+      return "warn";
     case "erro":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     case "ignorado":
     default:
-      return "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400";
+      return "neutral";
   }
 }
 
-function statusBadge(status: string): string {
+function toneStatus(status: string): Tone {
   switch (status) {
     case "concluido":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+      return "ok";
     case "concluido_parcial":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+      return "warn";
     case "erro":
-      return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+      return "error";
     case "processando":
-      return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+      return "info";
     case "ignorado":
-      return "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400";
     default:
-      return "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300";
+      return "neutral";
   }
 }
 
@@ -133,10 +142,22 @@ export default function VendasProcessadasClient() {
     }
   }
 
+  const passosVisiveis = (r: VendaRow) =>
+    PASSO_ORDER.filter((key) => r.steps?.[key]);
+
+  const totalOk = registros.filter((r) => r.status === "concluido").length;
+  const totalParcial = registros.filter(
+    (r) => r.status === "concluido_parcial"
+  ).length;
+  const totalErro = registros.filter((r) => r.status === "erro").length;
+  const totalAndamento = registros.filter(
+    (r) => r.status === "processando" || r.status === "pendente"
+  ).length;
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Vendas Processadas"
@@ -148,140 +169,157 @@ export default function VendasProcessadasClient() {
         <button
           onClick={processarPendentes}
           disabled={processando}
-          className="rounded-full bg-emerald-600 px-5 py-2 font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnAccent}
         >
           {processando ? "Processando…" : "Processar pendentes"}
         </button>
       </div>
 
-      {erro && <p role="alert" className="text-sm text-red-500">{erro}</p>}
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {erro}
+        </div>
+      )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Fila de vendas
-        </h2>
+      {registros.length > 0 && (
+        <StatGrid>
+          <Stat label="Registros" value={registros.length} tone="neutral" />
+          <Stat label="Concluídos" value={totalOk} tone="ok" />
+          <Stat label="Parciais" value={totalParcial} tone="warn" />
+          <Stat
+            label="Com erro / em andamento"
+            value={totalErro + totalAndamento}
+            tone={totalErro > 0 ? "error" : "info"}
+            hint={`${totalErro} com erro · ${totalAndamento} em andamento`}
+          />
+        </StatGrid>
+      )}
+
+      <Section title="Fila de vendas" subtitle="Clique para expandir o detalhe de cada passo">
         {carregando && registros.length === 0 ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <EmptyState dashed>Carregando…</EmptyState>
         ) : registros.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          <EmptyState>
             Nenhuma venda processada ainda. Quando um pedido for faturado no
             Bling, o evento aparece aqui.
-          </div>
+          </EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-                <tr>
-                  <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">NF</th>
-                  <th className="px-3 py-2">Série</th>
-                  <th className="px-3 py-2">Contato</th>
-                  <th className="px-3 py-2 text-right">Valor</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Passos</th>
-                  <th className="px-3 py-2">Atualizado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registros.map((r) => (
-                  <Fragment key={r.id}>
-                    <tr
-                      className="cursor-pointer border-t border-zinc-100 dark:border-zinc-800"
-                      onClick={() =>
-                        setExpandido(expandido === r.id ? null : r.id)
-                      }
-                    >
-                      <td className="px-3 py-1.5">{r.id}</td>
-                      <td className="px-3 py-1.5 font-mono text-xs">
-                        {r.numero ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5">{r.serie ?? "—"}</td>
-                      <td className="px-3 py-1.5">
-                        {r.contatoNome ?? "—"}
-                        {r.contatoCnpj && (
-                          <span className="ml-1 font-mono text-xs text-zinc-500">
-                            {r.contatoCnpj}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-1.5 text-right">
-                        {r.valorTotal ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-xs ${statusBadge(r.status)}`}
-                        >
-                          {r.status}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {registros.map((r) => {
+              const aberto = expandido === r.id;
+              return (
+                <Card key={r.id} className="flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm font-semibold">
+                          NF {r.numero ?? "—"}
                         </span>
-                        {r.tentativas > 0 && (
-                          <span className="ml-1 text-xs text-zinc-500">
-                            {r.tentativas}x
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <div className="flex flex-wrap gap-1">
-                          {PASSO_ORDER.map((key) => {
-                            const p = r.steps?.[key];
-                            if (!p) return null;
-                            return (
-                              <span
-                                key={key}
-                                className={`rounded px-1.5 py-0.5 text-xs ${passoBadge(p)}`}
-                                title={p.mensagem}
-                              >
-                                {PASSO_LABEL[key]}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-3 py-1.5 text-xs text-zinc-500">
-                        {new Date(r.atualizadoEm).toLocaleString("pt-BR")}
-                      </td>
-                    </tr>
-                    {expandido === r.id && (
-                      <tr key={`${r.id}-detalhe`}>
-                        <td colSpan={8} className="px-4 py-3">
-                          {r.erro && (
-                            <p className="mb-2 text-sm text-red-500">
-                              {r.erro}
-                            </p>
-                          )}
-                          <ul className="flex flex-col gap-2 text-sm">
-                            {PASSO_ORDER.map((key) => {
-                              const p = r.steps?.[key];
-                              if (!p) return null;
-                              return (
-                                <li key={key} className="rounded border border-zinc-200 p-2 dark:border-zinc-800">
-                                  <span className="font-medium">
-                                    {PASSO_LABEL[key]}
-                                  </span>{" "}
-                                  <span
-                                    className={`rounded px-1.5 py-0.5 text-xs ${passoBadge(p)}`}
-                                  >
-                                    {p.status}
-                                    {p.http ? ` · HTTP ${p.http}` : ""}
-                                  </span>
-                                  {p.mensagem && (
-                                    <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                                      {p.mensagem}
-                                    </p>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </td>
-                      </tr>
+                        <Badge tone="neutral">série {r.serie ?? "—"}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
+                        {r.contatoNome ?? "—"}
+                      </p>
+                      {r.contatoCnpj && (
+                        <p className="font-mono text-xs text-zinc-500">
+                          {r.contatoCnpj}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <Badge tone={toneStatus(r.status)}>{r.status}</Badge>
+                      {r.tentativas > 0 && (
+                        <span className="text-xs text-zinc-500">
+                          {r.tentativas}x tentativas
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {passosVisiveis(r).length === 0 ? (
+                      <span className="text-xs text-zinc-500">
+                        Sem passos registrados.
+                      </span>
+                    ) : (
+                      passosVisiveis(r).map((key) => {
+                        const p = r.steps?.[key];
+                        return (
+                          <Badge
+                            key={key}
+                            tone={tonePasso(p)}
+                            title={p?.mensagem}
+                          >
+                            {PASSO_LABEL[key]}
+                            {p?.http != null ? ` · ${p.http}` : ""}
+                          </Badge>
+                        );
+                      })
                     )}
-                  </Fragment>
-                  ))}
-              </tbody>
-            </table>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500 dark:border-zinc-800">
+                    <span>
+                      Valor{" "}
+                      <strong className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {r.valorTotal ?? "—"}
+                      </strong>
+                    </span>
+                    <span>{new Date(r.atualizadoEm).toLocaleString("pt-BR")}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpandido(aberto ? null : r.id)}
+                    aria-expanded={aberto}
+                    className="mt-3 shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {aberto ? "Ocultar detalhes ↑" : "Ver detalhes dos passos ↓"}
+                  </button>
+
+                  {aberto && (
+                    <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                      {r.erro && (
+                        <p className="mb-2 text-sm text-red-500">{r.erro}</p>
+                      )}
+                      <ul className="flex flex-col gap-2 text-sm">
+                        {passosVisiveis(r).map((key) => {
+                          const p = r.steps?.[key];
+                          if (!p) return null;
+                          return (
+                            <li
+                              key={key}
+                              className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/60"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{PASSO_LABEL[key]}</span>
+                                <Badge tone={tonePasso(p)}>{p.status}</Badge>
+                                {p.http != null && (
+                                  <span className="text-xs text-zinc-500">
+                                    HTTP {p.http}
+                                  </span>
+                                )}
+                              </div>
+                              {p.mensagem && (
+                                <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                                  {p.mensagem}
+                                </p>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
-      </section>
+      </Section>
     </main>
   );
 }
