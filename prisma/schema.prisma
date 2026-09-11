@@ -47,6 +47,30 @@ model BlingWebhook {
   @@map("bling_webhooks")
 }
 
+model VendaRegistro {
+  id           Int      @id @default(autoincrement())
+  eventId      String   @unique
+  nfeId        Int?
+  numero       String?
+  serie        String?
+  chaveAcesso  String?
+  contatoCnpj  String?
+  contatoNome  String?
+  valorTotal   Decimal? @db.Decimal(12,2)
+  situacao     Int?
+  status       String   @default("pendente")
+  steps        Json     @default("{}")
+  erro         String?
+  tentativas   Int      @default(0)
+  processadoEm DateTime?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([nfeId, chaveAcesso])
+  @@index([status])
+  @@map("venda_registros")
+}
+
 model SystextilTest {
   id           Int      @id @default(autoincrement())
   method       String

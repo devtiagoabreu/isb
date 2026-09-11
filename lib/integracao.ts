@@ -114,6 +114,22 @@ export const PARAMETROS_PADRAO: ParametroPadrao[] = [
     descricao: "Comissão zerada para vendas e-commerce",
   },
   {
+    chave: "empresa.systextil.ecommerce",
+    valor: "1",
+    escopo: "systextil",
+    categoria: "geral",
+    descricao:
+      "Empresa do Systêxtil usada nos lançamentos do e-commerce (título, doc. entrada)",
+  },
+  {
+    chave: "pagamento.condicao.systextil.codigo",
+    valor: "",
+    escopo: "systextil",
+    categoria: "financeiro",
+    descricao:
+      "Código da condição de pagamento de venda no Systêxtil (ver /venda/v1/condicao/pagamento) — sem valor, o pedido de venda é recusado",
+  },
+  {
     chave: "canal.venda.ecommerce",
     valor: "Nuvemshop",
     escopo: "bling",

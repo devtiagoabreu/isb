@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { apiRequire } from "@/lib/auth";
+import { enfileirarVendaRegistro, processarVendaRegistro } from "@/lib/processador-venda";
 import type { Prisma } from "@/prisma/generated/client";
 
 const SIGNATURE_HEADER = "x-bling-signature-256";
@@ -89,6 +90,22 @@ export async function POST(request: Request) {
     },
     update: {},
   });
+
+  // Fase 3: eventos de nota fiscal entram numa fila e a venda é registrada no
+  // Systêxtil (cliente → pedido → doc. de entrada → título). O enfileirar é
+  // barato e a resposta volta <5s; o processamento ocorre em background (em
+  // serverless pode ser abortado, mas a linha fica pendente e o botão da tela
+  // /vendas-processadas ou o endpoint /api/bling/vendas retoma a fila).
+  const fila = await enfileirarVendaRegistro({
+    eventId: record.eventId,
+    event: record.event,
+    payload,
+  });
+  if (fila) {
+    void processarVendaRegistro(fila.id).catch(() => {
+      // Erros são gravados na própria linha (status=erro) para reprocessamento.
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }
