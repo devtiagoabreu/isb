@@ -77,7 +77,7 @@ lê esse saldo e igualiza o Bling.
 | 4 | Buscar NF-e emitida | ISB | `GET /nfe/{id}` (Bling) — obtém numero, série, chave de acesso, contato, itens e valor | ✅ automático |
 | 5 | Garantir o **cliente** | ISB | `POST /pessoa/v1/cliente` (Systêxtil) — chave CPF/CNPJ em `_9/_4/_2`, cadastra ou ignora (409) | ✅ automático |
 | 6 | Registrar o **pedido de venda** | ISB | `POST /venda/v1/pedido/venda` — cliente, condição de pagamento, itens com `nivel/grupo/subgrupo/item` e quantidade em metros | ✅ automático |
-| 7 | **Documento de entrada** (baixa do estoque no 034) | ISB | `POST /notafiscal/v1/documento/entrada` — escritura a NF do Bling como entrada (sem nova emissão no Sefaz) e baixa os metros | ⚠️ **BLOQUEADO — C7-a** |
+| 7 | **Documento de saída** (inserção da NF de saída faturada no Bling) | ISB | `POST /notafiscal/v1/documento/saida` — escritura a NF de saída do Bling (série 2, emitida pela Pro Moda) no Systêxtil **sem nova emissão no Sefaz** | ⚠️ **BLOQUEADO — C7-a** |
 | 8 | **Título a receber** da loja | ISB | `POST /financeiro/v1/titulo/receber` — duplicata da loja para a Pro Moda (+30 dias) | ✅ automático |
 | 9 | Igualizar estoque do Bling | ISB (manual) | `GET /material/v1/estoque` (dep 034) → `POST /estoques` Bling (balanço `B`) | ✅ manual (tela) |
 
@@ -85,7 +85,7 @@ lê esse saldo e igualiza o Bling.
 
 - Tela **`/reconciliacao-estoque`**: executa o passo 9 (dry-run ou aplicar).
 - Tela **`/vendas-processadas`**: fila das vendas do Bling, status por etapa
-  (cliente / pedido / doc. entrada / título) e botão para reprocessar pendentes.
+  (cliente / pedido / doc. saída / título) e botão para reprocessar pendentes.
 - Tabelas `reconciliacao_estoque` e `venda_registros` guardam o log de cada
   execução (idempotente).
 
@@ -158,7 +158,7 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 ### 7.1 Liberações de API (Systêxtil/ORDS)
 | # | Endpoint | Situação atual | Necessidade |
 |---|---|---|---|
-| **C7-a** | `POST /notafiscal/v1/documento/entrada` | **405 Method Not Allowed** (GET funciona; POST não publicado/liberado no ORDS ou bloqueado no proxy) | Habilitar POST — usado na baixa do estoque do 034 (passo B.7) |
+| **C7-a** | `POST /notafiscal/v1/documento/saida` | **Não publicado** na API pública do Systêxtil (só GET existe; POST retorna 404/405 no ORDS/proxy) | Expor POST — usado para escriturar a NF de saída faturada no Bling (série 2) sem reemitir ao Sefaz (passo B.7) |
 | **C7-b** | `GET /notafiscal/v1/xmlnfe` | **504 Gateway Time-out** | Confirmar parâmetros de filtro ou forma alternativa de obter o XML |
 
 ### 7.2 Preenchimentos/definições (Pro Moda + Systêxtil)
@@ -167,16 +167,17 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 | C5 | **Código da condição de pagamento de venda** no Systêxtil | Sem ele o `POST /venda/v1/pedido/venda` recusa (400 "condição não cadastrada") |
 | — | Forma de pagamento da **loja** como cliente (cadastro `cliente` tem obrigatórios: `forma_pagamento`, `codigo_banco`, `agencia_banco`, `nome_contato`, `seq_endereco`) | Primeiro cadastro automático do cliente |
 | — | **Carteira/contas** do título a receber (`titulo.carteira`) | Conferir com o financeiro |
-| — | Validação dos **campos mínimos** do pedido de venda e do doc. de entrada (payload real) | Primeira venda para calibrar enums/unidades |
+| — | Validação dos **campos mínimos** do pedido de venda e do doc. de saída (payload real) | Primeira venda para calibrar enums/unidades |
 
 ---
 
 ## 8. Perguntas para a equipe Systêxtil
 
-1. **Documento de entrada:** como habilitar o `POST /notafiscal/v1/documento/entrada`
-   (é publicação de handler no ORDS ou liberação no proxy/API Gateway)? Tem
-   algum conjunto mínimo de campos que exijamos no body? A operação com
-   `sync=true` é a recomendada?
+1. **Documento de saída:** como habilitar o `POST /notafiscal/v1/documento/saida`
+   (é publicação de handler no ORDS ou liberação no proxy/API Gateway)? O
+   payload deve espelhar os campos do GET? Qual o conjunto mínimo de campos
+   para uma NF de saída de e-commerce (série 2, natureza/CFOP de venda interna)?
+   A operação com `sync=true` é a recomendada?
 2. **XML da NF-e:** qual o filtro correto de `GET /notafiscal/v1/xmlnfe`
    (empresa/série/número/chave) para não estourar tempo (504)? Ou existe outro
    endpoint para obter o XML?
@@ -189,8 +190,10 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 5. **Pedido de venda:** valores default (empresa, série, `tipo_peca_pedido=2`
    Tecidos, `tipo_pedido`, `origem_pedido`, CFOP) — algum precisa ser
    configurado por operação e-commerce?
-6. **Doc. de entrada × depósito:** o `deposito_destino` 034 baixa o estoque em
-   metros? A quantidade do item entra na unidade **metro (M)** direto?
+6. **Doc. de saída × depósito:** no payload de saída, o `deposito` controla o
+   depósito de origem (de onde sai o estoque)? O item entra na unidade
+   **metro (M)** direto? Há diferença entre `deposito` e `deposito_destino`
+   no corpo de documento de saída?
 7. **Título a receber:** campos mínimos para criar a duplicata (a receber da
    loja para a Pro Moda) — `duplicata`, `duplicata_parcela`, `data_vencimento`,
    `valor`, `tipo_titulo`, `portador/carteira` — está correto esse conjunto?

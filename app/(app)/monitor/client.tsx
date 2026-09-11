@@ -22,15 +22,25 @@ interface EstoquePayload {
   geradoEm: string;
 }
 
-interface NotaEntrada {
+interface NotaSaida {
   notaFiscal: string;
   serie: string;
   chaveAcesso: string;
   cnpj: string;
-  fornecedor: string;
+  cliente: string;
   dataEmissao: string | null;
   situacao: number;
 }
+
+const SITUACAO_NOTA_SAIDA: Record<number, string> = {
+  0: "Calculada",
+  1: "Emitida/rejeitada",
+  2: "Cancelada/inutilizada",
+  3: "Verificar",
+  4: "Confirmada entrada outra empresa",
+  5: "Incompleta (sem duplicata)",
+  6: "Incompleta (duplicata no OBRF)",
+};
 
 interface NotaBling {
   id: number;
@@ -84,12 +94,12 @@ const SITUACAO_NFE: Record<number, string> = {
   13: "Contingência",
 };
 
-const PASSO_ORDER = ["nfe", "cliente", "pedido", "documentoEntrada", "titulo"];
+const PASSO_ORDER = ["nfe", "cliente", "pedido", "documentoSaida", "titulo"];
 const PASSO_LABEL: Record<string, string> = {
   nfe: "NF-e",
   cliente: "Cliente",
   pedido: "Pedido",
-  documentoEntrada: "Doc. entrada",
+  documentoSaida: "Doc. saída",
   titulo: "Título",
 };
 
@@ -163,9 +173,9 @@ export default function MonitorClient() {
   const [buscaNota, setBuscaNota] = useState("");
   const [processandoNfe, setProcessandoNfe] = useState<number | null>(null);
 
-  const [entradas, setEntradas] = useState<NotaEntrada[]>([]);
-  const [carregandoEntradas, setCarregandoEntradas] = useState(false);
-  const [buscaEntrada, setBuscaEntrada] = useState("");
+  const [saidas, setSaidas] = useState<NotaSaida[]>([]);
+  const [carregandoSaidas, setCarregandoSaidas] = useState(false);
+  const [buscaSaida, setBuscaSaida] = useState("");
 
   const [fila, setFila] = useState<VendaRow[]>([]);
   const [carregandoFila, setCarregandoFila] = useState(false);
@@ -226,29 +236,29 @@ export default function MonitorClient() {
     [filtroSituacao]
   );
 
-  const buscarEntradas = useCallback(async () => {
-    setCarregandoEntradas(true);
+  const buscarSaidas = useCallback(async () => {
+    setCarregandoSaidas(true);
     setErro("");
     try {
-      const res = await fetch("/api/monitor/notas-entrada?limite=500&serie=2");
+      const res = await fetch("/api/monitor/notas-saida?limite=200&serie=2");
       const data = await res.json();
       if (!res.ok) {
         setErro(data.error ?? `HTTP ${res.status}`);
         return;
       }
-      setEntradas(data.notas ?? []);
+      setSaidas(data.notas ?? []);
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {
-      setCarregandoEntradas(false);
+      setCarregandoSaidas(false);
     }
   }, []);
 
   const atualizarPainel = useCallback(() => {
-    Promise.all([buscarNotas(), buscarEntradas(), carregarFila()]).catch(
+    Promise.all([buscarNotas(), buscarSaidas(), carregarFila()]).catch(
       () => {}
     );
-  }, [buscarNotas, buscarEntradas, carregarFila]);
+  }, [buscarNotas, buscarSaidas, carregarFila]);
 
   const reconciliar = useCallback(
     async (modo: "dry-run" | "executar") => {
@@ -331,10 +341,10 @@ export default function MonitorClient() {
         if (ativo && data.notas) setNotas(data.notas);
       })
       .catch(() => {});
-    fetch("/api/monitor/notas-entrada?limite=500&serie=2")
+    fetch("/api/monitor/notas-saida?limite=200&serie=2")
       .then((res) => res.json())
-      .then((data: { notas?: NotaEntrada[]; error?: string }) => {
-        if (ativo && data.notas) setEntradas(data.notas);
+      .then((data: { notas?: NotaSaida[]; error?: string }) => {
+        if (ativo && data.notas) setSaidas(data.notas);
       })
       .catch(() => {});
     fetch("/api/bling/vendas?take=15")
@@ -348,14 +358,14 @@ export default function MonitorClient() {
     };
   }, []);
 
-  const chavesEntrada = useMemo(
+  const chavesSaida = useMemo(
     () =>
       new Set(
-        entradas
+        saidas
           .map((e) => e.chaveAcesso)
           .filter((c) => c && c.length > 0) as string[]
       ),
-    [entradas]
+    [saidas]
   );
 
   const estoqueFiltrado = useMemo(() => {
@@ -382,18 +392,18 @@ export default function MonitorClient() {
     );
   }, [notas, buscaNota]);
 
-  const entradasFiltradas = useMemo(() => {
-    const b = buscaEntrada.trim().toLowerCase();
-    if (!b) return entradas;
-    return entradas.filter(
+  const saidasFiltradas = useMemo(() => {
+    const b = buscaSaida.trim().toLowerCase();
+    if (!b) return saidas;
+    return saidas.filter(
       (e) =>
         e.notaFiscal.includes(b) ||
         e.serie.includes(b) ||
-        e.fornecedor.toLowerCase().includes(b) ||
+        e.cliente.toLowerCase().includes(b) ||
         e.cnpj.includes(b) ||
         e.chaveAcesso.toLowerCase().includes(b)
     );
-  }, [entradas, buscaEntrada]);
+  }, [saidas, buscaSaida]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-10">
@@ -402,8 +412,8 @@ export default function MonitorClient() {
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Monitor da Integração"
-              descricao="Painel do fluxo Bling → Systêxtil. Compare o estoque do depósito e-commerce do Systêxtil com o depósito espelho no Bling e acompanhe as notas faturadas no Bling versus os documentos de entrada registrados no Systêxtil (série 2 — apenas as NF faturadas no Bling e importadas pelo fluxo). Use as barras de pesquisa para filtrar e os botões para executar ações (reconciliar estoque, processar notas)."
-              exemplo="1) Estoque: carregue os saldos do Systêxtil (dep. 34) e do Bling (depósito espelho) lado a lado; marque “só divergentes“ e use Simular/Executar para ajustar.\n2) Notas faturadas no Bling: listadas por situação (padrão 6 =Autorizada); cada linha mostra se já tem venda registrada na fila e se a NF entrou no Systêxtil (cruzada pela chave de acesso).\n3) As notas de entrada do Systêxtil já aparecem filtradas pela série 2 — são apenas as notas faturadas no Bling e importadas pelo fluxo.\n4) Clique Processar em uma nota para enfileirar e processar na hora; Processar pendentes drena a fila inteira.\n5) A seção Fila mostra o resultado dos passos (cliente → pedido → doc. entrada → título)."
+              descricao="Painel do fluxo Bling → Systêxtil. Compare o estoque do depósito e-commerce do Systêxtil com o depósito espelho no Bling e acompanhe as notas faturadas no Bling versus as notas de saída registradas no Systêxtil (série 2 — as NF de saída emitidas no Bling pela Pro Moda Têxtil e inseridas no Systêxtil pelo fluxo). Use as barras de pesquisa para filtrar e os botões para executar ações (reconciliar estoque, processar notas)."
+              exemplo="1) Estoque: carregue os saldos do Systêxtil (dep. 34) e do Bling (depósito espelho) lado a lado; marque “só divergentes“ e use Simular/Executar para ajustar.\n2) Notas faturadas no Bling: listadas por situação (padrão 6 =Autorizada); cada linha mostra se já tem venda registrada na fila e se a NF (de saída) já consta no Systêxtil (cruzada pela chave de acesso).\n3) As notas de saída do Systêxtil já aparecem filtradas pela série 2 — são as NF faturadas no Bling e inseridas pelo fluxo.\n4) Clique Processar em uma nota para enfileirar e processar na hora; Processar pendentes drena a fila inteira.\n5) A seção Fila mostra o resultado dos passos (cliente → pedido → doc. saída → título)."
             />
           </h1>
         </div>
@@ -614,7 +624,7 @@ export default function MonitorClient() {
               <tbody>
                 {notasFiltradas.map((n) => {
                   const noSystextil = Boolean(
-                    n.chaveAcesso && chavesEntrada.has(n.chaveAcesso)
+                    n.chaveAcesso && chavesSaida.has(n.chaveAcesso)
                   );
                   const processando = processandoNfe === n.id;
                   return (
@@ -651,7 +661,7 @@ export default function MonitorClient() {
                           </span>
                         ) : noSystextil ? (
                           <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            entrada ✓
+                            saída ✓
                           </span>
                         ) : (
                           <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
@@ -680,30 +690,30 @@ export default function MonitorClient() {
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Notas faturadas no Bling e importadas no Systêxtil (série 2)
+            Notas de saída no Systêxtil (série 2 — faturadas no Bling)
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <input
-              value={buscaEntrada}
-              onChange={(e) => setBuscaEntrada(e.target.value)}
-              placeholder="Buscar NF, série, fornecedor, chave…"
+              value={buscaSaida}
+              onChange={(e) => setBuscaSaida(e.target.value)}
+              placeholder="Buscar NF, série, cliente, chave…"
               className={inputCls}
             />
             <button
-              onClick={buscarEntradas}
-              disabled={carregandoEntradas}
+              onClick={buscarSaidas}
+              disabled={carregandoSaidas}
               className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
             >
-              {carregandoEntradas ? "Carregando…" : "Atualizar"}
+              {carregandoSaidas ? "Carregando…" : "Atualizar"}
             </button>
           </div>
         </div>
 
-        {carregandoEntradas && entradas.length === 0 ? (
+        {carregandoSaidas && saidas.length === 0 ? (
           <p className="text-sm text-zinc-500">Carregando…</p>
-        ) : entradasFiltradas.length === 0 ? (
+        ) : saidasFiltradas.length === 0 ? (
           <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            Nenhuma entrada encontrada.
+            Nenhuma nota de saída encontrada.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -712,14 +722,14 @@ export default function MonitorClient() {
                 <tr>
                   <th className="px-3 py-2">NF</th>
                   <th className="px-3 py-2">Série</th>
-                  <th className="px-3 py-2">Fornecedor</th>
+                  <th className="px-3 py-2">Cliente</th>
                   <th className="px-3 py-2">CNPJ</th>
                   <th className="px-3 py-2">Emissão</th>
                   <th className="px-3 py-2">Situação</th>
                 </tr>
               </thead>
               <tbody>
-                {entradasFiltradas.map((e, idx) => (
+                {saidasFiltradas.map((e, idx) => (
                   <tr
                     key={`${e.notaFiscal}-${e.serie}-${idx}`}
                     className="border-t border-zinc-100 dark:border-zinc-800"
@@ -728,18 +738,14 @@ export default function MonitorClient() {
                       {e.notaFiscal || "—"}
                     </td>
                     <td className="px-3 py-1.5">{e.serie || "—"}</td>
-                    <td className="px-3 py-1.5">{e.fornecedor || "—"}</td>
+                    <td className="px-3 py-1.5">{e.cliente || "—"}</td>
                     <td className="px-3 py-1.5 font-mono text-xs">{e.cnpj}</td>
                     <td className="px-3 py-1.5 text-xs text-zinc-500">
                       {e.dataEmissao ?? "—"}
                     </td>
                     <td className="px-3 py-1.5">
                       <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                        {e.situacao === 4
-                          ? "NF Fornecedor"
-                          : e.situacao === 5
-                            ? "NF incompleta"
-                            : e.situacao}
+                        {SITUACAO_NOTA_SAIDA[e.situacao] ?? e.situacao}
                       </span>
                     </td>
                   </tr>

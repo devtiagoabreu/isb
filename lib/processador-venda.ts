@@ -138,6 +138,7 @@ async function lerParams() {
     empresa: map.get("empresa.systextil.ecommerce") ?? "1",
     condicaoPagamento: map.get("pagamento.condicao.systextil.codigo") ?? "",
     comissao: map.get("comissao.ecommerce") ?? "0",
+    cfop: map.get("cfop.sp") ?? "5102",
     prazoVencimentoDias: Number(
       map.get("pagamento.vencimento.dias") ?? "30"
     ),
@@ -434,27 +435,39 @@ async function executarPipeline(
     erros.push(`pedido: ${m.mensagem}`);
   }
 
-  // ---- Passo documento de entrada (baixa no depósito e-commerce) ----------
+  // ---- Passo documento de saída (nota de SAÍDA do Bling inserida no Systêxtil)
+  // As NF faturadas no Bling são notas de SAÍDA emitidas pelo CNPJ da Pro Moda
+  // Têxtil (série 2), originadas de pedidos da loja online. O fluxo as insere no
+  // Systêxtil como documento de saída (escrituração de NF emitida fora do ERP,
+  // sem reemitir ao Sefaz): destinatário = cliente do Bling (chave), depósito de
+  // saída = e-commerce. A API pública do Systêxtil expõe apenas GET de documento
+  // de saída — POST não publicado (C7/Jean), então o passo fica "bloqueado".
   const isVendaFinal =
     steps.cliente?.status === "ok" && steps.pedido?.status === "ok";
   if (!isVendaFinal) {
-    steps.documentoEntrada = {
+    steps.documentoSaida = {
       status: "ignorado",
       mensagem: "Depende de cliente e pedido registrados.",
     };
   } else {
     const docRes = await systextilRequest({
       method: "POST",
-      path: "/notafiscal/v1/documento/entrada",
+      path: "/notafiscal/v1/documento/saida",
       params: { sync: "true" },
       body: {
+        empresa: Number(params.empresa),
         chave_acesso: base.chaveAcesso,
         numero_documento: base.numero,
         serie_documento: base.serie,
         data_emissao: normalizarData(nfe.emissao),
+        data_saida: normalizarData(nfe.emissao),
         valor_total_documento: base.valorTotal,
-        deposito_destino: Number(params.depositoEcommerce),
-        cnpj9_emitente: chave.cnpj_9,
+        cfop_nota_fiscal: params.cfop,
+        cnpj9_cliente: chave.cnpj_9,
+        cnpj4_cliente: chave.cnpj_4,
+        cnpj2_cliente: chave.cnpj_2,
+        nome_cliente: nfe.contato?.nome ?? "",
+        deposito: Number(params.depositoEcommerce),
         itens: itens.map((i) => ({
           nivel_produto: i.nivel_produto,
           grupo_id: i.grupo_id,
@@ -467,32 +480,37 @@ async function executarPipeline(
         })),
       },
     });
-    if (docRes.status === 201 || docRes.status === 409) {
-      steps.documentoEntrada = {
+    if (docRes.status === 201) {
+      steps.documentoSaida = {
         status: "ok",
+        http: 201,
+        mensagem: "Documento de saída inserido (nota faturada no Bling escriturada no Systêxtil).",
+      };
+    } else if (docRes.status === 409) {
+      steps.documentoSaida = {
+        status: "ok",
+        http: 409,
+        mensagem: "Documento de saída já cadastrado.",
+      };
+    } else if (docRes.status === 405 || docRes.status === 404) {
+      steps.documentoSaida = {
+        status: "bloqueado",
         http: docRes.status,
         mensagem:
-          docRes.status === 409
-            ? "Documento de entrada já cadastrado."
-            : "Documento de entrada escriturado (baixa no depósito).",
+          `POST /notafiscal/v1/documento/saida não publicado na API do Systêxtil (só GET; HTTP ${docRes.status}). Abrir com o Jean (ORDS/proxy) para liberar POST de documento de saída e reprocessar.`,
       };
-    } else if (docRes.status === 405) {
-      steps.documentoEntrada = {
-        status: "bloqueado",
-        http: 405,
-        mensagem:
-          "POST /notafiscal/v1/documento/entrada retornou 405 (não liberado no proxy). Abrir C7 com o Jean para liberar e reprocessar.",
-      };
-      erros.push(`documentoEntrada: 405 (proxy bloqueia POST doc. entrada)`);
+      erros.push(
+        `documentoSaida: ${docRes.status} (POST documento de saída não exposto na API)`
+      );
     } else {
       const m = mensagemErro(docRes);
-      steps.documentoEntrada = {
+      steps.documentoSaida = {
         status: "erro",
         http: m.http,
         mensagem: m.mensagem,
         detalhe: m.detalhe,
       };
-      erros.push(`documentoEntrada: ${m.mensagem}`);
+      erros.push(`documentoSaida: ${m.mensagem}`);
     }
   }
 

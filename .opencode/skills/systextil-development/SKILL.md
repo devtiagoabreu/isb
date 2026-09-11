@@ -1024,7 +1024,7 @@ fornecedor. Conteúdo completo em
 - **XML NFE (`/notafiscal/v1/xmlnfe`, só GET):** `{items:[xml_nfe]}` com
   empresa, nota/série, datas, `cnpj_9/4/2_nota`, `situacao_nota`+desc, e o
   campo **`xml`** (conteúdo do XML) — alimenta guarda de XML e conferência do
-  documento de entrada (12ª).
+  documento de saída (12ª).
 - **Conta Contábil (`/contabilidade/v1/conta/contabil`, CRUD):** chaves
   `plano_id`+`plano_mascara`+`conta_contabil_id`+`subconta_id`; `livro_diario`
   G/R, `tipo_conta` 1 Analítica/2 Sintética, `patrimonio_resultado` 1/2,

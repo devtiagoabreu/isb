@@ -30,12 +30,12 @@ interface VendaRow {
   atualizadoEm: string;
 }
 
-const PASSO_ORDER = ["nfe", "cliente", "pedido", "documentoEntrada", "titulo"];
+const PASSO_ORDER = ["nfe", "cliente", "pedido", "documentoSaida", "titulo"];
 const PASSO_LABEL: Record<string, string> = {
   nfe: "NF-e",
   cliente: "Cliente",
   pedido: "Pedido",
-  documentoEntrada: "Doc. entrada",
+  documentoSaida: "Doc. saída",
   titulo: "Título",
 };
 
@@ -140,8 +140,8 @@ export default function VendasProcessadasClient() {
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Vendas Processadas"
-              descricao="Consumidor do webhook do Bling (Fase 3): quando o pedido e-commerce é faturado no Bling, o evento invoice.* é recebido, entra na fila e a venda é registrada no Systêxtil — cliente, pedido de venda, documento de entrada (baixa no depósito 034) e título a receber. O webhook responde rápido; o processamento roda em background e a fila pode ser processada manualmente com o botão abaixo."
-              exemplo="1) O evento invoice.* chega no webhook e uma linha pendente é criada.\n2) O consumidor busca a NF-e no Bling (GET /nfe/{id}) e só processa NF com numero+chave de acesso.\n3) Passos: cliente → pedido de venda → doc. de entrada (baixa no 034) → título.\n4) Use o botão Processar pendentes para drenar a fila manualmente.\n5) Status concluido_parcial = algum passo bloqueado (ex.: doc. entrada com POST 405 — C7) mas sem erro fatal."
+              descricao="Consumidor do webhook do Bling (Fase 3): quando o pedido e-commerce é faturado no Bling, o evento invoice.* é recebido, entra na fila e a venda é registrada no Systêxtil — cliente, pedido de venda, documento de saída (escrituração da NF faturada no Bling, série 2) e título a receber. O webhook responde rápido; o processamento roda em background e a fila pode ser processada manualmente com o botão abaixo."
+              exemplo="1) O evento invoice.* chega no webhook e uma linha pendente é criada.\n2) O consumidor busca a NF-e no Bling (GET /nfe/{id}) e só processa NF com numero+chave de acesso.\n3) Passos: cliente → pedido de venda → doc. de saída (nota faturada no Bling inserida no Systêxtil) → título.\n4) Use o botão Processar pendentes para drenar a fila manualmente.\n5) Status concluido_parcial = algum passo bloqueado (ex.: POST de documento de saída não exposto na API — C7/Jean) mas sem erro fatal."
             />
           </h1>
         </div>

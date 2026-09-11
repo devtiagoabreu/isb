@@ -107,7 +107,7 @@ Regras críticas:
 
 1. **Pedido/NF-e B2C** nasce no Bling (`/pedidos/vendas`, `/nfe`).
 2. ISB lê o pedido/NF-e e **exporta ao Systêxtil** (cliente, pedido de venda,
-   documento de entrada, títulos) — fluxo B do `manual-integracao-versao-1.md`.
+   documento de saída, títulos) — fluxo B do `manual-integracao-versao-1.md`.
 3. **Estoque** vai no sentido Systêxtil → Bling: `POST /estoques` com
    `tipo: "B"` (saldo absoluto), matching por `codigo` (SKU), depósito
    `deposito.id`, diff incremental.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiRequire } from "@/lib/auth";
-import { listarNotasEntradaSystextil } from "@/lib/monitor";
+import { listarNotasSaidaSystextil } from "@/lib/monitor";
 
 export async function GET(request: Request) {
   const denied = await apiRequire("integracao.read");
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const limite = Math.min(Number(url.searchParams.get("limite")) || 200, 500);
   const serie = url.searchParams.get("serie") || "2";
   try {
-    const notas = await listarNotasEntradaSystextil({ limite, serie });
+    const notas = await listarNotasSaidaSystextil({ limite, serie });
     return NextResponse.json({ ok: true, notas });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

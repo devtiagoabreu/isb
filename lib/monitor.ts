@@ -1,7 +1,8 @@
 // Monitor do fluxo de integração Bling → Systêxtil (Fase 4, painel).
 // Reusa os leitores da reconciliação de estoque (depósito e-commerce 34 ×
-// depósito Bling espelho) e lista as notas faturadas no Bling e os
-// documentos de entrada no Systêxtil.
+// depósito Bling espelho) e lista as notas faturadas no Bling e as notas de
+// saída registradas no Systêxtil (série 2 — as faturadas no Bling e inseridas
+// pelo fluxo).
 // Server-only: importa prisma e os providers diretamente.
 import { prisma } from "@/lib/db";
 import { blingRequest } from "@/lib/bling";
@@ -104,12 +105,12 @@ export async function lerEstoqueMonitor(): Promise<EstoqueMonitor> {
   };
 }
 
-export interface NotaEntradaRow {
+export interface NotaSaidaRow {
   notaFiscal: string;
   serie: string;
   chaveAcesso: string;
   cnpj: string;
-  fornecedor: string;
+  cliente: string;
   dataEmissao: string | null;
   situacao: number;
 }
@@ -125,24 +126,26 @@ function formatCnpj(item: Record<string, unknown>): string {
   return p9 + p4 + p2 || "—";
 }
 
-// Lista documentos de entrada no Systêxtil filtrando pela série da NF-e de
-// e-commerce (série 2): são apenas as notas faturadas no Bling e importadas
-// pelo fluxo de integração. O endpoint GET /notafiscal/v1/documento/entrada
-// não oferece filtro por série; usamos a página inteira e filtramos aqui.
-export async function listarNotasEntradaSystextil(options: {
+// Lista notas de SAÍDA no Systêxtil filtrando pela série da NF-e de
+// e-commerce (série 2): as notas faturadas no Bling (emitidas pela Pro Moda
+// Têxtil no Bling) que foram inseridas no Systêxtil. São notas de saída
+// emitidas fora do Systêxtil — o ERP registra/escritura sem reemitir ao Sefaz.
+// O endpoint GET /notafiscal/v1/documento/saida não oferece filtro por série;
+// usamos a página inteira e filtramos aqui.
+export async function listarNotasSaidaSystextil(options: {
   limite?: number;
   serie?: string;
-} = {}): Promise<NotaEntradaRow[]> {
+} = {}): Promise<NotaSaidaRow[]> {
   const limite = Math.min(Math.max(options.limite ?? 200, 1), 500);
   const serieAlvo = (options.serie ?? "2").trim();
   const res = await systextilRequest({
     method: "GET",
-    path: "/notafiscal/v1/documento/entrada",
+    path: "/notafiscal/v1/documento/saida",
     params: { limit: limite, offset: 0 },
   });
   if (!res.ok) {
     throw new Error(
-      `Systêxtil GET /notafiscal/v1/documento/entrada ${res.status}: ${res.bodyText}`
+      `Systêxtil GET /notafiscal/v1/documento/saida ${res.status}: ${res.bodyText}`
     );
   }
   const body = (res.bodyJson ?? {}) as {
@@ -156,10 +159,10 @@ export async function listarNotasEntradaSystextil(options: {
       serie: String(item.serie_nota_fiscal ?? ""),
       chaveAcesso: String(item.numero_danfe_nfe ?? ""),
       cnpj: formatCnpj(item),
-      fornecedor: String(item.nome_cliente_fornecedor ?? ""),
+      cliente: String(item.nome_cliente ?? ""),
       dataEmissao:
         typeof item.data_emissao === "string" ? item.data_emissao : null,
-      situacao: Number(item.situacao_entrada ?? 0),
+      situacao: Number(item.situacao_nota ?? 0),
     }));
 }
 
