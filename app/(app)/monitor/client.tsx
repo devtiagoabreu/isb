@@ -230,7 +230,7 @@ export default function MonitorClient() {
     setCarregandoEntradas(true);
     setErro("");
     try {
-      const res = await fetch("/api/monitor/notas-entrada?limite=100");
+      const res = await fetch("/api/monitor/notas-entrada?limite=500&serie=2");
       const data = await res.json();
       if (!res.ok) {
         setErro(data.error ?? `HTTP ${res.status}`);
@@ -331,7 +331,7 @@ export default function MonitorClient() {
         if (ativo && data.notas) setNotas(data.notas);
       })
       .catch(() => {});
-    fetch("/api/monitor/notas-entrada?limite=100")
+    fetch("/api/monitor/notas-entrada?limite=500&serie=2")
       .then((res) => res.json())
       .then((data: { notas?: NotaEntrada[]; error?: string }) => {
         if (ativo && data.notas) setEntradas(data.notas);
@@ -402,8 +402,8 @@ export default function MonitorClient() {
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Monitor da Integração"
-              descricao="Painel do fluxo Bling → Systêxtil. Compare o estoque do depósito e-commerce do Systêxtil com o depósito espelho no Bling e acompanhe as notas faturadas no Bling versus os documentos de entrada registrados no Systêxtil. Use as barras de pesquisa para filtrar e os botões para executar ações (reconciliar estoque, processar notas)."
-              exemplo="1) Estoque: carregue os saldos do Systêxtil (dep. 34) e do Bling (depósito espelho) lado a lado; marque “só divergentes“ e use Simular/Executar para ajustar.\n2) Notas faturadas no Bling: listadas por situação (padrão 6 =Autorizada); cada linha mostra se já tem venda registrada na fila e se a NF entrou no Systêxtil (cruzada pela chave de acesso).\n3) Clique Processar em uma nota para enfileirar e processar na hora; Processar pendentes drena a fila inteira.\n4) A seção Fila mostra o resultado dos passos (cliente → pedido → doc. entrada → título)."
+              descricao="Painel do fluxo Bling → Systêxtil. Compare o estoque do depósito e-commerce do Systêxtil com o depósito espelho no Bling e acompanhe as notas faturadas no Bling versus os documentos de entrada registrados no Systêxtil (série 2 — apenas as NF faturadas no Bling e importadas pelo fluxo). Use as barras de pesquisa para filtrar e os botões para executar ações (reconciliar estoque, processar notas)."
+              exemplo="1) Estoque: carregue os saldos do Systêxtil (dep. 34) e do Bling (depósito espelho) lado a lado; marque “só divergentes“ e use Simular/Executar para ajustar.\n2) Notas faturadas no Bling: listadas por situação (padrão 6 =Autorizada); cada linha mostra se já tem venda registrada na fila e se a NF entrou no Systêxtil (cruzada pela chave de acesso).\n3) As notas de entrada do Systêxtil já aparecem filtradas pela série 2 — são apenas as notas faturadas no Bling e importadas pelo fluxo.\n4) Clique Processar em uma nota para enfileirar e processar na hora; Processar pendentes drena a fila inteira.\n5) A seção Fila mostra o resultado dos passos (cliente → pedido → doc. entrada → título)."
             />
           </h1>
         </div>
@@ -680,7 +680,7 @@ export default function MonitorClient() {
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Notas de entrada no Systêxtil
+            Notas faturadas no Bling e importadas no Systêxtil (série 2)
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <input

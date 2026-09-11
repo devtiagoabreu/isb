@@ -125,12 +125,16 @@ function formatCnpj(item: Record<string, unknown>): string {
   return p9 + p4 + p2 || "—";
 }
 
-// Lista os documentos de entrada registrados no Systêxtil (NF-e que entraram
-// na empresa) — os "notas que já entraram no Systêxtil".
+// Lista documentos de entrada no Systêxtil filtrando pela série da NF-e de
+// e-commerce (série 2): são apenas as notas faturadas no Bling e importadas
+// pelo fluxo de integração. O endpoint GET /notafiscal/v1/documento/entrada
+// não oferece filtro por série; usamos a página inteira e filtramos aqui.
 export async function listarNotasEntradaSystextil(options: {
   limite?: number;
+  serie?: string;
 } = {}): Promise<NotaEntradaRow[]> {
-  const limite = Math.min(Math.max(options.limite ?? 50, 1), 100);
+  const limite = Math.min(Math.max(options.limite ?? 200, 1), 500);
+  const serieAlvo = (options.serie ?? "2").trim();
   const res = await systextilRequest({
     method: "GET",
     path: "/notafiscal/v1/documento/entrada",
@@ -145,16 +149,18 @@ export async function listarNotasEntradaSystextil(options: {
     items?: Array<Record<string, unknown>>;
   };
   const items = Array.isArray(body.items) ? body.items : [];
-  return items.map((item) => ({
-    notaFiscal: String(item.nota_fiscal ?? ""),
-    serie: String(item.serie_nota_fiscal ?? ""),
-    chaveAcesso: String(item.numero_danfe_nfe ?? ""),
-    cnpj: formatCnpj(item),
-    fornecedor: String(item.nome_cliente_fornecedor ?? ""),
-    dataEmissao:
-      typeof item.data_emissao === "string" ? item.data_emissao : null,
-    situacao: Number(item.situacao_entrada ?? 0),
-  }));
+  return items
+    .filter((item) => String(item.serie_nota_fiscal ?? "") === serieAlvo)
+    .map((item) => ({
+      notaFiscal: String(item.nota_fiscal ?? ""),
+      serie: String(item.serie_nota_fiscal ?? ""),
+      chaveAcesso: String(item.numero_danfe_nfe ?? ""),
+      cnpj: formatCnpj(item),
+      fornecedor: String(item.nome_cliente_fornecedor ?? ""),
+      dataEmissao:
+        typeof item.data_emissao === "string" ? item.data_emissao : null,
+      situacao: Number(item.situacao_entrada ?? 0),
+    }));
 }
 
 export interface NotaBlingRegistro {
