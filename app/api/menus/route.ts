@@ -20,7 +20,7 @@ export async function GET() {
   const user = await requireAuth();
   if (user instanceof NextResponse) return user;
   await ensureDefaultMenu(user.id);
-  const permKeys = await userPermissionKeys(user.id);
+  const permKeys = userPermissionKeys(user);
   const isAdmin = permKeys.includes("*");
   return NextResponse.json(await getMenusPayload(user.id, permKeys, isAdmin));
 }

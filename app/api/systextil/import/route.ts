@@ -20,7 +20,28 @@ interface ImportItemBody {
   gtin?: string | null;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// Executa `fn` sobre os itens com concorrência limitada, preservando a ordem
+// dos resultados (o índice de cada item é mantido no array final).
+async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      for (;;) {
+        const index = cursor++;
+        if (index >= items.length) return;
+        results[index] = await fn(items[index]);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 export async function POST(request: Request) {
   const denied = await apiRequire("products.import");
@@ -49,9 +70,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const resultados: ImportResult["results"] = [];
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  // Lote de 4 em paralelo; o 429/Retry-After do Bling é respeitado dentro de
+  // blingRequest (backoff + retry), então o sleep fixo por item não é mais
+  // necessário. Praticamente só respeitamos o limite do Bling sem travar o
+  // restante da fila em 350ms por produto.
+  const resultados = await mapLimit(items, 4, async (item) => {
     const payload = buildBlingProdutoPayload({
       codigo: item.codigo,
       nome: item.nome,
@@ -63,7 +86,11 @@ export async function POST(request: Request) {
       situacao: item.situacao,
       gtin: item.gtin,
     });
-    const res = await blingRequest({ method: "POST", path: "/produtos", body: payload });
+    const res = await blingRequest({
+      method: "POST",
+      path: "/produtos",
+      body: payload,
+    });
 
     let detail: unknown = null;
     try {
@@ -72,18 +99,13 @@ export async function POST(request: Request) {
       detail = res.bodyText;
     }
 
-    const ok = res.ok && (res.status === 201 || res.status === 200);
-    resultados.push({
+    return {
       codigo: item.codigo,
       status: res.status,
-      ok,
+      ok: res.ok && (res.status === 201 || res.status === 200),
       payload: detail,
-    });
-
-    if (i < items.length - 1) {
-      await sleep(350);
-    }
-  }
+    };
+  });
 
   const okCount = resultados.filter((r) => r.ok).length;
   const r: ImportResult = {

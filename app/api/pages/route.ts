@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (!slug.startsWith("/")) slug = `/${slug}`;
 
   const user = await currentUser();
-  const keys = user ? await userPermissionKeys(user.id) : [];
+  const keys = user ? userPermissionKeys(user) : [];
   const permisao = (body.permisao ?? "").trim() || null;
   if (permisao && !keys.includes("*") && !keys.includes(permisao)) {
     return NextResponse.json(

@@ -145,24 +145,31 @@ export async function activeMenuNav(
   isAdmin: boolean,
   keys: string[]
 ): Promise<MenuNavItem[]> {
-  const menu = await prisma.menu.findFirst({
-    where: { userId },
-    orderBy: [{ ativo: "desc" }, { id: "asc" }],
-    select: {
-      itens: {
-        orderBy: { ordem: "asc" },
-        select: {
-          id: true,
-          parentId: true,
-          pageId: true,
-          ordem: true,
-          titulo: true,
-          icone: true,
-          page: true,
+  const fetchMenu = () =>
+    prisma.menu.findFirst({
+      where: { userId },
+      orderBy: [{ ativo: "desc" }, { id: "asc" }],
+      select: {
+        itens: {
+          orderBy: { ordem: "asc" },
+          select: {
+            id: true,
+            parentId: true,
+            pageId: true,
+            ordem: true,
+            titulo: true,
+            icone: true,
+            page: true,
+          },
         },
       },
-    },
-  });
+    });
+  // Cria o menu default na primeira visita sem um `count` extra por rota.
+  let menu = await fetchMenu();
+  if (!menu) {
+    await ensureDefaultMenu(userId);
+    menu = await fetchMenu();
+  }
   if (!menu) return [];
   return buildMenuNavTree(menu.itens, (p) => pageAllowed(p, isAdmin, keys));
 }

@@ -88,6 +88,32 @@ const BLING_LIST_TRANSFORMS: Record<
   "bling:pedidos-venda": flattenVenda,
 };
 
+// A lista de tipos de contato do Bling muda raramente; o cache em memória evita
+// um GET externo extra em toda listagem de entidades com `tipoContato`.
+const TIPOS_TTL_MS = 5 * 60 * 1000;
+let tiposCache: { at: number; body: unknown } | null = null;
+
+async function tipoContatoId(schema: CrudEntitySchema): Promise<number | undefined> {
+  const now = Date.now();
+  if (!tiposCache || now - tiposCache.at > TIPOS_TTL_MS) {
+    const tipos = await blingRequest({ method: "GET", path: "/contatos/tipos" });
+    if (tipos.ok) {
+      tiposCache = { at: now, body: tipos.bodyJson ?? null };
+    }
+  }
+  const tiposBody = (tiposCache?.body ?? null) as { data?: unknown[] } | null;
+  const keyword = schema.tipoContato?.toLowerCase() ?? "";
+  const found = (tiposBody?.data ?? []).find(
+    (t) =>
+      ((t as Record<string, unknown>).descricao ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(keyword)
+  );
+  if (found) return Number((found as Record<string, unknown>).id);
+  return undefined;
+}
+
 async function blingList(
   schema: CrudEntitySchema,
   params: CrudListParams
@@ -104,25 +130,9 @@ async function blingList(
     searchParams[searchParamName] = term;
   }
   if (schema.tipoContato) {
-    const tipos = await blingRequest({
-      method: "GET",
-      path: "/contatos/tipos",
-    });
-    if (tipos.ok) {
-      const tiposBody = (tipos.bodyJson ?? {}) as { data?: unknown[] };
-      const keyword = schema.tipoContato.toLowerCase();
-      const found = (tiposBody.data ?? []).find(
-        (t) =>
-          ((t as Record<string, unknown>).descricao ?? "")
-            .toString()
-            .toLowerCase()
-            .includes(keyword)
-      );
-      if (found) {
-        searchParams.idTipoContato = Number(
-          (found as Record<string, unknown>).id
-        );
-      }
+    const idTipoContato = await tipoContatoId(schema);
+    if (idTipoContato !== undefined) {
+      searchParams.idTipoContato = idTipoContato;
     }
   }
 

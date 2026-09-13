@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function MenusPage() {
   const user = await requireUser();
   await ensureDefaultMenu(user.id);
-  const permKeys = await userPermissionKeys(user.id);
+  const permKeys = userPermissionKeys(user);
   const isAdmin = permKeys.includes("*");
   const payload = await getMenusPayload(user.id, permKeys, isAdmin);
   return <MenusClient initial={payload} />;

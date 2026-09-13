@@ -24,8 +24,8 @@ export default async function CrudPage({
       ? !!(await prisma.blingToken.findUnique({ where: { id: 1 } }))
       : await systextilIsConfiguredDb();
 
-  const canWrite = await hasPermission(user, `${schema.provider}.write`);
-  const canDelete = await hasPermission(user, `${schema.provider}.delete`);
+  const canWrite = hasPermission(user, `${schema.provider}.write`);
+  const canDelete = hasPermission(user, `${schema.provider}.delete`);
 
   let initial: {
     items: unknown[];

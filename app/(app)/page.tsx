@@ -22,7 +22,7 @@ function displayMetrics(pagina: Page["slug"]): boolean {
 
 export default async function Home() {
   const user = await requireUser();
-  const keys = await userPermissionKeys(user.id);
+  const keys = userPermissionKeys(user);
   const isAdmin = keys.includes("*");
 
   const [pages, store, testes, webhooks, usuarios, roles, systextilCfg] =
