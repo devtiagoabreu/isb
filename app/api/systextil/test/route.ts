@@ -5,6 +5,7 @@ import {
 } from "@/lib/systextil";
 import { prisma } from "@/lib/db";
 import { apiRequire } from "@/lib/auth";
+import { pathMatchesTemplate } from "@/lib/endpoints";
 import { SYSTEXTIL_TEST_ENDPOINTS } from "@/lib/systextil-endpoints";
 
 interface TestPayload {
@@ -16,8 +17,10 @@ interface TestPayload {
 }
 
 /**
- * Verifica se a combinação method+path está na allowlist.
- * Para GET, qualquer endpoint da lista é aceito.
+ * Verifica se a combinação method+path está na allowlist, casando o caminho
+ * segmento a segmento com um endpoint declarado (literal + placeholders).
+ * Para GET, qualquer endpoint da lista é aceito e os parâmetros restantes
+ * precisam ser declarados.
  * Para POST/PUT/DELETE, o endpoint deve declarar o método na sua lista `method`.
  */
 function isAllowedTest(
@@ -25,30 +28,14 @@ function isAllowedTest(
   path: string,
   params: Record<string, string>,
 ): boolean {
-  const base = path.split("?")[0]!.split("{")[0]!.replace(/\/+$/, "");
   return SYSTEXTIL_TEST_ENDPOINTS.some((ep) => {
-    const prefix = ep.path.split("{")[0]!.replace(/\/+$/, "");
-    if (prefix && base !== prefix && !base.startsWith(`${prefix}/`)) {
-      return false;
-    }
-
-    // Verificar se o método é permitido
-    const allowedMethods = Array.isArray(ep.method) ? ep.method : [ep.method];
-    if (!allowedMethods.includes(method)) {
-      // Para GET, permitir se o endpoint existe (retrocompatibilidade)
-      if (method === "GET" && allowedMethods.includes("GET")) {
-        // ok
-      } else if (method !== "GET") {
-        return false;
-      }
-    }
-
-    // Para GET, verificar parâmetros declarados
+    if (!pathMatchesTemplate(ep.path, path)) return false;
     if (method === "GET") {
       const declared = new Set((ep.params ?? []).map((p) => p.key));
       return Object.keys(params).every((k) => declared.has(k));
     }
-    return true;
+    const allowedMethods = Array.isArray(ep.method) ? ep.method : [ep.method];
+    return allowedMethods.includes(method);
   });
 }
 
@@ -65,15 +52,8 @@ export async function POST(request: Request) {
   const method = payload.method ?? "GET";
   const params = payload.params ?? {};
 
-  let path = payload.path;
-  for (const [key, value] of Object.entries(params)) {
-    if (path.includes(`{${key}}`)) {
-      path = path.replace(`{${key}}`, encodeURIComponent(value));
-      delete params[key];
-    }
-  }
-
-  if (!isAllowedTest(method, path, params)) {
+  // Valida o caminho (no formato original, com "{chave}") ANTES de substituir.
+  if (!isAllowedTest(method, payload.path ?? "", params)) {
     return NextResponse.json(
       {
         error:
@@ -81,6 +61,14 @@ export async function POST(request: Request) {
       },
       { status: 403 },
     );
+  }
+
+  let path = payload.path;
+  for (const [key, value] of Object.entries(params)) {
+    if (path.includes(`{${key}}`)) {
+      path = path.replace(`{${key}}`, encodeURIComponent(value));
+      delete params[key];
+    }
   }
 
   try {

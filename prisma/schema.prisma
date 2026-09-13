@@ -342,6 +342,19 @@ model ReuniaoLink {
   @@map("reuniao_links")
 }
 
+// Rate limiter anti brute-force compartilhado entre instâncias (serverless):
+// janela deslizante simples por chave (ex.: login:ip:<ip>, login:email:<email>).
+// Depêndencia de armazenamento compartilhado (Neon/Postgres) para valer em
+// deployments multi-instância (Vercel) — não usa memória local da instância.
+model RateLimit {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@map("rate_limits")
+}
+
 // Log de execução da reconciliação de estoque (Fase 2, Fluxo A):
 // espelha o saldo do depósito 34 do Systêxtil no depósito espelho do Bling
 // via POST /estoques operacao "B" (balanço absoluto).

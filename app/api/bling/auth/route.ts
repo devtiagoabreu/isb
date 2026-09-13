@@ -11,6 +11,7 @@ export async function GET() {
   const jar = await cookies();
   jar.set("bling_oauth_state", state, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 600,
     path: "/",

@@ -5,6 +5,7 @@ import {
   createSession,
   hashPassword,
 } from "@/lib/auth";
+import { checkRateLimit, clientIpOf } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,21 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Já existe um usuário cadastrado." },
       { status: 403 }
+    );
+  }
+
+  // Anti brute-force do endpoint de bootstrap (senha do primeiro admin).
+  const rl = await checkRateLimit(`setup:${clientIpOf(request)}`, {
+    max: 5,
+    windowMs: 15 * 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas tentativas. Aguarde alguns minutos." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
+      }
     );
   }
 

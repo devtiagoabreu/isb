@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { type BlingMethod, blingRequest } from "@/lib/bling";
 import { prisma } from "@/lib/db";
 import { apiRequire } from "@/lib/auth";
-import { TEST_ENDPOINTS } from "@/lib/endpoints";
+import { TEST_ENDPOINTS, pathMatchesTemplate } from "@/lib/endpoints";
 
 interface TestPayload {
   label?: string;
@@ -14,19 +14,18 @@ interface TestPayload {
 
 // Proxy de teste: refletir método+path arbitrário deixaria o console executar
 // POST/PUT/DELETE em qualquer recurso do Bling com o token da conta. Só é
-// permitido executar GET em endpoints da allowlist (TEST_ENDPOINTS).
+// permitido executar GET em endpoints da allowlist (TEST_ENDPOINTS), com o
+// caminho casando segmento a segmento com um template declarado (e os
+// parâmetros restantes declarados no endpoint).
 function isAllowedTest(
   method: BlingMethod,
   path: string,
   params: Record<string, string>,
 ): boolean {
   if (method !== "GET") return false;
-  const base = path.split("?")[0]!.split("{")[0]!.replace(/\/+$/, "");
   return TEST_ENDPOINTS.some((ep) => {
-    const prefix = ep.path.split("{")[0]!.replace(/\/+$/, "");
-    if (prefix && base !== prefix && !base.startsWith(`${prefix}/`)) {
-      return false;
-    }
+    if (ep.method !== "GET") return false;
+    if (!pathMatchesTemplate(ep.path, path)) return false;
     const declared = new Set((ep.params ?? []).map((p) => p.key));
     return Object.keys(params).every((k) => declared.has(k));
   });
@@ -45,19 +44,20 @@ export async function POST(request: Request) {
   const method = payload.method ?? "GET";
   const params = payload.params ?? {};
 
+  // Valida o caminho (no formato original, com "{chave}") ANTES de substituir.
+  if (!isAllowedTest(method, payload.path ?? "", params)) {
+    return NextResponse.json(
+      { error: "Operação não permitida. Use GET em um endpoint da allowlist." },
+      { status: 403 },
+    );
+  }
+
   let path = payload.path;
   for (const [key, value] of Object.entries(params)) {
     if (path.includes(`{${key}}`)) {
       path = path.replace(`{${key}}`, encodeURIComponent(value));
       delete params[key];
     }
-  }
-
-  if (!isAllowedTest(method, path, params)) {
-    return NextResponse.json(
-      { error: "Operação não permitida. Use GET em um endpoint da allowlist." },
-      { status: 403 },
-    );
   }
 
   try {
