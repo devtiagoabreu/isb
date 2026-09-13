@@ -49,6 +49,9 @@ dev-server.log
 # vercel
 .vercel
 
+# graphify (gera graph.json/graph.html/GRAPH_REPORT.md e exports)
+/graphify-out/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
