@@ -307,7 +307,11 @@ export default function ConsoleClient({
             >
               {running ? "Executando…" : "Executar teste"}
             </button>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-red-500">
+                {error}
+              </p>
+            )}
           </div>
 
           {result && (

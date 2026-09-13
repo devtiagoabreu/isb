@@ -289,6 +289,7 @@ export default function AdminClient({
                   <select
                     value={u.roleId != null ? String(u.roleId) : ""}
                     onChange={(e) => alterarRoleUsuario(u, e.target.value)}
+                    aria-label={`Role do usuário ${u.name}`}
                     className={selectCls}
                   >
                     <option value="">Sem role</option>

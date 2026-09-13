@@ -192,7 +192,10 @@ export default function ReconciliacaoEstoqueClient() {
         </div>
       )}
       {rodando && (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <div
+          role="status"
+          className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+        >
           Rodando {rodando === "dry-run" ? "dry-run" : "execução"}… pode levar
           alguns minutos.
         </div>
@@ -241,7 +244,10 @@ export default function ReconciliacaoEstoqueClient() {
             </div>
           )}
 
-          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+          <p
+            role="status"
+            className="mt-4 text-sm text-zinc-600 dark:text-zinc-400"
+          >
             {resultado.resumo}
           </p>
 

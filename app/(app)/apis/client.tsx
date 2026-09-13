@@ -251,6 +251,8 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
               actions={
                 <button
                   onClick={() => setConfirmDelete(api.id)}
+                  aria-expanded={confirmDelete === api.id}
+                  aria-controls={`confirm-api-${api.id}`}
                   className="shrink-0 text-xs font-medium text-red-500 hover:text-red-700"
                 >
                   Excluir
@@ -258,7 +260,10 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
               }
             >
               {confirmDelete === api.id && (
-                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-900/50 dark:bg-red-950/40">
+                <div
+                  id={`confirm-api-${api.id}`}
+                  className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-900/50 dark:bg-red-950/40"
+                >
                   <span>Excluir “{api.nome}” e todos os seus endpoints?</span>
                   <button
                     onClick={() => removeApi(api)}
@@ -316,6 +321,8 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                         onClick={() =>
                           patchVar(api.id, v.id, (x) => ({ ...x, segredo: !x.segredo }))
                         }
+                        aria-pressed={v.segredo}
+                        aria-label="Alternar se o valor é segredo"
                         className="rounded-md border border-zinc-300 px-2 py-1.5 text-xs dark:border-zinc-700"
                         title="Alternar se é segredo"
                       >
@@ -328,6 +335,7 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                             vars: a.vars.filter((x) => x.id !== v.id),
                           }))
                         }
+                        aria-label={`Remover variável ${v.chave}`}
                         className="text-xs text-red-500 hover:text-red-700"
                         title="Remover variável"
                       >
@@ -388,6 +396,7 @@ export default function ApisClient({ initialApis }: { initialApis: ApiData[] }) 
                                 endpoints: a.endpoints.filter((x) => x.id !== e.id),
                               }))
                             }
+                            aria-label={`Remover endpoint ${e.path}`}
                             className="text-xs text-red-500 hover:text-red-700"
                             title="Remover endpoint"
                           >

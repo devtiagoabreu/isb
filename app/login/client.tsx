@@ -75,7 +75,9 @@ export default function LoginClient({ next }: { next: string }) {
           </label>
 
           {erro && (
-            <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {erro}
+            </p>
           )}
 
           <button

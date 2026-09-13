@@ -345,10 +345,14 @@ export default function ImportClient({
       </Section>
 
       {erro && (
-        <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          {erro}
+        </p>
       )}
       {aviso && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{aviso}</p>
+        <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
+          {aviso}
+        </p>
       )}
 
       {produtos.length > 0 && (
@@ -384,6 +388,7 @@ export default function ImportClient({
                         type="checkbox"
                         checked={marcado}
                         onChange={() => toggle(p.codigo)}
+                        aria-label={`Selecionar ${p.nome || p.codigo}`}
                         className="mt-1 h-4 w-4 accent-emerald-600"
                       />
                       <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -511,7 +516,7 @@ export default function ImportClient({
           title="Resultado da importação"
           subtitle="Retorno da criação dos SKUs no Bling"
         >
-          <p className="mb-4 text-sm">
+          <p role="status" className="mb-4 text-sm">
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {resultado.okCount}
             </span>{" "}

@@ -660,6 +660,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Item da pauta"
+                    aria-label="Item da pauta"
                   />
                   <button
                     type="button"
@@ -713,6 +714,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Nome *"
+                    aria-label="Nome do participante"
                   />
                   <input
                     className={`${inputCls} flex-[2]`}
@@ -726,6 +728,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Empresa"
+                    aria-label="Empresa do participante"
                   />
                   <input
                     className={`${inputCls} flex-[2]`}
@@ -739,6 +742,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Papel"
+                    aria-label="Papel do participante"
                   />
                   <button
                     type="button"
@@ -797,6 +801,7 @@ export default function ReunioesClient() {
               value={form.ata}
               onChange={(e) => setField("ata", e.target.value)}
               placeholder="Decisões, discussões e observações da reunião…"
+              aria-label="Ata"
             />
           </div>
 
@@ -807,6 +812,7 @@ export default function ReunioesClient() {
               value={form.transcricao}
               onChange={(e) => setField("transcricao", e.target.value)}
               placeholder="Transcrição completa da gravação (cole aqui)…"
+              aria-label="Transcrição"
             />
           </div>
 
@@ -860,6 +866,7 @@ export default function ReunioesClient() {
                         )
                       }
                       placeholder="Rótulo (ex.: Gravação, Relatório, Wiki)"
+                      aria-label="Rótulo do link"
                     />
                     <input
                       type="url"
@@ -874,6 +881,7 @@ export default function ReunioesClient() {
                         )
                       }
                       placeholder="URL (https://…) *"
+                      aria-label="URL do link"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -889,6 +897,7 @@ export default function ReunioesClient() {
                         )
                       }
                       placeholder="Descrição do link"
+                      aria-label="Descrição do link"
                     />
                     <button
                       type="button"
@@ -947,6 +956,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Descrição do encaminhamento *"
+                    aria-label="Descrição da tarefa"
                   />
                   <select
                     className={selectCls}
@@ -959,6 +969,7 @@ export default function ReunioesClient() {
                         )
                       )
                     }
+                    aria-label="Status da tarefa"
                   >
                     {ENCAMINHAMENTO_STATUS.map((s) => (
                       <option key={s} value={s}>
@@ -978,6 +989,7 @@ export default function ReunioesClient() {
                       )
                     }
                     placeholder="Responsável"
+                    aria-label="Responsável da tarefa"
                   />
                   <input
                     type="date"
@@ -991,6 +1003,7 @@ export default function ReunioesClient() {
                         )
                       )
                     }
+                    aria-label="Prazo da tarefa"
                   />
                   <button
                     type="button"

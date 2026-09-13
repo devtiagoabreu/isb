@@ -521,12 +521,14 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             if (e.key === "Escape") setNovoSub(null);
           }}
           placeholder="Nome do submenu…"
+          aria-label="Nome do submenu"
           className={inputCls}
           style={{ flex: "1 1 150px" }}
         />
         <select
           value={novoSub.icone}
           onChange={(e) => setNovoSub({ ...novoSub, icone: e.target.value })}
+          aria-label="Ícone do submenu"
           className={selectCls}
           style={{ width: "auto" }}
         >
@@ -632,43 +634,46 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 </Icon>
                 {isGroup ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenGroups((p) => ({ ...p, [item.id]: !(p[item.id] ?? false) }))
-                      }
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      aria-label="Abrir ou fechar submenu"
-                    >
-                      <Icon>{pageIconPath(item.icone)}</Icon>
-                      {editing?.id === item.id ? (
-                        <input
-                          autoFocus
-                          value={editing.titulo}
-                          onChange={(e) => setEditing({ ...editing, titulo: e.target.value })}
-                          onBlur={() => {
-                            void renomearSubmenu(sel!, item.id, editing.titulo);
-                            setEditing(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                            if (e.key === "Escape") setEditing(null);
-                          }}
-                          className={`${inputCls} !py-1`}
-                        />
-                      ) : (
-                        <span className="truncate font-semibold">
+                    {editing?.id === item.id ? (
+                      <input
+                        autoFocus
+                        value={editing.titulo}
+                        onChange={(e) => setEditing({ ...editing, titulo: e.target.value })}
+                        onBlur={() => {
+                          void renomearSubmenu(sel!, item.id, editing.titulo);
+                          setEditing(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          if (e.key === "Escape") setEditing(null);
+                        }}
+                        aria-label="Renomear submenu"
+                        className={`${inputCls} min-w-0 flex-1 !py-1`}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenGroups((p) => ({ ...p, [item.id]: !(p[item.id] ?? false) }))
+                        }
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        aria-label="Abrir ou fechar submenu"
+                        aria-expanded={Boolean(openGroups[item.id])}
+                        aria-controls={`grupo-${item.id}`}
+                      >
+                        <Icon>{pageIconPath(item.icone)}</Icon>
+                        <span className="min-w-0 flex-1 truncate font-semibold">
                           {item.titulo ?? "Submenu"}
                         </span>
-                      )}
-                      <Icon
-                        className={`h-4 w-4 shrink-0 transition-transform ${
-                          openGroups[item.id] ? "rotate-90" : ""
-                        }`}
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </Icon>
-                    </button>
+                        <Icon
+                          className={`h-4 w-4 shrink-0 transition-transform ${
+                            openGroups[item.id] ? "rotate-90" : ""
+                          }`}
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </Icon>
+                      </button>
+                    )}
                     <span className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
@@ -739,7 +744,10 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 )}
               </div>
               {isGroup && openGroups[item.id] && (
-                <div className="ml-4 flex flex-col gap-1.5 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+                <div
+                  id={`grupo-${item.id}`}
+                  className="ml-4 flex flex-col gap-1.5 border-l border-zinc-200 pl-3 dark:border-zinc-800"
+                >
                   {renderRows(item.filhos, item.id, depth + 1)}
                   {renderFormSubmenu(item.id)}
                 </div>
@@ -795,7 +803,10 @@ export default function MenusClient({ initial }: { initial: Payload }) {
       </header>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        >
           {error}
         </div>
       )}
@@ -811,6 +822,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 if (e.key === "Enter") void criarMenu();
               }}
               placeholder="Nome do novo menu…"
+              aria-label="Nome do novo menu"
               className={inputCls}
               style={{ flex: "1 1 180px" }}
             />
@@ -882,10 +894,14 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             <h3 className="font-semibold">Adicionar páginas (endpoints do ISB)</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <label
+                  htmlFor="addEm"
+                  className="text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                >
                   Adicionar em
                 </label>
                 <select
+                  id="addEm"
                   value={targetSel}
                   onChange={(e) =>
                     setAddEm(e.target.value === "" ? null : Number(e.target.value))
@@ -901,10 +917,14 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <label
+                  htmlFor="paginaSel"
+                  className="text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                >
                   Página do ISB
                 </label>
                 <select
+                  id="paginaSel"
                   value={paginaSel}
                   onChange={(e) => {
                     const id = Number(e.target.value);
@@ -955,6 +975,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
             value={data.homePageId ?? ""}
             onChange={(e) => void escolherHome(Number(e.target.value))}
             disabled={busy}
+            aria-label="Página inicial"
             className={selectCls}
           >
             <option value="" disabled>
@@ -984,6 +1005,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
           <select
             value={copiarDe}
             onChange={(e) => setCopiarDe(e.target.value)}
+            aria-label="Copiar menus de outro usuário"
             className={selectCls}
           >
             <option value="">Selecione um usuário…</option>
@@ -1026,35 +1048,44 @@ export default function MenusClient({ initial }: { initial: Payload }) {
           title="Registrar nova página"
           subtitle="Toda página registrada vira opção de escolha para qualquer usuário montar o próprio menu."
           actions={
-            <button onClick={() => setShowNovaPage((v) => !v)} className={btnGhost}>
+            <button
+              onClick={() => setShowNovaPage((v) => !v)}
+              aria-expanded={showNovaPage}
+              aria-controls="nova-pagina"
+              className={btnGhost}
+            >
               {showNovaPage ? "Fechar" : "Nova página"}
             </button>
           }
         >
           {showNovaPage && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div id="nova-pagina" className="mt-4 grid gap-3 sm:grid-cols-2">
               <input
                 value={pageForm.titulo}
                 onChange={(e) => setPageForm({ ...pageForm, titulo: e.target.value })}
                 placeholder="Título (ex.: Relatórios)"
+                aria-label="Título da página"
                 className={inputCls}
               />
               <input
                 value={pageForm.slug}
                 onChange={(e) => setPageForm({ ...pageForm, slug: e.target.value })}
                 placeholder="Caminho (ex.: /relatorios)"
+                aria-label="Caminho da página"
                 className={inputCls}
               />
               <input
                 value={pageForm.descricao}
                 onChange={(e) => setPageForm({ ...pageForm, descricao: e.target.value })}
                 placeholder="Descrição"
+                aria-label="Descrição da página"
                 className={inputCls}
               />
               <div className="grid grid-cols-2 gap-3">
                 <select
                   value={pageForm.icone}
                   onChange={(e) => setPageForm({ ...pageForm, icone: e.target.value })}
+                  aria-label="Ícone da página"
                   className={selectCls}
                 >
                   {Object.keys(PAGE_ICONES).map((k) => (
@@ -1066,6 +1097,7 @@ export default function MenusClient({ initial }: { initial: Payload }) {
                 <select
                   value={pageForm.permisao}
                   onChange={(e) => setPageForm({ ...pageForm, permisao: e.target.value })}
+                  aria-label="Permissão da página"
                   className={selectCls}
                 >
                   <option value="">Sem permissão</option>

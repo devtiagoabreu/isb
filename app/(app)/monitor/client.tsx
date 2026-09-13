@@ -453,6 +453,7 @@ export default function MonitorClient() {
               value={buscaEstoque}
               onChange={(e) => setBuscaEstoque(e.target.value)}
               placeholder="Buscar código ou descrição…"
+              aria-label="Buscar estoque"
               className={inputCls}
             />
             <label className="flex h-9 cursor-pointer items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -488,7 +489,10 @@ export default function MonitorClient() {
         }
       >
         {resumoReconciliacao && (
-          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <p
+            role="status"
+            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
             {resumoReconciliacao}
           </p>
         )}
@@ -588,6 +592,7 @@ export default function MonitorClient() {
                 setFiltroSituacao(e.target.value);
                 void buscarNotas(e.target.value);
               }}
+              aria-label="Situação da nota"
               className={selectCls}
             >
               <option value="">Todas as situações</option>
@@ -599,6 +604,7 @@ export default function MonitorClient() {
               value={buscaNota}
               onChange={(e) => setBuscaNota(e.target.value)}
               placeholder="Buscar NF, série, contato…"
+              aria-label="Buscar notas"
               className={inputCls}
             />
             <button
@@ -701,6 +707,7 @@ export default function MonitorClient() {
               value={buscaSaida}
               onChange={(e) => setBuscaSaida(e.target.value)}
               placeholder="Buscar NF, série, cliente, chave…"
+              aria-label="Buscar saídas"
               className={inputCls}
             />
             <button

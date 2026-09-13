@@ -345,6 +345,7 @@ export default function CrudClient({
                 onChange={(e) => setTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && carregar(0, term)}
                 placeholder="pesquisa livre…"
+                aria-label="Pesquisar registro"
               />
               <button
                 onClick={() => carregar(0, term)}

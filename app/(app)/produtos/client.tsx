@@ -431,6 +431,7 @@ export default function ProdutosClient({
                   onChange={(e) => setBuscaNome(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && carregar(1)}
                   placeholder="ex.: camiseta"
+                  aria-label="Buscar produto por nome"
                 />
                 <input
                   className={`${inputCls} font-mono`}
@@ -438,6 +439,7 @@ export default function ProdutosClient({
                   onChange={(e) => setBuscaCodigo(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && carregar(1)}
                   placeholder="ex.: 2.K1820"
+                  aria-label="Buscar produto por código"
                 />
                 <button
                   onClick={() => carregar(1)}
@@ -458,6 +460,7 @@ export default function ProdutosClient({
               className={`${selectCls} min-w-[180px]`}
               value={perfilId}
               onChange={(e) => setPerfilId(e.target.value)}
+              aria-label="Perfil de produto"
             >
               <option value="">Perfil de produto…</option>
               {perfis.map((p) => (
@@ -860,7 +863,9 @@ export default function ProdutosClient({
               cada produto no Bling. Campos vazios do perfil não são tocados.
             </p>
             {erro && (
-              <p className="whitespace-pre-line text-sm text-red-500">{erro}</p>
+              <p role="alert" className="whitespace-pre-line text-sm text-red-500">
+                {erro}
+              </p>
             )}
             <div className="flex items-center justify-end gap-2">
               <button

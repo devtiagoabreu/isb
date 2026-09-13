@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useId, useState, useRef, useEffect } from "react";
 
 export function InfoButton({
   titulo,
@@ -13,6 +13,8 @@ export function InfoButton({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const conteudoId = `info-${id}`;
 
   useEffect(() => {
     if (!open) return;
@@ -38,13 +40,18 @@ export function InfoButton({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={`Sobre: ${titulo}`}
+        aria-expanded={open}
+        aria-controls={conteudoId}
         title="O que é isto?"
         className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 text-[11px] font-bold leading-none text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-900 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-zinc-300 dark:hover:text-zinc-100"
       >
         i
       </button>
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+        <div
+          id={conteudoId}
+          className="absolute left-1/2 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
           <p className="mb-1 text-sm font-semibold">{titulo}</p>
           {descricao && (
             <p className="text-sm text-zinc-600 dark:text-zinc-300">{descricao}</p>

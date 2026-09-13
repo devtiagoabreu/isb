@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pageIconPath } from "@/lib/pages";
 import ThemeToggle from "@/app/components/theme-toggle";
 
@@ -53,6 +53,22 @@ export default function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
   const [openExtra, setOpenExtra] = useState<Record<string, boolean>>({});
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!openMobile) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    (mobileCloseRef.current ?? hamburgerRef.current)?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenMobile(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prevFocus?.focus();
+    };
+  }, [openMobile]);
 
   async function logout() {
     try {
@@ -134,6 +150,8 @@ export default function AppShell({
               }
             }}
             title={collapseMode ? node.label : undefined}
+            aria-expanded={open}
+            aria-controls={collapseMode ? undefined : `submenu-${key}`}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               collapseMode ? "justify-center px-2" : ""
             } ${
@@ -159,7 +177,10 @@ export default function AppShell({
             )}
           </button>
           {!collapseMode && open && node.children && node.children.length > 0 && (
-            <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-zinc-200 pl-2 dark:border-zinc-800">
+            <div
+              id={`submenu-${key}`}
+              className="ml-3 mt-1 flex flex-col gap-1 border-l border-zinc-200 pl-2 dark:border-zinc-800"
+            >
               {renderNodes(node.children, key, false, onNavigate)}
             </div>
           )}
@@ -170,6 +191,12 @@ export default function AppShell({
 
   return (
     <>
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:shadow-lg dark:focus:bg-zinc-900 dark:focus:text-zinc-100"
+      >
+        Pular para o conteúdo
+      </a>
       <aside
         className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-zinc-200 bg-white transition-[width] duration-200 md:flex dark:border-zinc-800 dark:bg-zinc-950 ${
           collapsed ? "w-16" : "w-60"
@@ -195,7 +222,10 @@ export default function AppShell({
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+        <nav
+          aria-label="Navegação principal"
+          className="flex flex-1 flex-col gap-1 overflow-y-auto p-2"
+        >
           {renderNodes(navItems, "", collapsed)}
         </nav>
 
@@ -237,7 +267,13 @@ export default function AppShell({
             className="absolute inset-0 bg-black/50"
             onClick={() => setOpenMobile(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <aside
+            id="menu-mobile"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu de navegação"
+            className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+          >
             <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800">
               <Link
                 href={initialHref}
@@ -247,6 +283,7 @@ export default function AppShell({
                 ISB
               </Link>
               <button
+                ref={mobileCloseRef}
                 onClick={() => setOpenMobile(false)}
                 aria-label="Fechar menu"
                 className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
@@ -256,7 +293,10 @@ export default function AppShell({
                 </Icon>
               </button>
             </div>
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+            <nav
+              aria-label="Navegação principal"
+              className="flex flex-1 flex-col gap-1 overflow-y-auto p-2"
+            >
               {renderNodes(navItems, "", false, () => setOpenMobile(false))}
             </nav>
             <div className="flex flex-col gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
@@ -289,8 +329,11 @@ export default function AppShell({
 
       {!openMobile && (
         <button
+          ref={hamburgerRef}
           onClick={() => setOpenMobile(true)}
           aria-label="Abrir menu"
+          aria-expanded={false}
+          aria-controls="menu-mobile"
           className="fixed left-3 top-3 z-30 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 shadow-sm hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 md:hidden"
         >
           <Icon className="h-5 w-5">
@@ -300,7 +343,9 @@ export default function AppShell({
       )}
 
       <div
-        className={`min-h-screen w-full pt-14 transition-[padding] duration-200 md:pt-0 ${
+        id="conteudo"
+        tabIndex={-1}
+        className={`min-h-screen w-full pt-14 outline-none transition-[padding] duration-200 md:pt-0 ${
           collapsed ? "md:pl-16" : "md:pl-60"
         }`}
       >

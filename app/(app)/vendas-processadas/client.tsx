@@ -283,7 +283,9 @@ export default function VendasProcessadasClient() {
                   {aberto && (
                     <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                       {r.erro && (
-                        <p className="mb-2 text-sm text-red-500">{r.erro}</p>
+                        <p role="alert" className="mb-2 text-sm text-red-500">
+                          {r.erro}
+                        </p>
                       )}
                       <ul className="flex flex-col gap-2 text-sm">
                         {passosVisiveis(r).map((key) => {
