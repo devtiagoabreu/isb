@@ -256,7 +256,7 @@ export async function reconciliarEstoque(input: {
               deposito: { id: Number(depositoBling) },
               operacao: "B",
               quantidade: item.saldoNovo,
-              observacoes: `Balanço E-commerce (dep. ${depositoSystextil})`,
+              observacoes: `Balanço realizado pelo app ISB — sincronização com o ERP Systêxtil (dep. ${depositoSystextil})`,
             },
           });
           if (!res.ok) {
