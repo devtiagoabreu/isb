@@ -92,6 +92,50 @@ export async function POST(request: Request) {
       body: payload,
     });
 
+    let produtoId: number | null = null;
+
+    // Upsert: se o Bling recusar o POST por código já cadastrado (400 code 8),
+    // busca o produto existente por `codigo` e atualiza via PUT.
+    if (!res.ok) {
+      const j = res.bodyJson as
+        | { error?: { code?: number; message?: string } }
+        | null;
+      if (res.status === 400 && j?.error?.code === 8) {
+        const busca = await blingRequest({
+          method: "GET",
+          path: "/produtos",
+          params: { codigo: item.codigo, limite: 1, pagina: 1 },
+        });
+        const data = (busca.bodyJson as { data?: Array<{ id?: number }> })
+          ?.data;
+        if (busca.ok && Array.isArray(data) && data[0]?.id != null) {
+          produtoId = Number(data[0].id);
+          const putRes = await blingRequest({
+            method: "PUT",
+            path: `/produtos/${produtoId}`,
+            body: payload,
+          });
+          const acao = "update" as const;
+          return {
+            codigo: item.codigo,
+            status: putRes.status,
+            ok: putRes.ok && (putRes.status === 200 || putRes.status === 204),
+            acao,
+            produtoId,
+            payload: putRes.bodyText
+              ? (() => {
+                  try {
+                    return JSON.parse(putRes.bodyText);
+                  } catch {
+                    return putRes.bodyText;
+                  }
+                })()
+              : null,
+          };
+        }
+      }
+    }
+
     let detail: unknown = null;
     try {
       detail = res.bodyText ? JSON.parse(res.bodyText) : null;
@@ -99,10 +143,13 @@ export async function POST(request: Request) {
       detail = res.bodyText;
     }
 
+    const acao: "create" | "skip" = res.ok ? "create" : "skip";
     return {
       codigo: item.codigo,
       status: res.status,
       ok: res.ok && (res.status === 201 || res.status === 200),
+      acao,
+      produtoId,
       payload: detail,
     };
   });

@@ -64,8 +64,11 @@ export function splitCnpjCpf(
   return null;
 }
 
-// SKU do produto = cola da chave 4-partes do Systêxtil (nivel 1 char +
-// grupo 5 + subgrupo 3 + item 6), mesmo formato usado na reconciliação.
+// SKU do produto = chave 4-partes do Systêxtil (nivel 1 + grupo 5 +
+// subgrupo 3 + item 6). Aceita:
+//   • Formato pontuado: "1.00020.CRU.000010"
+//   • Formato 15 caracteres alfanuméricos: "100020CRU000010"
+//   • Formato 15 dígitos: "10002000000010"
 function parseSku(
   codigo: string | null | undefined
 ): {
@@ -74,14 +77,34 @@ function parseSku(
   subgrupo_id: string;
   item_estrutura_id: string;
 } | null {
-  const s = String(codigo ?? "").replace(/\D/g, "").padStart(15, "0");
-  if (s.length !== 15) return null;
-  return {
-    nivel_produto: s[0],
-    grupo_id: s.slice(1, 6),
-    subgrupo_id: s.slice(6, 9),
-    item_estrutura_id: s.slice(9, 15),
-  };
+  const raw = String(codigo ?? "").trim();
+  if (!raw) return null;
+
+  // Formato pontuado: "1.00020.CRU.000010"
+  if (raw.includes(".")) {
+    const parts = raw.split(".");
+    if (parts.length === 4 && parts.every((p) => p.length > 0)) {
+      return {
+        nivel_produto: parts[0].slice(-1),
+        grupo_id: parts[1].padStart(5, "0").slice(-5),
+        subgrupo_id: parts[2].padStart(3, "0").slice(-3),
+        item_estrutura_id: parts[3].padStart(6, "0").slice(-6),
+      };
+    }
+    return null;
+  }
+
+  // Formato 15 caracteres alfanuméricos (sem pontos): "100020CRU000010"
+  const s15 = raw.padStart(15, "0").slice(-15);
+  if (s15.length === 15) {
+    return {
+      nivel_produto: s15[0],
+      grupo_id: s15.slice(1, 6),
+      subgrupo_id: s15.slice(6, 9),
+      item_estrutura_id: s15.slice(9, 15),
+    };
+  }
+  return null;
 }
 
 // "21/08/2026" → "2026-08-21"
@@ -143,6 +166,101 @@ async function lerParams() {
       map.get("pagamento.vencimento.dias") ?? "30"
     ),
   };
+}
+
+// Resolve automaticamente a condição de pagamento de venda (C5).
+// Se o param já tiver valor, retorna direto. Caso contrário, busca no
+// Systêxtil via GET/POST /venda/v1/condicao/pagamento:
+//   1. Lista condições existentes → procura "1 parcela, 30 dias, 100%"
+//   2. Se não encontrar → cria via POST
+//   3. Salva o código no param para reuso futuro.
+async function resolveCondicaoPagamento(): Promise<string> {
+  const rows = await listarParams();
+  const map = new Map(rows.map((p) => [p.chave, p.valor]));
+  const codigoAtual = (map.get("pagamento.condicao.systextil.codigo") ?? "").trim();
+  if (codigoAtual) return codigoAtual;
+
+  // Tenta buscar condições existentes
+  try {
+    const listRes = await systextilRequest({
+      method: "GET",
+      path: "/venda/v1/condicao/pagamento",
+      params: { limit: 100, offset: 0 },
+    });
+    if (listRes.ok) {
+      const body = (listRes.bodyJson ?? {}) as {
+        items?: Array<Record<string, unknown>>;
+      };
+      const items = Array.isArray(body.items) ? body.items : [];
+      // Prefere condição cuja descrição remeta a "ECOMM" (a que criamos na
+      // execução anterior); senão, qualquer condição válida.
+      const preferida =
+        items.find((i) =>
+          /ecomm|e-commerce|ecommerce/i.test(
+            String(i.descricao ?? i.descricao_condicao ?? "")
+          )
+        ) ?? items[0];
+      if (preferida) {
+        const code = Number(
+          preferida.codigo_condicao_pagamento ?? preferida.id ?? 0
+        );
+        if (code > 0) return String(code);
+      }
+    }
+  } catch {
+    // Se GET falhar (proxy não exposto), continua para tentar criar
+  }
+
+  // Tenta criar condição: 1 parcela, 30 dias, 100%
+  try {
+    const createRes = await systextilRequest({
+      method: "POST",
+      path: "/venda/v1/condicao/pagamento",
+      body: {
+        descricao: "ECOMM 30D 1P",
+        divisao_produto: 0,
+        avista: 0,
+        gera_boleto: 0,
+        gera_danfe: 0,
+        parcelas: [
+          {
+            sequencia: 1,
+            dias: 30,
+            percentual_vencimento: 100,
+          },
+        ],
+      },
+    });
+    if (createRes.ok) {
+      const body = (createRes.bodyJson ?? {}) as Record<string, unknown>;
+      const code = Number(
+        body.codigo_condicao_pagamento ?? body.id ?? 0
+      );
+      if (code > 0) {
+        // Salva no param para reuso (upsert direto no banco).
+        try {
+          await prisma.integracaoParam.upsert({
+            where: { chave: "pagamento.condicao.systextil.codigo" },
+            create: {
+              chave: "pagamento.condicao.systextil.codigo",
+              valor: String(code),
+              descricao:
+                "Código da condição de pagamento de venda no Systêxtil (auto-criada)",
+              ativo: true,
+            },
+            update: { valor: String(code), ativo: true },
+          });
+        } catch {
+          // Falha ao salvar param não é crítico; o código é retornado
+        }
+        return String(code);
+      }
+    }
+  } catch {
+    // POST falhou (proxy não exposto) — retorna vazio, pipeline marca erro
+  }
+
+  return "";
 }
 
 // Enfileira a venda a partir do evento do webhook. Fica barato/na hora para o
@@ -328,6 +446,17 @@ async function executarPipeline(
     situacao: row.situacao ?? (nfe.situacao != null ? Number(nfe.situacao) : null),
   };
 
+  // Auto-resolve C5: se a condição de pagamento estiver vazia, tenta buscar
+  // ou criar via API do Systêxtil antes de montar o pedido.
+  let condicaoPagamento = params.condicaoPagamento;
+  if (!condicaoPagamento) {
+    try {
+      condicaoPagamento = await resolveCondicaoPagamento();
+    } catch {
+      // Se o resolver falhar, o pedido será rejeitado com 400 (comportamento existente)
+    }
+  }
+
   const steps: StepsTyped = {};
   const erros: string[] = [];
 
@@ -385,7 +514,7 @@ async function executarPipeline(
       });
     }
   }
-  const condicao = Number(params.condicaoPagamento) || undefined;
+  const condicao = Number(condicaoPagamento) || undefined;
   const pedidoBody: Record<string, unknown> = {
     cnpj9_cliente: chave.cnpj_9,
     cnpj4_cliente: chave.cnpj_4,

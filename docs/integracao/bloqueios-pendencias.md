@@ -28,13 +28,16 @@
 
 - **Sintoma**: `POST /venda/v1/pedido/venda` retorna **400** quando
   `pagamento.condicao.systextil.codigo` está vazio.
-- **Causa**: pedido de venda no Systêxtil exige `condicao_pagamento` válida, e o
-  parâmetro ainda não foi preenchido (a condição correta pertence à
-  contabilidade/equipe Systêxtil).
-- **Pendência**: **preencher `pagamento.condicao.systextil.codigo`** em
-  `/parametros` com o código da condição de pagamento da Pro Moda Têxtil
-  (ex.: condição "30 dias" etc.).
-- **Impacto**: enquanto vazio, vendas novas param no passo `pedido` (`erro`).
+- **Causa**: pedido de venda no Systêxtil exige `condicao_pagamento` válida.
+- **Situação**: **auto-resolvível via API** — o processador agora busca
+  (`GET /venda/v1/condicao/pagamento`) ou cria (`POST`) a condição "1 parcela,
+  30 dias, 100%" e salva o código no parâmetro (upsert). Implementado em
+  `resolveCondicaoPagamento()` em `lib/processador-venda.ts`.
+- **Pendência**: se o proxy não expuser `GET/POST /venda/v1/condicao/pagamento`,
+  preencher `pagamento.condicao.systextil.codigo` em `/parametros` com o código
+  da condição da Pro Moda Têxtil. Ver `.agent/docs/ticket-jean-cadastros.md` §4.
+- **Impacto**: enquanto vazio e sem acesso ao endpoint, vendas novas param no
+  passo `pedido` (`erro`).
 
 ## Itens sem produto correspondente no Bling
 
@@ -48,11 +51,12 @@
 - **Sintoma**: `import.ts`/`reconciliacao-estoque.ts` usam **`produtoCodigo`**
   (formato `nivel.grupo.subgrupo.item` com ponto e letras, ex.
   `1.00020.CRU.000010`), enquanto o pipeline de venda usa **`parseSku`**, que
-  **exige 15 dígitos** (remove não-dígitos e faz `padStart(15, "0")`).
-- **Consequência**: um item vendido no Bling cujo `codigo` seja o valor com
-  ponto/letras não é decodificado corretamente no Systêxtil.
-- **Pendência**: definir um **formato único de SKU** e alinhar `produtoCodigo`
-  e `parseSku` (ou validar na importação que o `codigo` fique em 15 dígitos).
+  antes **exigia 15 dígitos**.
+- **Consequência/Situação**: `parseSku` agora aceita os três formatos
+  (pontuado, 15 alfanuméricos e 15 dígitos) — corrigido em
+  `lib/processador-venda.ts`.
+- **Pendência**: validar com um item real vendido no Bling (homologação com 1ª
+  fatura) que o `codigo` pontuado é decodificado corretamente.
 
 ## Permissões divergentes (`systextil.manage` e `apis.manage`)
 
@@ -69,13 +73,13 @@
 
 ## Pendências de arquitetura (não bloqueiam hoje)
 
-- **Reconciliação manual**: sem cron — decisão consciente (evita balanço de
-  estoque não transferido), mas significa que estoque fica defasado entre
-  execuções.
+- **Reconciliação manual**: sem cron — decisão consciente nova: criado **cron
+  único diário** (Vercel Hobby: 1 job, 1x/dia, ±59min) que drena vendas
+  pendentes e roda reconciliação em **dry-run** (seguro enquanto o depósito 034
+  estiver vazio). Ver `app/api/cron/route.ts` + `vercel.json` + `CRON_SECRET`.
 - **Serverless / background**: processamento de venda é fire-and-forget; se o
-  app for abortado no meio, fila fica `pendente` e exige o botão **Processar
-  pendentes**. Para produção multi-instância, considerar worker/cron
-  (ex.: Vercel Cron) ou mensageria.
+  app for abortado no meio, fila fica `pendente` e o cron/drain manual resolve.
+  Para produção multi-instância, considerar worker/cron dedicado ou mensageria.
 - **Rate limit e locks em memória**: multi-instância não compartilha rate limit,
   refresh do Bling nem cache do token do Systêxtil (ver `seguranca.md`).
 - **Graphify**: comunidades sem nome (sem LLM key no ambiente); rodar

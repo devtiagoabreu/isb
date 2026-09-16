@@ -83,6 +83,8 @@ export interface ProdutoImportado {
   codigo: string;
   status: number;
   ok: boolean;
+  acao: "create" | "update" | "skip";
+  produtoId?: number | null;
   payload: unknown;
 }
 
