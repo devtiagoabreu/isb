@@ -62,8 +62,9 @@ Detalhes em [`fluxo-venda.md`](fluxo-venda.md).
 
 ### 2. Fluxo de estoque (Systêxtil → Bling)
 
-1. Manualmente (sem cron), em `/reconciliacao-estoque` o operador escolhe
-   `dry-run` ou `executar`.
+1. Em `/reconciliacao-estoque` o operador escolhe `dry-run` ou `executar`.
+   (Há também **cron diário** — Vercel Hobby `0 3 * * *` — que roda o
+   **dry-run** automaticamente; o `executar` continua manual.)
 2. O ISB lê todos os saldos do depósito e-commerce do Systêxtil
    (`GET /estoque/v1/estoque`, filtro `deposito_id`).
 3. Compara com o saldo atual do depósito espelho do Bling
@@ -87,13 +88,11 @@ concatenada/formatada com ponto:
 
 > **Nota técnica sobre a chave**: `produtoCodigo` (reconciliação/monitor) monta o
 > código com ponto (`nivel.grupo.subgrupo.item`) e usa esse mesmo valor como
-> `codigo` do produto no Bling. `parseSku` (pipeline de venda) só aceita dígitos
-> — remove não-dígitos e faz `padStart(15, "0")`. Ou seja: o campo `codigo` do
-> item da NF-e no Bling precisa ser **somente dígitos** (15) para o pareamento
-> com a chave de produto do Systêxtil funcionar. **A tornar consistente**: a
-> importação de produtos grava `codigo` no formato `produtoCodigo` (com ponto e
-> letras), que o `parseSku` do pipeline não decodifica — ver
-> `bloqueios-pendencias.md`.
+> `codigo` do produto no Bling. `parseSku` (pipeline de venda) agora aceita os
+> **três formatos**: pontuado (`1.00020.CRU.000010`), 15 caracteres
+> alfanuméricos (`100020CRU000010`) e 15 dígitos (`10002000000010`) — o
+> pareamento funciona com o `codigo` vindo da NF-e do Bling em qualquer um deles
+> (ver `bloqueios-pendencias.md`).
 
 Detalhes em [`fluxo-venda.md`](fluxo-venda.md) e
 [`reconciliacao-estoque.md`](reconciliacao-estoque.md).
@@ -103,13 +102,15 @@ Detalhes em [`fluxo-venda.md`](fluxo-venda.md) e
 - **Depósito 034 vazio por design**: o saldo do e-commerce entra por
   **transferência manual** para o depósito 034; a reconciliação nunca inventa
   saldo — ela apenas espelha o que existe no 034.
-- **Reconciliação manual** (sem cron): evita balanço indesejado em estoque que
-  ainda não foi transferido para o 034.
+- **Reconciliação periódica**: **cron diário roda o dry-run** (Vercel Hobby,
+  `0 3 * * *` — 1 job/dia); o `executar` continua manual, evita balanço
+  indesejado em estoque que ainda não foi transferido para o 034.
 - **Idempotência**: a fila de vendas é idempotente por `eventId` (webhook) e por
   `nfeId + chaveAcesso` (NF já registrada).
 - **Notas do Bling são notas de SAÍDA**: a NF faturada pela Pro Moda Têxtil no
   Bling (série 2) é **inserida no Systêxtil como documento de saída**
   (escrituração de NF emitida fora do ERP, sem reemitir ao Sefaz).
-- **Consumidor fire-and-forget**: o processamento roda em background; sem
-  persistência de worker, se a execução for abortada a fila é retomada
-  manualmente (aceitável para o início).
+- **Consumidor fire-and-forget com cron de drain**: o processamento roda em
+  background; o **cron diário drena até 50 vendas pendentes**; se a execução
+  for abortada a fila é retomada manualmente ou pelo próprio cron (aceitável
+  para o início).

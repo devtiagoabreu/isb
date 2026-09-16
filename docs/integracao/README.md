@@ -52,8 +52,10 @@ Systêxtil para:
 - **Bloqueio principal**: `POST /notafiscal/v1/documento/saida` não é exposto
   pela API do Systêxtil (C7-a) — o passo "documento de saída" fica `bloqueado`
   e a venda termina `concluido_parcial`.
-- **Pendência operacional**: `pagamento.condicao.systextil.codigo` está vazio
-  (C5) — sem ele, o pedido de venda é recusado com HTTP 400.
+- **Pendência operacional (C5)**: `pagamento.condicao.systextil.codigo` estava
+  vazio — agora o pipeline tenta **auto-resolver** via
+  `resolveCondicaoPagamento()`. Validar na 1ª venda real; se o proxy bloquear,
+  preencher manualmente em `/parametros`.
 
 ## Referências locais
 

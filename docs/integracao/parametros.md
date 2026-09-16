@@ -34,7 +34,7 @@ Todos os `PARAMETROS_PADRAO` (criados em default por
 | `cfop.transferencia` | `6.102` | systextil / fiscal | CFOP de transferência/interestadual |
 | `pagamento.forma.bling` | `10661724` | bling / financeiro | forma de pagamento no Bling: **Crediário** (loja paga a Pro Moda em 30 dias) |
 | `pagamento.condicao.systextil` | `1 parcela, vencimento=30, percentual_vencimento=100` | systextil / financeiro | condição de pagamento de venda no Systêxtil (parcela única +30 dias) |
-| `pagamento.condicao.systextil.codigo` | *(vazio)* | systextil / financeiro | **código** da condição de pagamento (ver `/venda/v1/condicao/pagamento`). **Obrigatório para o pedido de venda (C5)** — sem valor, pedido recusado com 400 |
+| `pagamento.condicao.systextil.codigo` | *(vazio; auto-resolvido)* | systextil / financeiro | **código** da condição de pagamento (ver `/venda/v1/condicao/pagamento`). **Obrigatório para o pedido de venda (C5)** — se vazio, o processador busca/cria via `GET/POST /venda/v1/condicao/pagamento` (`resolveCondicaoPagamento()`) e salva aqui |
 | `pagamento.vencimento.dias` | `30` | geral / financeiro | prazo do repasse da loja para a Pro Moda (dias após faturamento) |
 | `transporte.transportadora` | `Correios` | bling / logistica | transportadora padrão do pedido (`transp_nome`) |
 | `titulo.tipo` | `Simples` | systextil / financeiro | tipo do título a receber |

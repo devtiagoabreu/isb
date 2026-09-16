@@ -39,8 +39,10 @@ Em `/parametros` confirmar/criar (a maioria já vem por default):
   (**14889183873** — criado manualmente no Bling);
 - `serie.nfe.ecommerce`, `serie.nfe.ecommerce.epf`, `cfop.sp`, `cfop.transferencia`,
   `pagamento.forma.bling`, `pagamento.vencimento.dias`;
-- **`pagamento.condicao.systextil.codigo`** — preencher com o código da condição
-  de pagamento no Systêxtil (sem isso não há pedido de venda; ver **C5**).
+- **`pagamento.condicao.systextil.codigo`** — se vazio, o pipeline tenta
+  **auto-resolver** (busca/cria via `GET/POST /venda/v1/condicao/pagamento` na
+  primeira venda); preencher manualmente apenas se o proxy não expuser o
+  endpoint (ver **C5** em `bloqueios-pendencias.md`).
 
 ### 1.5 Cadastro do depósito espelho no Bling
 

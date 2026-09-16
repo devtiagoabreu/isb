@@ -109,12 +109,14 @@ Divide o documento do contato na chave de pessoa do Systêxtil:
 | `tipo_peca_pedido: 2`, `tipo_pedido: 1`, `tipo_produto_pedido: 1`, `tipo_promocao_pedido: 0` | constantes |
 | `codigo_pedido_cliente` | `BLG-{numero}` (vínculo com o Bling) |
 | `itens_pedidos[]` | item do Bling → chave 4 partes (`parseSku`), `quantidade`, `valor_unitario`, `deposito_id` (parâmetro depósito e-commerce) |
-| `condicao_pagamento` | só se `pagamento.condicao.systextil.codigo` preenchido |
+| `condicao_pagamento` | se `pagamento.condicao.systextil.codigo` vazio, o pipeline tenta **auto-resolver** (`resolveCondicaoPagamento()`) antes de montar o payload; se falhar, o campo vai vazio → 400 (C5) |
 
 - **201** → sucesso (`id` lido de `body.id`).
 - **409** → sucesso (idempotência).
-- **400/outros** → erro; **400 com condição de pagamento vazia é o caso C5**
-  (ver `bloqueios-pendencias.md`).
+- **400/outros** → erro; **400 com condição de pagamento vazia** significa que
+  o `resolveCondicaoPagamento()` falhou (proxy não exposto ou sem retorno) —
+  preencher `pagamento.condicao.systextil.codigo` em `/parametros` (ver C5 em
+  `bloqueios-pendencias.md`).
 
 ### Passo 4 — Documento de saída (a NF faturada no Bling inserida no Systêxtil)
 

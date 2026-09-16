@@ -1,6 +1,7 @@
 # Estado da Integração — ISB (Systêxtil × Bling, e-commerce)
 
-> Documento de situação atual. Atualizado em **2026-09-11** (Fase 3 entregue).
+> Documento de situação atual. Atualizado em **2026-09-16** (C5 auto-resolvido
+> via API, cron diário criado; parseSku aceita SKU pontuado; upsert no import).
 > Fonte de verdade das decisões em andamento: `.agent/docs/plano-integracao-ecommerce.md`
 > (não é versionado). Este arquivo é a visão geral **versionada** para a equipe.
 
@@ -75,10 +76,12 @@
 ## 4. Como operar
 
 1. **Estoque (Systêxtil → Bling):** tela `/reconciliacao-estoque` →
-   *Executar dry-run* → *Executar (aplica saldos)*. Manual (sem cron).
+   *Executar dry-run* → *Executar (aplica saldos)*. Há também **cron diário**
+   (Vercel Hobby, `0 3 * * *`) que roda o **dry-run** automaticamente (seguro
+   enquanto o depósito 034 estiver vazio); o `executar` continua manual.
 2. **Vendas (Bling → Systêxtil):** faturado no Bling → evento entra na fila →
-   processado em background; para drenar manualmente: tela
-   `/vendas-processadas` → *Processar pendentes* (ou
+   processado em background; o **cron diário drena até 50 pendentes**; para
+   drenar manualmente: tela `/vendas-processadas` → *Processar pendentes* (ou
    `POST /api/bling/vendas`).
 3. **Captura de eventos:** o webhook do Bling deve estar apontando para
    `<ISB>/api/bling/webhook` com `BLING_WEBHOOK_SECRET`.
@@ -89,10 +92,10 @@
 |---|---|---|---|
 | C7-a | `POST /notafiscal/v1/documento/saida` **não publicado** na API do Systêxtil (só GET exposto; POST retorna 404/405 no ORDS/proxy) | Inserção/escrituração da NF de saída faturada no Bling **não acontece**; passo fica `bloqueado` | Jean / ORDS (expor POST de documento de saída) |
 | C7-b | `GET /notafiscal/v1/xmlnfe` → **504** (Gateway Time-out Cloudflare) | XML ainda não utilizável | Jean / Systêxtil |
-| C5 | `pagamento.condicao.systextil.codigo` **vazio** → pedido 400 ("Condição de pagamento não cadastrada") | Pedido de venda recusado até preencher | Financeiro (código da condição de pagamento de venda) |
+| C5 | `pagamento.condicao.systextil.codigo` vazio → pedido 400 | **Auto-resolvido**: o processador busca/cria a condição via `GET/POST /venda/v1/condicao/pagamento` e salva o código. Validar na 1ª venda real — se o proxy bloquear o endpoint, aí sim preencher o param | Dev (auto-resolve `resolveCondicaoPagamento()`) |
 | — | Payloads reais de cliente/pedido/título **não validadas com dados reais** (probe usou body vazio) | Primeira venda pode 400 e exigir ajuste de campos | Dev + teste com NF real |
 | — | Webhook não testado com **evento real** (assinatura, fila, SEFAZ) | Primeira fatura é a prova | Dev |
-| — | Consumidor roda em **background fire-and-forget** (sem cron/persistência de worker) | Em serverless, execução pode ser abortada; fila retomada manualmente | Dev (aceitável p/ início) |
+| — | Consumidor roda em **background fire-and-forget** (cron diário drena até 50 vendas; sem worker persistente) | Em serverless, execução pode ser abortada; fila retomada manualmente ou pelo cron | Dev (aceitável p/ início) |
 
 ## 6. Parâmetros de integração (`/parametros`)
 
@@ -105,7 +108,7 @@
 | `cfop.transferencia` | `6.102` | CFOP transferência/interestadual |
 | `pagamento.forma.bling` | `10661724` | Forma de pagamento no pedido Bling (Crediário 30d) |
 | `pagamento.condicao.systextil` | `1 parcela, vencimento=30, percentual_vencimento=100` | Condição de pagamento (descrição) |
-| `pagamento.condicao.systextil.codigo` | ⚠️ **vazio** | Código da condição de pagamento de venda (recusa o pedido se vazio) |
+| `pagamento.condicao.systextil.codigo` | *(vazio; auto-resolvido)* | Código da condição de pagamento de venda — se vazio, decorre `resolveCondicaoPagamento()` (busca/cria no Systêxtil) |
 | `pagamento.vencimento.dias` | `30` | Prazo do repasse da loja (dias após faturamento) |
 | `empresa.systextil.ecommerce` | `1` | Empresa usada nos lançamentos (título, doc. saída) |
 | `transporte.transportadora` | `Correios` | Transportadora padrão do pedido |
@@ -119,8 +122,9 @@
 
 - **Depósito 034** = depósito de e-commerce, **vazio por design**; saldo entra
   por **transferência manual**; reconciliação lê o 034.
-- **Reconciliação periódica = manual** (sem cron); evita balanço indesejado em
-  estoque ainda não transferido.
+- **Reconciliação periódica**: **cron diário roda o dry-run** (Vercel Hobby,
+  `0 3 * * *` — 1 job/dia); `executar` continua manual, evitando balanço
+  indesejado em estoque ainda não transferido para o 034.
 - **Sacado do título = consumidor final da NF-e** (decisão 2026-09-10).
 - **Idempotência** da Fase 3 por `eventId` (webhook) e por `nfeId+chaveAcesso`
   (registro já consolidado) — evita duplicar cliente/pedido/doc/título.
@@ -134,14 +138,15 @@
 
 1. Liberar `POST /notafiscal/v1/documento/saida` (C7-a, Jean) — destrava a
    inserção/escrituração da NF de saída faturada no Bling.
-2. Preencher `pagamento.condicao.systextil.codigo` (C5, financeiro).
-3. Testar com a **primeira venda real faturada**: validar payloads de
-   cliente/pedido/doc. de saída/título e iterar nos campos exigidos (400 com
-   lista de campos).
+2. **Primeira venda real faturada**: valida o auto-resolve de C5 (se o proxy
+   expor `GET/POST /venda/v1/condicao/pagamento`), os payloads de
+   cliente/pedido/doc. de saída/título e o webhook com assinatura real.
+3. Testar com a **primeira venda real faturada**: iterar nos campos exigidos
+   (400 com lista de campos) até cliente/pedido/doc. de saída/título passarem.
 4. Se necessário, `GET /notafiscal/v1/xmlnfe` (C7-b) para validar o XML antes
    do doc. de saída.
-5. Opcional: agendar o drain da fila (cron/Vercel) e migrar o consumidor
-   para processamento em worker dedicado se o volume crescer.
+5. Ativar o cron na Vercel (criar `CRON_SECRET` + deploy). Se o volume crescer,
+   migrar o consumidor para worker dedicado.
 
 ## 9. Referências locais
 
