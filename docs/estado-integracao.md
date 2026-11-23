@@ -1,10 +1,11 @@
 # Estado da Integração — ISB (Systêxtil × Bling, e-commerce)
 
-> Documento de situação atual. Atualizado em **2026-11-21** (Fase 3: retry com
-> backoff e dead-letter na fila de vendas; C5 auto-resolvido via API, cron
-> diário criado; parseSku aceita SKU pontuado; upsert no import).
+> Documento de situação atual. Atualizado em **2026-11-23** (Fases 1–4 do
+> plano de confiabilidade: migration versionada, 38 testes automatizados e CI
+> com lint/tipos/testes/build; C7-a resolvido; pendências C7-a-r e C9.
 > Fonte de verdade das decisões em andamento: `.agent/docs/plano-integracao-ecommerce.md`
-> (não é versionado). Este arquivo é a visão geral **versionada** para a equipe.
+> (não é versionado). Este arquivo é a visão geral **versionada** para a equipe;
+> o detalhe das fases 1–5 está em `docs/plano-confiabilidade-isb.md`.
 
 ## 1. Contexto e stack
 
@@ -78,6 +79,20 @@
   * novos parâmetros: `empresa.systextil.ecommerce` e
     `pagamento.condicao.systextil.codigo`.
 
+### Fase 4 — Confiabilidade (feita)
+- `f7ec2d2` — retry/dead-letter + migration versionada + catálogo oficial da
+  API Systêxtil (73 paths / 160 operações). `prisma migrate status`:
+  **25 migrations, schema up to date**.
+- `179ebc5` — Vitest 4.1.12 pinado, **38 testes** em 4 arquivos (funções puras,
+  decisões da fila com Prisma mockado, webhook e reprocesso manual) e workflow
+  `.github/workflows/ci.yml` (push/PR em `main`: `npm ci` → `prisma generate`
+  → lint → `tsc` → testes → build; job opcional `migrate status` no staging).
+- Verificação final 2026-11-23: lint 0 erros (1 aviso pré-existente em
+  `lib/crud/help.ts:55`), `tsc --noEmit` limpo, 38/38 testes verdes, build de
+  produção OK, `git diff --check` limpo.
+- **Não enviado ao remoto**: o push fica condicionado ao gate da NF-e real
+  (§5 e §8).
+
 ## 4. Como operar
 
 1. **Estoque (Systêxtil → Bling):** tela `/reconciliacao-estoque` →
@@ -97,6 +112,8 @@
 | # | Pendência | Impacto | Quem |
 |---|---|---|---|
 | ~~C7-a~~ | **RESOLVIDO (2026-11-21):** `POST /notafiscal/v1/documento/saida` **já está habilitado no tenant** (confirmação do usuário). Doc oficial publica GET + POST (`post_documento_saida`) | Escrituração da NF de saída faturada no Bling destravada; falta validar com venda real (payload e idempotência) | — |
+| C7-a-r | Validar na 1ª venda se o payload **flat** do doc. de saída é aceito; se vier 400, migrar para o envelope oficial `items[]` | Pode exigir ajuste no passo `documentoSaida` | Dev + NF real |
+| C9 | `splitCnpjCpf` fatia 14 dígitos em **9+4+2** (`112223330/0018/1`); docs internos divergem entre 8 e 9 dígitos no `cnpj_9`. Comportamento atual mantido e congelado por teste | Chave de cliente/pedido pode estar errada no ERP | Dev + Jean / NF real |
 | C7-b | `GET /notafiscal/v1/xmlnfe` → **504** (Gateway Time-out Cloudflare) | XML ainda não utilizável | Jean / Systêxtil |
 | C5 | `pagamento.condicao.systextil.codigo` vazio → pedido 400 | **Auto-resolvido**: o processador busca/cria a condição via `GET/POST /venda/v1/condicao/pagamento` e salva o código. Validar na 1ª venda real — se o proxy bloquear o endpoint, aí sim preencher o param | Dev (auto-resolve `resolveCondicaoPagamento()`) |
 | — | Payloads reais de cliente/pedido/título **não validadas com dados reais** (probe usou body vazio) | Primeira venda pode 400 e exigir ajuste de campos | Dev + teste com NF real |
@@ -142,18 +159,25 @@
 
 ## 8. Próximos passos (ordem sugerida)
 
-1. **Primeira venda real faturada**: valida o auto-resolve de C5, os payloads
-   (com atenção ao formato do doc. de saída — C7-a-r), o webhook com assinatura
-   real e a não duplicação no retry do evento.
-2. Confirmar a baixa do saldo do depósito `034` e iterar nos campos exigidos
-   (400 com lista de campos) até cliente/pedido/doc. de saída/título passarem.
-3. Se necessário, `GET /notafiscal/v1/xmlnfe` (C7-b) para validar o XML antes
+1. **Gate externo (P0-1): primeira venda/NF-e de homologação no Bling** — é a
+   prova final: valida o auto-resolve de C5, o webhook com assinatura real, os
+   payloads (C7-a-r, C9) e a não duplicação no retry do evento.
+2. Confirmar no Systêxtil o **pedido + documento de saída + título** gerados e a
+   **baixa do saldo do depósito `034`**; iterar nos campos exigidos (400 com
+   lista de campos) se houver rejeição.
+3. Somente após 1 e 2: **fazer o push** dos commits locais (`f7ec2d2`,
+   `179ebc5`) — até lá o remoto está intentionally desatualizado.
+4. Se necessário, `GET /notafiscal/v1/xmlnfe` (C7-b) para validar o XML antes
    do doc. de saída.
-4. Ativar o cron na Vercel (criar `CRON_SECRET` + deploy). Se o volume crescer,
+5. Ativar o cron na Vercel (criar `CRON_SECRET` + deploy). Se o volume crescer,
    migrar o consumidor para worker dedicado.
+6. Triar as 15 vulnerabilidades do `npm audit` (1 critical) e decidir se entra
+   etapa bloqueante na CI.
 
 ## 9. Referências locais
 
+- **Roadmap e plano de confiabilidade (versionados):** `docs/roadmap-isb.md` e
+  `docs/plano-confiabilidade-isb.md`
 - Plano detalhado (não versionado): `.agent/docs/plano-integracao-ecommerce.md`
 - Webhooks Bling: `.agent/docs/bling-webhooks.md`
 - Fluxo NF-e Bling: `.agent/docs/bling-fluxo-nfe.md`
