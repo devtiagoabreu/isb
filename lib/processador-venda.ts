@@ -5,6 +5,22 @@ import { listarParams } from "@/lib/integracao";
 import type { Prisma, VendaRegistro } from "@/prisma/generated/client";
 
 const MAX_TENTATIVAS = 10;
+// Backoff exponencial curto no início e teto de 24h (o cron é diário).
+const BACKOFF_MINUTOS = [1, 5, 15, 60, 360, 1440];
+// Um "processando" mais velho que isso é lock abandonado (serverless abortado).
+const LOCK_STALE_MS = 15 * 60 * 1000;
+export const STATUS_DEAD_LETTER = "dead_letter";
+
+export function calcularProximaTentativa(
+  tentativas: number,
+  agora = new Date()
+): Date {
+  const indice = Math.min(
+    Math.max(tentativas, 1) - 1,
+    BACKOFF_MINUTOS.length - 1
+  );
+  return new Date(agora.getTime() + BACKOFF_MINUTOS[indice] * 60_000);
+}
 
 export type StatusPasso =
   | "ok"
@@ -300,35 +316,77 @@ export async function listarVendaRegistros(options: { take?: number } = {}) {
   }));
 }
 
+// Falha de uma tentativa: agenda a próxima com backoff ou vai para dead-letter.
+async function registrarFalha(
+  id: number,
+  tentativas: number,
+  mensagem: string,
+  steps?: StepsTyped
+): Promise<VendaRegistroRow> {
+  const esgotou = tentativas >= MAX_TENTATIVAS;
+  return prisma.vendaRegistro.update({
+    where: { id },
+    data: {
+      status: esgotou ? STATUS_DEAD_LETTER : "erro",
+      erro:
+        mensagem || `Excedeu ${MAX_TENTATIVAS} tentativas. Revisar manualmente.`,
+      ...(steps ? { steps: steps as unknown as Prisma.InputJsonValue } : {}),
+      proximaTentativaEm: esgotou
+        ? null
+        : calcularProximaTentativa(tentativas),
+      atualizadoEm: new Date(),
+    },
+  });
+}
+
 export async function processarVendaRegistro(
   id: number
 ): Promise<VendaRegistroRow> {
   const row = await prisma.vendaRegistro.findUnique({ where: { id } });
   if (!row) throw new Error(`VendaRegistro ${id} não encontrado.`);
-  if (row.status === "processando") return row;
 
-  try {
-    const atualizado = await prisma.vendaRegistro.update({
-      where: { id },
-      data: {
-        status: "processando",
-        tentativas: { increment: 1 },
-        atualizadoEm: new Date(),
-      },
-    });
-    if (atualizado.tentativas > MAX_TENTATIVAS) {
-      return prisma.vendaRegistro.update({
-        where: { id },
-        data: {
-          status: "erro",
-          erro: `Excedeu ${MAX_TENTATIVAS} tentativas. Revisar manualmente.`,
-        },
-      });
-    }
-  } catch {
-    // Corrida entre fila e webhook: outra execução já pegou.
+  // Dead-letter só sai da fila com reprocesso manual explícito.
+  if (row.status === STATUS_DEAD_LETTER) return row;
+
+  // Redelivery do webhook não pode furar o backoff. O drenador já filtra, mas
+  // o webhook chama esta função direto na linha retornada pelo upsert.
+  if (
+    row.proximaTentativaEm &&
+    row.proximaTentativaEm.getTime() > Date.now()
+  ) {
     return row;
   }
+
+  if (row.status === "processando") {
+    // Lock abandonado: a invocação anterior morreu sem gravar o erro.
+    if (Date.now() - row.atualizadoEm.getTime() < LOCK_STALE_MS) return row;
+    return registrarFalha(
+      id,
+      row.tentativas,
+      "Processamento interrompido (lock abandonado). Reagendado pela fila."
+    );
+  }
+
+  if (row.tentativas >= MAX_TENTATIVAS) {
+    return registrarFalha(
+      id,
+      row.tentativas,
+      row.erro ??
+        `Excedeu ${MAX_TENTATIVAS} tentativas. Revisar e reprocessar manualmente.`
+    );
+  }
+
+  // Claim atômico: evita que webhook, cron e botão processem a mesma linha.
+  const claim = await prisma.vendaRegistro.updateMany({
+    where: { id, status: row.status },
+    data: {
+      status: "processando",
+      tentativas: { increment: 1 },
+      atualizadoEm: new Date(),
+    },
+  });
+  if (claim.count === 0) return row;
+  const tentativas = row.tentativas + 1;
 
   const webhook = await prisma.blingWebhook.findUnique({
     where: { eventId: row.eventId },
@@ -339,25 +397,28 @@ export async function processarVendaRegistro(
 
   try {
     const conclusao = await executarPipeline(row, data);
+    if (conclusao.status === "erro") {
+      return registrarFalha(
+        id,
+        tentativas,
+        conclusao.erro ?? "Falha no processamento da venda.",
+        conclusao.steps
+      );
+    }
     return prisma.vendaRegistro.update({
       where: { id },
       data: {
         status: conclusao.status,
         erro: conclusao.erro,
         steps: conclusao.steps as unknown as Prisma.InputJsonValue,
+        proximaTentativaEm: null,
         processadoEm: new Date(),
         atualizadoEm: new Date(),
       },
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    await prisma.vendaRegistro.update({
-      where: { id },
-      data: { status: "erro", erro: msg, atualizadoEm: new Date() },
-    });
-    const r = await prisma.vendaRegistro.findUnique({ where: { id } });
-    if (!r) throw error;
-    return r;
+    return registrarFalha(id, tentativas, msg);
   }
 }
 
@@ -569,8 +630,9 @@ async function executarPipeline(
   // Têxtil (série 2), originadas de pedidos da loja online. O fluxo as insere no
   // Systêxtil como documento de saída (escrituração de NF emitida fora do ERP,
   // sem reemitir ao Sefaz): destinatário = cliente do Bling (chave), depósito de
-  // saída = e-commerce. A API pública do Systêxtil expõe apenas GET de documento
-  // de saída — POST não publicado (C7/Jean), então o passo fica "bloqueado".
+  // saída = e-commerce. A doc oficial publica GET + POST neste path e o POST
+  // já está habilitado no tenant (2026-11-21). Um 404/405 aqui é inesperado:
+  // verificar path/query sync/payload antes de reprocessar.
   const isVendaFinal =
     steps.cliente?.status === "ok" && steps.pedido?.status === "ok";
   if (!isVendaFinal) {
@@ -609,10 +671,12 @@ async function executarPipeline(
         })),
       },
     });
-    if (docRes.status === 201) {
+    // A doc oficial declara 200 (sucesso_assincrono) para este POST; 201 é
+    // aceito por compatibilidade com tenants que ainda respondem "Created".
+    if (docRes.status === 200 || docRes.status === 201) {
       steps.documentoSaida = {
         status: "ok",
-        http: 201,
+        http: docRes.status,
         mensagem: "Documento de saída inserido (nota faturada no Bling escriturada no Systêxtil).",
       };
     } else if (docRes.status === 409) {
@@ -626,10 +690,10 @@ async function executarPipeline(
         status: "bloqueado",
         http: docRes.status,
         mensagem:
-          `POST /notafiscal/v1/documento/saida não publicado na API do Systêxtil (só GET; HTTP ${docRes.status}). Abrir com o Jean (ORDS/proxy) para liberar POST de documento de saída e reprocessar.`,
+          `POST /notafiscal/v1/documento/saida (HTTP ${docRes.status}) inesperado: a operação está documentada (GET + POST, operationId post_documento_saida) e o POST já está habilitado no tenant (2026-11-21). Verificar path, query sync, formato do payload (C7-a-r) ou regra do proxy/ORDS antes de reprocessar.`,
       };
       erros.push(
-        `documentoSaida: ${docRes.status} (POST documento de saída não exposto na API)`
+        `documentoSaida: ${docRes.status} (POST recusado — verificar path/query/payload)`
       );
     } else {
       const m = mensagemErro(docRes);
@@ -644,7 +708,7 @@ async function executarPipeline(
   }
 
   // ---- Passo título (contas a receber da loja) ----------------------------
-  if (steps.cliente?.status !== "ok" && steps.pedido?.status !== "ok") {
+  if (steps.cliente?.status !== "ok" || steps.pedido?.status !== "ok") {
     steps.titulo = {
       status: "ignorado",
       mensagem: "Depende de cliente e pedido registrados.",
@@ -705,13 +769,21 @@ async function executarPipeline(
   };
 }
 
-// Drena a fila de eventos pendentes (limite por chamada para não estourar o
-// tempo de execução). Retorna quantos foram processados.
+// Drena a fila respeitando o backoff: linhas com erro só voltam quando
+// proximaTentativaEm venceu (nulas = legado, elegíveis imediatamente).
+// Dead-letter nunca é drenada automaticamente.
 export async function drenarVendasPendentes(
   limit: number = 10
 ): Promise<{ processados: number; ids: number[] }> {
+  const agora = new Date();
   const pendentes = await prisma.vendaRegistro.findMany({
-    where: { status: { in: ["pendente", "erro"] } },
+    where: {
+      OR: [
+        { status: "pendente" },
+        { status: "erro", proximaTentativaEm: null },
+        { status: "erro", proximaTentativaEm: { lte: agora } },
+      ],
+    },
     orderBy: { id: "asc" },
     take: limit,
     select: { id: true },
@@ -729,6 +801,29 @@ export async function drenarVendasPendentes(
   return { processados: processados.length, ids };
 }
 
+// Reprocesso manual de uma linha da fila (inclusive dead-letter): zera as
+// tentativas e processa imediatamente, após correção da causa raiz.
+export async function reprocessarVendaRegistro(
+  id: number
+): Promise<VendaRegistroRow> {
+  const row = await prisma.vendaRegistro.findUnique({ where: { id } });
+  if (!row) throw new Error(`VendaRegistro ${id} não encontrado.`);
+  if (row.status === "processando") return row;
+
+  await prisma.vendaRegistro.update({
+    where: { id },
+    data: {
+      status: "pendente",
+      tentativas: 0,
+      erro: null,
+      proximaTentativaEm: null,
+      processadoEm: null,
+      atualizadoEm: new Date(),
+    },
+  });
+  return processarVendaRegistro(id);
+}
+
 // Processa uma NF-e específica (ação manual do painel de monitoramento).
 // Enfileira uma linha vinculada à nota (eventId manual) e a processa na hora;
 // se o evento manual já existir, reprocessa a linha existente.
@@ -744,5 +839,16 @@ export async function processarNotaBling(
     create: { eventId, nfeId },
     update: {},
   });
+  if (reg.status === STATUS_DEAD_LETTER || reg.status === "erro") {
+    await prisma.vendaRegistro.update({
+      where: { id: reg.id },
+      data: {
+        status: "pendente",
+        tentativas: 0,
+        erro: null,
+        proximaTentativaEm: null,
+      },
+    });
+  }
   return processarVendaRegistro(reg.id);
 }

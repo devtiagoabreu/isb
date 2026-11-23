@@ -63,8 +63,10 @@ copiar o id para o parâmetro acima.
 4. `erro` → abrir a linha, ver `steps`, corrigir causa (ex.: preencher condição
    de pagamento) e reprocessar.
 
-**Ponto de atenção**: `documento_saida` fica `bloqueado` até o Systêxtil expor
-o POST (C7-a) → a venda sai `concluido_parcial`. Isso é esperado hoje.
+**Ponto de atenção**: o POST de `documento_saida` **já está habilitado no
+tenant** (C7-a resolvido em 2026-11-21). Se o passo ainda falhar, a causa mais
+provável é o formato do payload (ver `bloqueios-pendencias.md`, item C7-a-r) —
+corrija e use **Reprocessar** na linha.
 
 ### 2.2 Estoque
 
@@ -122,6 +124,6 @@ Para testar webhook localmente: usar um túnel (ex.: ngrok) apontando para
 | Webhook 401 | `BLING_WEBHOOK_SECRET` ≠ secret do app; ou app não configurado |
 | Refresh falha em série | duas instâncias refreshando sem lock global (ver `seguranca.md`) |
 | Pedido 400 | condição de pagamento vazia (**C5**) |
-| `documentoSaida` bloqueado | `POST /notafiscal/v1/documento/saida` não exposto (**C7-a**) |
+| `documentoSaida` bloqueado | 404/405 inesperado: POST já habilitado no tenant (C7-a resolvido) — verificar path/`sync`/payload (C7-a-r) e reprocessar |
 | Saldo do Bling não muda | 034 vazio (transferência pendente no Systêxtil) ou depósito espelho sem id correto |
 | Teste dá 404 RESOURCE_NOT_FOUND | endpoint não habilitado no plano/conta do Bling (estruturas, tabelas de preço, etc.) |

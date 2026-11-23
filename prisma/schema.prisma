@@ -60,14 +60,16 @@ model VendaRegistro {
   situacao     Int?
   status       String   @default("pendente")
   steps        Json     @default("{}")
-  erro         String?
-  tentativas   Int      @default(0)
-  processadoEm DateTime?
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  erro               String?
+  tentativas         Int      @default(0)
+  proximaTentativaEm DateTime?
+  processadoEm       DateTime?
+  criadoEm           DateTime @default(now())
+  atualizadoEm       DateTime @updatedAt
 
   @@unique([nfeId, chaveAcesso])
   @@index([status])
+  @@index([status, proximaTentativaEm])
   @@map("venda_registros")
 }
 

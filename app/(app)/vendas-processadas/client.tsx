@@ -35,6 +35,7 @@ interface VendaRow {
   steps: Record<string, Passo | undefined> | null;
   erro: string | null;
   tentativas: number;
+  proximaTentativaEm: string | null;
   processadoEm: string | null;
   criadoEm: string;
   atualizadoEm: string;
@@ -70,6 +71,7 @@ function toneStatus(status: string): Tone {
     case "concluido_parcial":
       return "warn";
     case "erro":
+    case "dead_letter":
       return "error";
     case "processando":
       return "info";
@@ -142,6 +144,28 @@ export default function VendasProcessadasClient() {
     }
   }
 
+  async function reprocessar(id: number) {
+    setProcessando(true);
+    setErro("");
+    try {
+      const res = await fetch("/api/bling/vendas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setErro(data.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProcessando(false);
+    }
+  }
+
   const passosVisiveis = (r: VendaRow) =>
     PASSO_ORDER.filter((key) => r.steps?.[key]);
 
@@ -149,7 +173,12 @@ export default function VendasProcessadasClient() {
   const totalParcial = registros.filter(
     (r) => r.status === "concluido_parcial"
   ).length;
-  const totalErro = registros.filter((r) => r.status === "erro").length;
+  const totalErro = registros.filter(
+    (r) => r.status === "erro" || r.status === "dead_letter"
+  ).length;
+  const totalDeadLetter = registros.filter(
+    (r) => r.status === "dead_letter"
+  ).length;
   const totalAndamento = registros.filter(
     (r) => r.status === "processando" || r.status === "pendente"
   ).length;
@@ -161,8 +190,8 @@ export default function VendasProcessadasClient() {
           <h1 className="text-2xl font-semibold">
             <InfoTitle
               titulo="Vendas Processadas"
-              descricao="Consumidor do webhook do Bling (Fase 3): quando o pedido e-commerce é faturado no Bling, o evento invoice.* é recebido, entra na fila e a venda é registrada no Systêxtil — cliente, pedido de venda, documento de saída (escrituração da NF faturada no Bling, série 2) e título a receber. O webhook responde rápido; o processamento roda em background e a fila pode ser processada manualmente com o botão abaixo."
-              exemplo="1) O evento invoice.* chega no webhook e uma linha pendente é criada.\n2) O consumidor busca a NF-e no Bling (GET /nfe/{id}) e só processa NF com numero+chave de acesso.\n3) Passos: cliente → pedido de venda → doc. de saída (nota faturada no Bling inserida no Systêxtil) → título.\n4) Use o botão Processar pendentes para drenar a fila manualmente.\n5) Status concluido_parcial = algum passo bloqueado (ex.: POST de documento de saída não exposto na API — C7/Jean) mas sem erro fatal."
+              descricao="Consumidor do webhook do Bling (Fase 3): quando o pedido e-commerce é faturado no Bling, o evento invoice.* é recebido, entra na fila e a venda é registrada no Systêxtil — cliente, pedido de venda, documento de saída (escrituração da NF faturada no Bling, série 2) e título a receber. O webhook responde rápido; o processamento roda em background. Falhas transitórias voltam para a fila com backoff (1 min → 5 min → 15 min → 1 h → 6 h → 24 h); após 10 tentativas a linha vai para a dead-letter e só sai com reprocesso manual."
+              exemplo="1) O evento invoice.* chega no webhook e uma linha pendente é criada.\n2) O consumidor busca a NF-e no Bling (GET /nfe/{id}) e só processa NF com numero+chave de acesso.\n3) Passos: cliente → pedido de venda → doc. de saída (nota faturada no Bling inserida no Systêxtil) → título.\n4) Use o botão Processar pendentes para drenar a fila manualmente.\n5) Status concluido_parcial = algum passo bloqueado (ex.: documento de saída recusado com 404/405 — verificar path/payload) mas sem erro fatal.\n6) Erro transitório: próxima tentativa aparece no card; use Processar pendentes para adiantar.\n7) dead_letter: 10 tentativas esgotadas — corrija a causa e clique em Reprocessar."
             />
           </h1>
         </div>
@@ -193,7 +222,7 @@ export default function VendasProcessadasClient() {
             label="Com erro / em andamento"
             value={totalErro + totalAndamento}
             tone={totalErro > 0 ? "error" : "info"}
-            hint={`${totalErro} com erro · ${totalAndamento} em andamento`}
+            hint={`${totalErro} com erro (${totalDeadLetter} na dead-letter) · ${totalAndamento} em andamento`}
           />
         </StatGrid>
       )}
@@ -271,14 +300,33 @@ export default function VendasProcessadasClient() {
                     <span>{new Date(r.atualizadoEm).toLocaleString("pt-BR")}</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setExpandido(aberto ? null : r.id)}
-                    aria-expanded={aberto}
-                    className="mt-3 shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                  >
-                    {aberto ? "Ocultar detalhes ↑" : "Ver detalhes dos passos ↓"}
-                  </button>
+                  {r.proximaTentativaEm && (
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Próxima tentativa automática:{" "}
+                      {new Date(r.proximaTentativaEm).toLocaleString("pt-BR")}
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandido(aberto ? null : r.id)}
+                      aria-expanded={aberto}
+                      className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      {aberto ? "Ocultar detalhes ↑" : "Ver detalhes dos passos ↓"}
+                    </button>
+                    {(r.status === "erro" || r.status === "dead_letter") && (
+                      <button
+                        type="button"
+                        onClick={() => reprocessar(r.id)}
+                        disabled={processando}
+                        className="rounded-full border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+                      >
+                        Reprocessar
+                      </button>
+                    )}
+                  </div>
 
                   {aberto && (
                     <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">

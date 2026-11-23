@@ -10,7 +10,9 @@ export interface SystextilTestEndpoint {
 
 // ---------------------------------------------------------------------------
 // Catálogo completo de endpoints Systêxtil Cloud descobertos via portal oficial
-// https://ajuda.systextil.com.br/llms.txt (11ª–14ª rodadas, 2026-09-07).
+// https://ajuda.systextil.com.br/llms.txt (11ª–14ª rodadas, 2026-09-07;
+// varredura completa dos blocos OpenAPI em 2026-11-21 — ver
+// docs/integracao/api-systextil-catalogo.md e varredura-api-systextil.md).
 //
 // O proxy api-promoda NÃO expõe todos — esta lista serve como:
 //  1. Allowlist de testes GET no console (os GET já confirmados funcionam);
@@ -185,8 +187,9 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Centro de Custo",
     method: "GET",
-    path: "/pessoa/v1/centro-custo",
-    description: "Consulta de centros de custo — schema truncado na doc oficial",
+    path: "/centrocusto/v1/centrocusto",
+    description:
+      "Consulta de centros de custo — path oficial confirmado na varredura de 2026-11-21 (o antigo /pessoa/v1/centro-custo constava só no resumo da doc)",
   },
   {
     label: "Usuário Centro de Custo (CRUD)",
@@ -219,7 +222,7 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Tracking Pedido",
     method: "GET",
-    path: "/venda/v1/pedido/{codigo}/tracking",
+    path: "/venda/v1/pedido/{codigo_pedido}/tracking",
     description: "Status do pedido: 1 recebido→2 análise→3 aprov financeiro→4 emprenho→…→10 saiu entrega",
   },
   {
@@ -231,7 +234,7 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Itens Tabela Preço",
     method: "GET",
-    path: "/venda/v1/preco/item/{colecao}/{mes}/{seq}",
+    path: "/venda/v1/preco/item/{codigo_colecao}/{mes_tabela}/{sequencia_tabela}",
     description: "Itens da tabela de preço por produto — valor_tabela_preco, data_formacao_preco",
   },
   {
@@ -283,7 +286,7 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Requisição de Estoque",
     method: ["GET", "POST", "PUT", "DELETE"],
-    path: "/compra/v1/requisicao/estoque",
+    path: "/estoque/v1/requisicao/estoque",
     description: "Requisições de estoque — converte em requisição de compra",
   },
   {
@@ -316,9 +319,10 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   // ========================================================================
   {
     label: "Documento Saída",
-    method: "GET",
+    method: ["GET", "POST"],
     path: "/notafiscal/v1/documento/saida",
-    description: "NF-e completa (cabeçalho+itens) — tipo_nota_fiscal 1–9, situacao_nota 0–6, numero_danfe_nfe=chave acesso",
+    description:
+      "GET consulta (limit/offset/q) + POST cadastro (sync; 200/400/401/406/409/500) — NF-e completa: tipo_nota_fiscal 1–9, situacao_nota 0–6, numero_danfe_nfe=chave acesso, deposito_id nos itens. Ambos os métodos constam na doc oficial desde sempre; POST já habilitado no tenant (2026-11-21) — 404/405 agora indica verificar path/query/payload, não falta de API",
     params: [
       { key: "limit", value: "20" },
       { key: "offset", value: "0" },
@@ -457,7 +461,7 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Rolos Sugeridos",
     method: "GET",
-    path: "/crm/v1/rolos-sugeridos/{id}",
+    path: "/crm/v1/rolos-sugeridos/{id_pedido_forca_vendas}",
     description: "Detalhes dos rolos de uma sugestão — pontos_qualidade, cod_nuance, endereco",
   },
   {
@@ -475,7 +479,7 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Status Sugestão",
     method: "GET",
-    path: "/crm/v1/status-sugestao/{id}",
+    path: "/crm/v1/status-sugestao/{id_pedido_forca_vendas}",
     description: "Status de uma sugestão de rolos",
   },
   {
@@ -491,13 +495,13 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
   {
     label: "Carteira Pedidos (Representante)",
     method: "GET",
-    path: "/relatorio/v1/carteira/repres/{rep}",
+    path: "/relatorio/v1/carteira/repres/{representante}",
     description: "Carteira de pedidos por representante — qtde pedida/faturada/saldo, valor, NF",
   },
   {
     label: "Títulos (Representante)",
     method: "GET",
-    path: "/relatorio/v1/titulo/repres/{rep}/{grupo_economico}",
+    path: "/relatorio/v1/titulo/repres/{representante}/{grupo_economico}",
     description: "Títulos por representante — comissões, boleto/Pix: link_pagamento, pix_copiacola, bolepix",
   },
   {
@@ -577,5 +581,100 @@ export const SYSTEXTIL_TEST_ENDPOINTS: SystextilTestEndpoint[] = [
     method: "DELETE",
     path: "/systextil-oauth2-api/inte/renegociacao",
     description: "Cancela renegociação — exige codigo_historico_estorno+codigo_cancelamento se EFETIVADA",
+  },
+
+  // ========================================================================
+  // VARREDURA 2026-11-21 — itens publicados na doc oficial que faltavam
+  // Fonte: docs/integracao/api-systextil-catalogo.md (160 operações / 73 paths)
+  // ========================================================================
+  {
+    label: "Cancelar Pedido de Venda",
+    method: "PUT",
+    path: "/venda/v1/pedido/{codigo_pedido}/cancelar",
+    description: "Cancela pedido de venda — gravar motivo de cancelamento antes",
+  },
+  {
+    label: "Cancelar Pedido de Compra",
+    method: "PUT",
+    path: "/compra/v1/pedido/{codigo_pedido}/cancelar",
+    description: "Cancela pedido de compra",
+  },
+  {
+    label: "Cancelar Requisição de Compra",
+    method: "PUT",
+    path: "/compra/v1/requisicao/{codigo_pedido}/cancelar",
+    description: "Cancela requisição de compra",
+  },
+  {
+    label: "Pagamento de Título",
+    method: ["POST", "DELETE"],
+    path: "/financeiro/v1/pagamento",
+    description: "POST registra pagamento/baixa de título; DELETE estorna",
+  },
+  {
+    label: "Projeto",
+    method: ["GET", "POST", "PUT", "DELETE"],
+    path: "/projeto/v1/projeto",
+    description: "Projetos — CRUD completo",
+  },
+  {
+    label: "Excluir Subscription de Webhook",
+    method: "DELETE",
+    path: "/webhook/v1/subscription/{id_subscription}",
+    description: "Remove uma subscription por ID (GET/POST/DELETE em /webhook/v1/subscription)",
+  },
+  {
+    label: "Fornecedores por Produto",
+    method: "GET",
+    path: "/systextil-oauth2-api/supr/produtos",
+    description: "Consulta fornecedores de um produto (suprimentos)",
+  },
+  {
+    label: "Pagável (consulta)",
+    method: "GET",
+    path: "/v1/pagavel",
+    description: "Paytrack — contas pagáveis/despesas",
+  },
+  {
+    label: "Despesas Cartão",
+    method: "POST",
+    path: "/v1/pagavel/despesas",
+    description: "Paytrack — lança despesas de cartão",
+  },
+  {
+    label: "Reembolso",
+    method: "POST",
+    path: "/v1/pagavel/reembolso",
+    description: "Paytrack — solicita reembolso de despesa",
+  },
+  {
+    label: "Adiantamentos",
+    method: "POST",
+    path: "/v1/adiantamentos",
+    description: "Paytrack — cria adiantamento",
+  },
+  {
+    label: "Cancelar Adiantamento",
+    method: "PUT",
+    path: "/v1/adiantamentos/cancelar",
+    description: "Paytrack — cancela adiantamento",
+  },
+  {
+    label: "Centros de Custo (Paytrack)",
+    method: "GET",
+    path: "/v1/centros-custo",
+    description: "Paytrack — consulta de centros de custo",
+  },
+  {
+    label: "Prestação de Contas",
+    method: "POST",
+    path: "/v1/prestacao-contas",
+    description: "Paytrack — cria prestação de contas",
+  },
+  {
+    label: "Devolução",
+    method: "POST",
+    path: "/v1/devolucao",
+    description: "Paytrack — registra devolução",
   },
 ];

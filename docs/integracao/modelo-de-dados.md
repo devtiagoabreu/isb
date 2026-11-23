@@ -41,12 +41,13 @@ Fonte: `prisma/schema.prisma`. Todas as tabelas são mapeadas com `@@map`
 | `contatoCnpj`, `contatoNome` | documento/nome do cliente (consumidor) |
 | `valorTotal` | Decimal(12,2) — valor total da nota |
 | `situacao` | situação da NF-e no Bling no momento do evento |
-| `status` | fila: `pendente` → `processando` → `concluido` / `concluido_parcial` / `erro` / `ignorado` |
+| `status` | fila: `pendente` → `processando` → `concluido` / `concluido_parcial` / `erro` / `dead_letter` / `ignorado` |
 | `steps` | Json — resultado por passo (`cliente`, `pedido`, `documentoSaida`, `titulo`, `nfe`) |
-| `erro`, `tentativas` | contador de tentativas (máx. 10) |
+| `erro`, `tentativas` | mensagem da última falha e contador de tentativas (máx. 10) |
+| `proximaTentativaEm` | backoff da próxima tentativa (`1/5/15/60/360/1440` min); nulo = elegível agora ou dead-letter |
 | `processadoEm`, `criadoEm`, `atualizadoEm` | timestamps |
 
-- **Índices**: `@@unique([nfeId, chaveAcesso])` (idempotência), `@@index([status])`.
+- **Índices**: `@@unique([nfeId, chaveAcesso])` (idempotência), `@@index([status])`, `@@index([status, proximaTentativaEm])` (dreno do backoff).
 - Status dos passos em `steps`: `ok | erro | ignorado | bloqueado`,
   cada um com `{ status, http?, mensagem?, detalhe? }`.
 

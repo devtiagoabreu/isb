@@ -127,7 +127,7 @@ sem teste no proxy; ❌ retornam 404 nesta conta.
 **Fiscal:**
 | Método | Caminho | Status | Observação |
 |--------|---------|--------|------------|
-| GET | `/notafiscal/v1/documento/saida` | ⚠️ | tipo_nota 1–9, situacao 0–6 |
+| GET/POST | `/notafiscal/v1/documento/saida` | ⚠️ | POST `sync` (`post_documento_saida`, 200/400/401/406/409/500); GET tipo_nota 1–9, situacao 0–6 |
 | GET/POST | `/notafiscal/v1/documento/entrada` | ⚠️ | POST sync; 406/409 erros |
 | GET | `/notafiscal/v1/xmlnfe` | ⚠️ | campo xml (conteúdo XML) |
 
@@ -825,8 +825,14 @@ Conteúdo completo em `.agent/docs/systextil-apis-vendas-financeiro.md`.
   `transacaoId`, `centroCustoId`, `quantidade`, `valorUnitario`,
   `grupoMaq`/`subgrupoMaq`/`nrMaq`, projeto/subprojeto/servico; `sync` =
   síncrono/assíncrono) enquanto as consultas retornam **snake_case**.
-- **Documento Saída (`GET /notafiscal/v1/documento/saida`):** NF completa
-  (cabeçalho + itens + processo referenciado). `tipo_nota_fiscal`
+- **Documento Saída (`GET|POST /notafiscal/v1/documento/saida`):** NF completa
+  (cabeçalho + itens + processo referenciado). GET = consulta (`limit`/`offset`/
+  `q`); POST = cadastro com `sync`, `operationId post_documento_saida`, body
+  `items[]` (190+ campos: `empresa`, `nota_fiscal`, `serie_nota_fiscal`, CFOP,
+  condição de pagamento, datas, `situacao_nota`, `numero_danfe_nfe` = chave,
+  `pedido_venda`, `deposito_id` nos itens), respostas 200/400/401/406/409/500.
+  **A doc oficial SEMPRE publicou o POST**, que **já está habilitado no
+  tenant** (C7-a resolvido em 2026-11-21). `tipo_nota_fiscal`
   **1** Normal/**2** Complementar/**3** Ajuste/**9** relacionadas;
   `numero_danfe_nfe` = chave de acesso; `tipo_frete` 1 pago/2 a pagar/
   3 terceiros/4 cortesia/6 próprios/7 destinatário/9 sem frete;
@@ -998,9 +1004,10 @@ fornecedor. Conteúdo completo em
   `responsavel_desenvolvimento_produto`, `supervisor_projeto`); `custo_hora`,
   `centro_custo_id`, `turno`, `cracha`, máquinas — conecta
   `codigo_funcionario` do pedido de venda (13ª) e OPs (7ª/8ª).
-- **Centro de Custo (`/pessoa/v1/centro-custo`, só GET):** schema **truncado
-  na doc** (sem campos recuperáveis); já usado como FK em todo o ERP (estoque
-  12ª, título a pagar 12ª, lançamento contábil 14ª, paytrack 14ª).
+- **Centro de Custo (`/centrocusto/v1/centrocusto`, só GET):** path oficial
+  confirmado na varredura de 2026-11-21 (o antigo `/pessoa/v1/centro-custo`
+  constava só no resumo da doc); já usado como FK em todo o ERP (estoque 12ª,
+  título a pagar 12ª, lançamento contábil 14ª, paytrack 14ª).
 - **Usuário Centro de Custo (`/pessoa/v1/usuario_centrocusto`, CRUD):**
   chave `centro_custo_id`+`usuario`; permissões `requisitar_material`,
   `cancelar_material`, `entregar` (almoxarife), `requisitar_compra`,
@@ -1395,3 +1402,14 @@ link_pagamento, pix_copiacola, bolepix) e Planejamento Industrial
    (recebimento pago true liquida/false gera título), devolução, reembolso,
    despesas cartão CORPORATIVO/DESPESAS, `GET /v1/pagavel?numeroAdiantamento`)
    — fonte `.agent/docs/systextil-apis-corporativo-credito-contabil-paytrack.md`.
+- 0.1.0 (2026-11-21, varredura completa): inventário de **160 operações em
+    73 paths / 66 páginas** extraídas dos blocos OpenAPI oficiais
+    (`docs/integracao/api-systextil-catalogo.md`), com GET/POST/PUT/DELETE por
+    item, parâmetros, bodies e códigos de resposta. Correções: **Documento
+    Saída tem GET + POST documentados desde sempre** (`post_documento_saida`,
+    `sync`, 200/400/401/406/409/500) — a hipótese "só GET" estava errada e
+    o POST foi confirmado habilitado no tenant (C7-a resolvido em 21/11).
+    Paths oficiais corrigidos:
+    `/centrocusto/v1/centrocusto` (centro de custo) e
+    `/estoque/v1/requisicao/estoque` (requisição de estoque). Base:
+    https://ajuda.systextil.com.br/llms.txt.

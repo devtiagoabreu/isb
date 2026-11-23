@@ -85,9 +85,33 @@ que expõe operações declaradas por `api_endpoints` para os providers `bling` 
 | GET | `/estoque/v1/estoque` | saldos por depósito (filtro `deposito_id`, paginado) |
 | POST | `/pessoa/v1/cliente` | cria cliente (201/409 = ok) |
 | POST | `/venda/v1/pedido/venda` | cria pedido de venda (201/409 = ok) |
-| POST | `/notafiscal/v1/documento/saida` | insere NF de saída (fase 3; bloqueado p/ método/acesso) |
+| POST | `/notafiscal/v1/documento/saida` | insere NF de saída (fase 3; POST **habilitado no tenant** desde 2026-11-21; GET+POST publicados na doc oficial; sucesso **200** — `sucesso_assincrono` — e 409 idempotência) |
 | POST | `/financeiro/v1/titulo/receber` | cria título a receber (201/409 = ok) |
 | GET | `/notafiscal/v1/documento/saida` | consulta docs de saída (série 2) no monitor |
+
+### Catálogo completo da API Systêxtil (varredura 2026-11-21)
+
+A documentação oficial publica **várias operações no mesmo path** — em geral
+`GET` (consulta, com `limit`/`offset`/`q`) e `POST` (cadastro, com `sync`),
+além de `PUT`/`DELETE` onde aplicável. O inventário integral, gerado dos blocos
+OpenAPI de cada página em `https://ajuda.systextil.com.br/llms.txt`, está em
+[`api-systextil-catalogo.md`](api-systextil-catalogo.md) — **66 páginas,
+73 paths, 160 operações**. Resumo executivo em
+[`varredura-api-systextil.md`](varredura-api-systextil.md).
+
+Pontos corrigidos pela varredura na allowlist
+(`lib/systextil-endpoints.ts`):
+
+- `POST /notafiscal/v1/documento/saida` passou a constar como disponível
+  (antes só `GET`); o POST já está habilitado no tenant (C7-a resolvido).
+- Centro de Custo: `/pessoa/v1/centro-custo` → `/centrocusto/v1/centrocusto`.
+- Requisição de Estoque: `/compra/v1/requisicao/estoque` →
+  `/estoque/v1/requisicao/estoque`.
+- Incluídos paths publicados que faltavam (cancelamento de pedidos,
+  `POST/DELETE /financeiro/v1/pagamento`, projetos, Paytrack etc.).
+
+> A presença no catálogo documental **não garante** exposição no proxy do
+> cliente. Confira o comportamento real antes de depender de um endpoint.
 
 ## Telas (App Router) — `app/(app)/**/page.tsx`
 

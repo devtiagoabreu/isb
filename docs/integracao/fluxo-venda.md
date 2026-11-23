@@ -20,7 +20,7 @@ executarPipeline():
    2. splitCnpjCpf(contato.numeroDocumento)
    3. POST /pessoa/v1/cliente            (201/409 = ok)
    4. POST /venda/v1/pedido/venda        (201/409 = ok)
-   5. POST /notafiscal/v1/documento/saida (201/409 = ok; 404/405 = bloqueado)
+   5. POST /notafiscal/v1/documento/saida (200/409 = ok; 404/405 = verificar path/payload)
    6. POST /financeiro/v1/titulo/receber (201/409 = ok)
    ▼
 grava status + steps + erro em venda_registros
@@ -44,11 +44,16 @@ grava status + steps + erro em venda_registros
 ## A fila (`venda_registros`)
 
 - `eventId` unique ⇒ um evento só gera **uma** linha (upsert).
-- Processamento protegido por `status = processando` + `tentativas` increment:
-  se duas execuções colidirem, a perdedora vê a corrida e devolve a linha
-  atual (`lib/processador-venda.ts:210`).
-- **Máximo de 10 tentativas** (`MAX_TENTATIVAS`); acima disso a linha vai para
-  `erro` com a mensagem *"Excedeu 10 tentativas. Revisar manualmente."*.
+- Claim atômico com `updateMany(where: { id, status })`: se webhook, cron e
+  botão colidirem, só um executa; um `processando` com mais de 15 min é
+  considerado lock abandonado (serverless abortado) e volta para a fila.
+- **Retry com backoff**: falha transitória volta para `erro` com
+  `proximaTentativaEm` em 1 min → 5 min → 15 min → 1 h → 6 h → 24 h (teto).
+  O drenador (`drenarVendasPendentes`) e o cron só pegam linhas cujo prazo
+  venceu; redelivery do webhook não fura o backoff.
+- **Dead-letter**: após `MAX_TENTATIVAS = 10`, a linha vira `dead_letter` e
+  nunca volta sozinha. Após corrigir a causa, use **Reprocessar** no painel
+  (`POST /api/bling/vendas` com `{ "id": N }`) — zera tentativas e processa.
 - **Idempotência de negócio**: antes de processar, verifica se já existe outra
   linha `concluido`/`concluido_parcial` com o mesmo `nfeId + chaveAcesso`; se
   existir, a NF é marcada `ignorado` (evita duplicar cliente/pedido/doc/título).
@@ -61,7 +66,8 @@ grava status + steps + erro em venda_registros
 | `processando` | em execução (travado p/ corrida) |
 | `concluido` | todos os passos com status `ok` |
 | `concluido_parcial` | algum passo `bloqueado` (ex.: documento de saída) ou passos dependentes ignorados; **sem erro fatal** |
-| `erro` | houve erro(s) de passo ou excedeu tentativas |
+| `erro` | houve erro(s) de passo; aguardando `proximaTentativaEm` |
+| `dead_letter` | 10 tentativas esgotadas — somente reprocesso manual |
 | `ignorado` | NF ainda sem número/chave (será reprocessada) ou já registrada |
 
 ### `steps` (resultado por passo)
@@ -130,10 +136,12 @@ Corpo: `empresa` (parâmetro), `chave_acesso`, `numero_documento`,
 `valor_total_item`).
 
 > **Comportamento por status**:
-> - **201 / 409** → `ok`.
-> - **404 / 405** → `bloqueado` com a mensagem orientando a abrir com o Jean
->   (ORDS/proxy) para liberar o POST. É o **bloqueio C7-a** — a API pública
->   expõe apenas GET de documento de saída.
+> - **200 / 409** → `ok` (a doc oficial declara 200 com `sucesso_assincrono`;
+>   o código aceita 200 e, por compatibilidade, 201).
+> - **404 / 405** → `bloqueado`. O POST **já está habilitado no tenant**
+>   (C7-a resolvido), então 404/405 é inesperado: verificar path, query
+>   `sync`, payload (C7-a-r) ou regra do proxy antes de reprocessar. Um passo
+>   `bloqueado` gera `concluido_parcial` (fora do backoff).
 > - **outros** → `erro`.
 
 ### Passo 5 — Título a receber

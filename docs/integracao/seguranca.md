@@ -43,13 +43,16 @@ Os consoles não chamam URL arbitrária — chamam **apenas endpoints declarados
 
 ## Rate limit
 
-`lib/rate-limit.ts`: janela deslizante **em memória** (5 min, máx. 10
-requisições por chave em `app/api/rate-limit` — usado no registro/login e em
-rotas sensíveis). Limitações:
+`lib/rate-limit.ts`: janela deslizante em **tabela Postgres/Neon compartilhada**
+(`RateLimit`; 5 min, máx. 10 requisições por chave) — usado no login e no setup.
+Por ser compartilhado, **funciona entre instâncias serverless** (Vercel), ao
+contrário de um mapa em memória. Limitações atuais:
 
-- Vale para **uma única instância** (local/uma máquina);
-- em Vercel (multi-instância/regiões) cada instância tem seu próprio contador —
-  **migrar para Redis/tabela** antes de expor o app em produção multi-região.
+- o escopo é definido pela chave (ex.: `login:ip:<ip>`, `login:email:<email>`);
+  novos fluxos sensíveis precisam passar a chave explicitamente;
+- na primeira requisição de uma chave nova há pequena janela de corrida
+  (`updateMany` → `upsert`), tratada com `catch` e leitura posterior;
+- não há limpeza automática de linhas expiradas (são reaproveitadas no `upsert`).
 
 ## Considerações restantes (ver `bloqueios-pendencias.md`)
 

@@ -267,8 +267,10 @@ Regras críticas:
   (resolver via runtime; `valor` 1/2/3/6 = semântica estável de pedido, `id`
   varia por conta; `PATCH /pedidos/vendas/{id}/situacoes/{idSituacao}` usa
   `id`). De-para completo fluxos A/B + financeiro com APIs Systêxtil
-  (`/pessoa/v1/cliente`, `/venda/v1/pedido/venda`, `/fiscal/v1/documento/entrada`,
-  `/financeiro/v1/titulo/receber|pagar`, `/cobr/instrucoes-bancarias`) +
+  (`/pessoa/v1/cliente`, `/venda/v1/pedido/venda`,
+  `/notafiscal/v1/documento/saida` (escrituração da NF faturada no Bling;
+  GET+POST oficiais), `/financeiro/v1/titulo/receber|pagar`,
+  `/cobr/instrucoes-bancarias`) +
   regras de reconciliação (idempotência, não reemitir NF-e, estoque por
   inventário, IBS/CBS).
 - 0.5.0 (2026-09-07, 6ª rodada): **sandbox/limitações + confirmações oficiais**

@@ -60,3 +60,7 @@ npm run dev                 # http://localhost:3000/console
   e `prisma/generated/` são ignorados pelo git; `.env.example` contém apenas
   placeholders.
 - Em produção, `BLING_REDIRECT_URI` deve apontar para o domínio da Vercel.
+- O cron diário está declarado em `vercel.json` (`/api/cron`, 03:00) e exige
+  `CRON_SECRET`: a rota responde 401 sem o header
+  `Authorization: Bearer <CRON_SECRET>`. Configure a variável na Vercel e no
+  `.env` local para o dreno de vendas pendentes funcionar.

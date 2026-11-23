@@ -77,9 +77,13 @@ lê esse saldo e igualiza o Bling.
 | 4 | Buscar NF-e emitida | ISB | `GET /nfe/{id}` (Bling) — obtém numero, série, chave de acesso, contato, itens e valor | ✅ automático |
 | 5 | Garantir o **cliente** | ISB | `POST /pessoa/v1/cliente` (Systêxtil) — chave CPF/CNPJ em `_9/_4/_2`, cadastra ou ignora (409) | ✅ automático |
 | 6 | Registrar o **pedido de venda** | ISB | `POST /venda/v1/pedido/venda` — cliente, condição de pagamento, itens com `nivel/grupo/subgrupo/item` e quantidade em metros | ✅ automático |
-| 7 | **Documento de saída** (inserção da NF de saída faturada no Bling) | ISB | `POST /notafiscal/v1/documento/saida` — escritura a NF de saída do Bling (série 2, emitida pela Pro Moda) no Systêxtil **sem nova emissão no Sefaz** | ⚠️ **BLOQUEADO — C7-a** |
+| 7 | **Documento de saída** (inserção da NF de saída faturada no Bling) | ISB | `POST /notafiscal/v1/documento/saida` — escritura a NF de saída do Bling (série 2, emitida pela Pro Moda) no Systêxtil **sem nova emissão no Sefaz** | ✅ disponível (POST habilitado no tenant; validar payload na 1ª venda) |
 | 8 | **Título a receber** da loja | ISB | `POST /financeiro/v1/titulo/receber` — duplicata da loja para a Pro Moda (+30 dias) | ✅ automático |
 | 9 | Igualizar estoque do Bling | ISB (manual) | `GET /material/v1/estoque` (dep 034) → `POST /estoques` Bling (balanço `B`) | ✅ manual (tela) |
+
+> O ISB **não devolve baixa de estoque ao Bling**: o Bling já baixa ao faturar a
+> NF-e. A tabela acima descreve a reconciliação manual de saldo do depósito
+> espelho, não uma contrapartida de baixa da NF escriturada no Systêxtil.
 
 ### C. Monitoramento
 
@@ -158,7 +162,7 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 ### 7.1 Liberações de API (Systêxtil/ORDS)
 | # | Endpoint | Situação atual | Necessidade |
 |---|---|---|---|
-| **C7-a** | `POST /notafiscal/v1/documento/saida` | **Não publicado** na API pública do Systêxtil (só GET existe; POST retorna 404/405 no ORDS/proxy) | Expor POST — usado para escriturar a NF de saída faturada no Bling (série 2) sem reemitir ao Sefaz (passo B.7) |
+| ~~**C7-a**~~ | `POST /notafiscal/v1/documento/saida` | **RESOLVIDO (2026-11-21):** publicado na doc oficial (`GET` + `POST`, `post_documento_saida`, `sync`) e **já habilitado no tenant** (confirmação do usuário) | Usado para escriturar a NF de saída faturada no Bling (série 2) sem reemitir ao Sefaz (passo B.7); validar payload na 1ª venda (C7-a-r) |
 | **C7-b** | `GET /notafiscal/v1/xmlnfe` | **504 Gateway Time-out** | Confirmar parâmetros de filtro ou forma alternativa de obter o XML |
 
 ### 7.2 Preenchimentos/definições (Pro Moda + Systêxtil)
@@ -173,11 +177,12 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 
 ## 8. Perguntas para a equipe Systêxtil
 
-1. **Documento de saída:** como habilitar o `POST /notafiscal/v1/documento/saida`
-   (é publicação de handler no ORDS ou liberação no proxy/API Gateway)? O
-   payload deve espelhar os campos do GET? Qual o conjunto mínimo de campos
-   para uma NF de saída de e-commerce (série 2, natureza/CFOP de venda interna)?
-   A operação com `sync=true` é a recomendada?
+1. **Documento de saída:** o POST já está habilitado no tenant. Ainda confirmar
+   o conjunto mínimo de campos para uma NF de saída de e-commerce (série 2,
+   natureza/CFOP de venda interna) e se `sync=true` é a operação recomendada —
+   o payload atual usa o formato *flat* do Postman, mas a doc oficial descreve
+   envelope `items[]` (C7-a-r). Referência:
+   `docs/integracao/api-systextil-catalogo.md`, seção Documento Saída.
 2. **XML da NF-e:** qual o filtro correto de `GET /notafiscal/v1/xmlnfe`
    (empresa/série/número/chave) para não estourar tempo (504)? Ou existe outro
    endpoint para obter o XML?
@@ -205,10 +210,10 @@ que precisa montar sub-objetos (`itens`, `itens_pedidos`, etc.).
 - **Modelo:** Systêxtil mestre do estoque (dep. 034, em metros); Bling espelha
   o saldo e emite a NF-e B2C; ISB orquestra.
 - **Fluxo de venda:** webhook do Bling → ISB registra no Systêxtil
-  (cliente → pedido → doc. de entrada com baixa → título) → reconciliação
-  devolve o saldo para o Bling.
-- **Funciona hoje:** estoque e venda até o pedido/título; falta só o
-  **doc. de entrada (C7-a)** para fechar a baixa automática do 034 — o
-  processador já está pronto, esperando o POST ser liberado.
+  (cliente → pedido → **doc. de saída** da NF faturada no Bling → título).
+  O Bling já baixa o estoque ao faturar; o ISB não devolve baixa ao Bling.
+- **Funciona hoje:** estoque e venda até pedido/documento/título; o POST de
+  documento de saída **já está habilitado no tenant** (C7-a resolvido) e o
+  processador está pronto — falta validar o payload com a 1ª venda real.
 - **Ganho:** venda, baixa de estoque e faturamento **sem digitação manual**,
   com rastreabilidade total (log por passo e idempotência).

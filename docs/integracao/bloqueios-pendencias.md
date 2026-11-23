@@ -3,19 +3,34 @@
 > Lista viva (atualizar ao resolver). Códigos C7/C5 vêm do plano/retomada da
 > integração em `.agent/docs/`.
 
-## C7-a — `POST /notafiscal/v1/documento/saida` não exposto
+## C7-a — RESOLVIDO (2026-11-21): POST já habilitado no tenant
 
-- **Sintoma**: passo `documentoSaida` com `bloqueado` (HTTP **404/405**) →
-  venda termina `concluido_parcial`.
-- **Causa**: a API pública do Systêxtil para documento de saída expõe apenas
-  **GET**; o POST usado para inserir a NF-e faturada no Bling (série 2) não está
-  publicado pelo Jean/ORDS.
-- **Pendência**: abrir com **Jean** para liberar o POST
-  `sync=true` do `documento/saida` (mesmo acesso dos outros POSTs já liberados:
-  cliente, pedido, título).
-- **Contorno atual**: o pipeline marca o passo `bloqueado`, grava a mensagem e
-  segue para o título — a venda fica `concluido_parcial` com todo o resto OK,
-  visível no painel.
+> **Baixado em 2026-11-21 por confirmação do usuário:** o
+> `POST /notafiscal/v1/documento/saida` **já está habilitado no tenant/proxy**.
+> Não há mais pendência de exposição com Jean/ORDS. A hipótese antiga de que
+> "a API pública só expõe GET" também estava errada — a página oficial
+> https://ajuda.systextil.com.br/api/systextil-apis/documento-saida.md publica
+> **GET e POST no mesmo path** (`post_documento_saida`, `sync`, respostas
+> 200/400/401/406/409/500).
+>
+> **Efeito:** o passo `documentoSaida` não deve mais ficar `bloqueado` por
+> falta de handler. Se ainda aparecer 404/405, investigar path/query `sync`/
+> payload/regra do proxy antes de reprocessar — não é mais "aguardar liberação".
+
+## C7-a-r — Validar formato do payload do documento de saída (novo)
+
+- **Situação**: o corpo enviado hoje pelo pipeline usa o formato **flat** do
+  guia Postman (`cnpj9_cliente`, `numero_documento`, `serie_documento`,
+  `valor_total_documento`, `chave_acesso`, `itens[]` com `valor_total_item`).
+  O schema OpenAPI oficial descreve envelope **`items[]`** com `nota_fiscal`,
+  `serie_nota_fiscal`, `numero_danfe_nfe`, `valor_nota`, `cnpj_9/4/2_nota` e
+  itens em `items[].itens[]` (`valor_faturado`, `deposito_id`).
+- **Impacto**: com o POST habilitado, esta é a causa mais provável de 400 na
+  primeira venda real — a escrituração da NF pode falhar até o payload ser
+  ajustado.
+- **Pendência**: validar no teste com NF real se o proxy aceita o formato
+  antigo ou se é necessário migrar para o schema oficial (catálogo, seção
+  Documento Saída; detalhes em `varredura-api-systextil.md`, descoberta 7).
 
 ## C7-b — `GET /notafiscal/v1/xmlnfe` → 504
 

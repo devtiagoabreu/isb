@@ -43,15 +43,21 @@ Systêxtil para:
 | [`operacao.md`](operacao.md) | Como configurar, conectar e operar |
 | [`seguranca.md`](seguranca.md) | Assinatura de webhook, allowlists, segredos |
 | [`bloqueios-pendencias.md`](bloqueios-pendencias.md) | Bloqueios atuais e pendências conhecidas |
+| [`api-systextil-catalogo.md`](api-systextil-catalogo.md) | Catálogo completo (160 operações / 73 paths) com parâmetros, bodies e respostas |
+| [`varredura-api-systextil.md`](varredura-api-systextil.md) | Resumo da varredura de 2026-11-21: matriz GET/POST por item e correções |
 
 ## Estado resumido (este arquivo é o mapa; veja `bloqueios-pendencias.md`)
 
 - **Fases 1–4 entregues**: base de parâmetros, catálogo de endpoints + proxy de
   teste, reconciliação de estoque, consumidor de vendas (webhook → fila →
   pipeline), monitor de integração.
-- **Bloqueio principal**: `POST /notafiscal/v1/documento/saida` não é exposto
-  pela API do Systêxtil (C7-a) — o passo "documento de saída" fica `bloqueado`
-  e a venda termina `concluido_parcial`.
+- **C7-a resolvido (2026-11-21)**: o `POST /notafiscal/v1/documento/saida` já
+  está **habilitado no tenant** — a doc oficial publica GET e POST no mesmo
+  path. Falta validar o payload com a 1ª venda real (C7-a-r em
+  `bloqueios-pendencias.md`).
+- **Varredura completa da API (2026-11-21)**: 66 páginas / 73 paths /
+  160 operações em [`api-systextil-catalogo.md`](api-systextil-catalogo.md);
+  resumo e correções em [`varredura-api-systextil.md`](varredura-api-systextil.md).
 - **Pendência operacional (C5)**: `pagamento.condicao.systextil.codigo` estava
   vazio — agora o pipeline tenta **auto-resolver** via
   `resolveCondicaoPagamento()`. Validar na 1ª venda real; se o proxy bloquear,

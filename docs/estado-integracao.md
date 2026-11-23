@@ -1,7 +1,8 @@
 # Estado da Integração — ISB (Systêxtil × Bling, e-commerce)
 
-> Documento de situação atual. Atualizado em **2026-09-16** (C5 auto-resolvido
-> via API, cron diário criado; parseSku aceita SKU pontuado; upsert no import).
+> Documento de situação atual. Atualizado em **2026-11-21** (Fase 3: retry com
+> backoff e dead-letter na fila de vendas; C5 auto-resolvido via API, cron
+> diário criado; parseSku aceita SKU pontuado; upsert no import).
 > Fonte de verdade das decisões em andamento: `.agent/docs/plano-integracao-ecommerce.md`
 > (não é versionado). Este arquivo é a visão geral **versionada** para a equipe.
 
@@ -23,8 +24,8 @@
 | 1 | Venda criada no e-commerce | Nuvemshop → Bling (nativo) | ✅ nativo |
 | 2 | Faturamento da NF-e (situação 5→6) | Bling | ✅ nativo (Bling baixa o estoque do espelho) |
 | 3 | Evento `invoice.*` recebido | Webhook ISB (`/api/bling/webhook`) | ✅ grava; enfileira Fase 3 |
-| 4 | Venda registrada no Systêxtil (cliente → pedido → doc. saída → título) | Consumidor Fase 3 | ⚠️ parcial (doc. saída bloqueado — ver §5) |
-| 5 | NF de saída (faturada no Bling pela Pro Moda, série 2) escriturada no Systêxtil | Doc. saída (`POST /notafiscal/v1/documento/saida`) | ⚠️ depende de C7 (§5) |
+| 4 | Venda registrada no Systêxtil (cliente → pedido → doc. saída → título) | Consumidor Fase 3 | ✅ pronto (POST do doc. saída habilitado no tenant; validar 1ª venda real) |
+| 5 | NF de saída (faturada no Bling pela Pro Moda, série 2) escriturada no Systêxtil | Doc. saída (`POST /notafiscal/v1/documento/saida`) | ✅ disponível — validar payload (C7-a-r, §5) |
 | 6 | Saldo do Bling atualizado | Botão `/reconciliacao-estoque` | ✅ manual |
 
 ## 3. Estado por fase
@@ -70,6 +71,10 @@
   * API `GET|POST /api/bling/vendas` (listar fila + drenar N pendentes);
   * tela **`/vendas-processadas`** com status por passo
     (`ok` / `erro` / `bloqueado` / `ignorado`) e botão **Processar pendentes**;
+  * **retry com backoff** (1→5→15→60→360→1440 min, máx. 10 tentativas) e
+    **dead-letter** (`dead_letter`): o dreno/cron respeitam
+    `proximaTentativaEm`; a tela mostra a próxima tentativa e o botão
+    **Reprocessar** (`POST /api/bling/vendas` com `{ "id": N }`);
   * novos parâmetros: `empresa.systextil.ecommerce` e
     `pagamento.condicao.systextil.codigo`.
 
@@ -82,7 +87,8 @@
 2. **Vendas (Bling → Systêxtil):** faturado no Bling → evento entra na fila →
    processado em background; o **cron diário drena até 50 pendentes**; para
    drenar manualmente: tela `/vendas-processadas` → *Processar pendentes* (ou
-   `POST /api/bling/vendas`).
+   `POST /api/bling/vendas`). Falhas transitórias voltam com backoff; após
+   10 tentativas a linha vai para `dead_letter` e exige **Reprocessar**.
 3. **Captura de eventos:** o webhook do Bling deve estar apontando para
    `<ISB>/api/bling/webhook` com `BLING_WEBHOOK_SECRET`.
 
@@ -90,7 +96,7 @@
 
 | # | Pendência | Impacto | Quem |
 |---|---|---|---|
-| C7-a | `POST /notafiscal/v1/documento/saida` **não publicado** na API do Systêxtil (só GET exposto; POST retorna 404/405 no ORDS/proxy) | Inserção/escrituração da NF de saída faturada no Bling **não acontece**; passo fica `bloqueado` | Jean / ORDS (expor POST de documento de saída) |
+| ~~C7-a~~ | **RESOLVIDO (2026-11-21):** `POST /notafiscal/v1/documento/saida` **já está habilitado no tenant** (confirmação do usuário). Doc oficial publica GET + POST (`post_documento_saida`) | Escrituração da NF de saída faturada no Bling destravada; falta validar com venda real (payload e idempotência) | — |
 | C7-b | `GET /notafiscal/v1/xmlnfe` → **504** (Gateway Time-out Cloudflare) | XML ainda não utilizável | Jean / Systêxtil |
 | C5 | `pagamento.condicao.systextil.codigo` vazio → pedido 400 | **Auto-resolvido**: o processador busca/cria a condição via `GET/POST /venda/v1/condicao/pagamento` e salva o código. Validar na 1ª venda real — se o proxy bloquear o endpoint, aí sim preencher o param | Dev (auto-resolve `resolveCondicaoPagamento()`) |
 | — | Payloads reais de cliente/pedido/título **não validadas com dados reais** (probe usou body vazio) | Primeira venda pode 400 e exigir ajuste de campos | Dev + teste com NF real |
@@ -136,16 +142,14 @@
 
 ## 8. Próximos passos (ordem sugerida)
 
-1. Liberar `POST /notafiscal/v1/documento/saida` (C7-a, Jean) — destrava a
-   inserção/escrituração da NF de saída faturada no Bling.
-2. **Primeira venda real faturada**: valida o auto-resolve de C5 (se o proxy
-   expor `GET/POST /venda/v1/condicao/pagamento`), os payloads de
-   cliente/pedido/doc. de saída/título e o webhook com assinatura real.
-3. Testar com a **primeira venda real faturada**: iterar nos campos exigidos
+1. **Primeira venda real faturada**: valida o auto-resolve de C5, os payloads
+   (com atenção ao formato do doc. de saída — C7-a-r), o webhook com assinatura
+   real e a não duplicação no retry do evento.
+2. Confirmar a baixa do saldo do depósito `034` e iterar nos campos exigidos
    (400 com lista de campos) até cliente/pedido/doc. de saída/título passarem.
-4. Se necessário, `GET /notafiscal/v1/xmlnfe` (C7-b) para validar o XML antes
+3. Se necessário, `GET /notafiscal/v1/xmlnfe` (C7-b) para validar o XML antes
    do doc. de saída.
-5. Ativar o cron na Vercel (criar `CRON_SECRET` + deploy). Se o volume crescer,
+4. Ativar o cron na Vercel (criar `CRON_SECRET` + deploy). Se o volume crescer,
    migrar o consumidor para worker dedicado.
 
 ## 9. Referências locais
