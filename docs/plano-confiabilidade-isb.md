@@ -158,14 +158,19 @@
     `npx prisma migrate status`, `git diff --check`.
   - **Critério:** 0 erros; único aviso permitido é `lib/crud/help.ts:55`
     (pré-existente).
-- [~] **5.2 Consolidar evidências e pedir o gate externo.** (doc atualizado;
-  aguardando o usuário confirmar a NF-e de homologação)
+- [x] **5.2 Consolidar evidências e pedir o gate externo.** ✅ 2026-11-23
+  - `docs/estado-integracao.md` atualizado com Fases 1–4, pendências C7-a-r/C9
+    e o gate P0-1 como próximo passo.
+  - **Usuário confirmado como responsável** pelo teste com NF-e/venda de
+    homologação: pedido + documento + título, baixa do `034` e não duplicação
+    no retry. Decisão: **push somente após o resultado desse teste**.
   - Atualizar `docs/estado-integracao.md` com o resultado da Fase 1–4 e
     solicitar a NF-e de homologação (P0-1) para validar pedido + doc. saída +
     título, baixa do `034` e não duplicação no retry.
   - **Critério:** doc atualizado; usuário confirmado como responsável pelo
     teste real.
-- [ ] **5.3 Push (somente após 5.1 e 5.2).**
+- [ ] **5.3 Push (somente após 5.1 e 5.2).** ⏸ aguardando a validação da NF-e
+  pelo usuário (decisão 2026-11-23)
   - `git push origin main`.
   - **Critério:** `git status --short` limpo e commit visível no remoto.
 
