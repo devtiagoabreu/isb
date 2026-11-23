@@ -32,6 +32,25 @@
   antigo ou se é necessário migrar para o schema oficial (catálogo, seção
   Documento Saída; detalhes em `varredura-api-systextil.md`, descoberta 7).
 
+## C9 — Convenção de split CNPJ/CPF (`cnpj_9/4/2`) não validada
+
+- **Descoberta (2026-11-23):** os testes automatizados revelaram que
+  `splitCnpjCpf` fatia os 14 dígitos do CNPJ em **9 + 4 + 2** (15 posições),
+  produzindo `11.222.333/0001-81` → `112223330` / `0018` / `1`.
+- **Divergência interna:** `lib/crud/help.ts:11,16` descreve "9 primeiros
+  dígitos" (`123456789`), mas `help.ts:12,17` e o exemplo em
+  `.agent/docs/api-systextil-full.md:407` (`cnpj9_cliente: 12345678`) usam 8
+  dígitos. O catálogo oficial só diz `cnpj_9` = "até 9 dígitos", `cnpj_4` = 4 e
+  `cnpj_2` = 2 — insuficiente para definir o preenchimento de 14 dígitos.
+- **Decisão (2026-11-23):** **manter o comportamento atual**; não alterar a
+  chave de cliente/pedido/documento sem validação runtime. O teste
+  `tests/unit/processador-venda-puras.test.ts` congela o comportamento atual
+  como regressão controlada.
+- **Pendência:** validar com a 1ª NF real (ou com Jean) qual convenção o tenant
+  usa — alternativas: (a) 8 + 4 + 2 (`11222333`/`0001`/`81`), (b) `0` + 8 + 4 +
+  2 (`011222333`/`0001`/`81`), (c) a atual. Se for (a) ou (b), corrigir
+  `splitCnpjCpf`, o teste e os textos de ajuda em `lib/crud/help.ts`.
+
 ## C7-b — `GET /notafiscal/v1/xmlnfe` → 504
 
 - **Sintoma**: teste/leitura do XML da NF-e no console Systêxtil retorna **504**

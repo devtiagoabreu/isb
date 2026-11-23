@@ -85,7 +85,7 @@ export function splitCnpjCpf(
 //   • Formato pontuado: "1.00020.CRU.000010"
 //   • Formato 15 caracteres alfanuméricos: "100020CRU000010"
 //   • Formato 15 dígitos: "10002000000010"
-function parseSku(
+export function parseSku(
   codigo: string | null | undefined
 ): {
   nivel_produto: string;
@@ -110,7 +110,12 @@ function parseSku(
     return null;
   }
 
-  // Formato 15 caracteres alfanuméricos (sem pontos): "100020CRU000010"
+  // Formato alfanumérico sem pontos: "100020CRU000010" (15) ou
+  // "10002000000010" (14, completado com zero à esquerda). Códigos curtos
+  // como "ABC" não são SKUs válidos e não devem virar chave inventada.
+  if (raw.length < 14 || raw.length > 15 || !/^[0-9a-z]+$/i.test(raw)) {
+    return null;
+  }
   const s15 = raw.padStart(15, "0").slice(-15);
   if (s15.length === 15) {
     return {

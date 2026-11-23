@@ -1,5 +1,7 @@
 # ISB — Integrador Systêxtil Cloud · Bling
 
+[![CI](https://github.com/devtiagoabreu/isb/actions/workflows/ci.yml/badge.svg)](https://github.com/devtiagoabreu/isb/actions/workflows/ci.yml)
+
 Aplicação web para **testar as integrações do ISB** com a **Bling V3** e a
 **Systêxtil Cloud** (em construção). Next.js 16 (App Router) na Vercel com
 PostgreSQL/Neon via Prisma 7.
@@ -53,6 +55,25 @@ npm run dev                 # http://localhost:3000/console
 | `npm run db:migrate` | Cria/aplica migrações (dev) |
 | `npm run db:deploy` | Aplica migrações (produção) |
 | `npm run db:studio` | Prisma Studio |
+| `npm test` | Vitest (modo watch) |
+| `npm run test:run` | Vitest (uma passada, usado na CI) |
+| `npm run test:coverage` | Vitest com cobertura v8 |
+
+## CI
+
+O workflow `.github/workflows/ci.yml` roda em pushes e PRs para `main`:
+`npm ci` → `prisma generate` → lint → `tsc --noEmit` → testes → build.
+O job `verify` usa placeholders de banco e **não conecta** na Neon.
+
+Secrets (todos opcionais):
+
+| Secret | Uso |
+|--------|-----|
+| `STAGING_DATABASE_URL` | Job `migrations`: checa `prisma migrate status` no staging |
+| `STAGING_DIRECT_URL` | Job `migrations`: URL direta exigida por `prisma.config.ts` |
+
+Sem esses secrets o job `migrations` é ignorado; o `verify` continua protegendo
+o merge.
 
 ## Segurança
 

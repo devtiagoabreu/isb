@@ -48,22 +48,36 @@
 
 ## Fase 2 — Scaffold de testes (P1-5a)
 
-- [ ] **2.1 Adicionar Vitest.**
-  - Instalar como devDependencies: `vitest`, `vite-tsconfig-paths`.
-  - Criar `vitest.config.ts` com `environment: "node"` e alias `@` → raiz do
-    projeto (equivalente ao `@/*` do `tsconfig.json`).
-  - Adicionar scripts em `package.json`:
-    `test` (watch), `test:run` (CI), `test:coverage`.
-  - **Critério:** `npm run test:run` termina com exit 0 (aceita "no test files
-    found" nesta etapa); `npm run lint` continua com 0 erros.
-- [ ] **2.2 Criar o primeiro teste de fumo.**
+- [x] **2.1 Adicionar Vitest.** ✅ 2026-11-23
+  - Instalado: `vitest@4.1.12` + `@vitest/coverage-v8@4.1.12` (devDeps).
+  - `vitest.config.ts` com `environment: "node"`, alias `@` explícito e
+    `setupFiles: ["tests/setup.ts"]` (connection string dummy só para instanciar
+    o Prisma Client; nenhum teste conecta no banco).
+  - Scripts: `test`, `test:run`, `test:coverage`.
+  - **Desvio registrado:** `vitest@5` exige `@types/node >=22` (projeto usa
+    `^20`); `vitest@4.0.0` falha com Vite 7.3.8 (`getBuiltins`/`fetchModule`).
+    Pinado 4.1.12. `vite-tsconfig-paths` foi instalado e removido: incompatível
+    com o module runner do Vitest 4 — o alias `@` explícito resolve os imports.
+  - **Evidência:** `npm run test:run` → 1 arquivo, 1 teste, exit 0;
+    `npm run lint` → 0 erros (1 aviso pré-existente em `lib/crud/help.ts:55`).
+- [x] **2.2 Criar o primeiro teste de fumo.** ✅ 2026-11-23
+  - `tests/unit/smoke.test.ts` importa `calcularProximaTentativa` via alias `@`
+    e valida o backoff de 1 min com `agora` injetado.
+  - **Evidência:** `Test Files 1 passed (1)`, `Tests 1 passed (1)`.
   - `tests/unit/smoke.test.ts` importando `calcularProximaTentativa` de
     `@/lib/processador-venda` e verificando que o módulo carrega sem rede.
   - **Critério:** `npm run test:run` reporta 1 arquivo e 1 teste verdes.
 
 ## Fase 3 — Cobrir pipeline e webhook (P1-5b)
 
-- [ ] **3.1 Testar funções puras de `processador-venda.ts`.**
+- [x] **3.1 Testar funções puras de `processador-venda.ts`.** ✅ 2026-11-23
+  - 21 casos verdes (backoff 1..6 + teto, CNPJ/CPF, `parseSku`).
+  - `parseSku` exportado e endurecido: códigos não pontuados precisam ter 14–15
+    caracteres alfanuméricos (antes, `"ABC"` virava chave `000000000000ABC`);
+    os 3 formatos válidos continuam passando.
+  - **Decisão do usuário:** a expectativa do plano para CNPJ (8+4+2) estava
+    errada. Mantido o comportamento atual (9+4+2) e aberta a pendência **C9**
+    em `bloqueios-pendencias.md` para validar com NF real.
   - `calcularProximaTentativa`: tentativas 1..6 → +1, +5, +15, +60, +360,
     +1440 min; tentativa 20 → teto de 1440; `agora` injetado (sem `Date.now()`
     real).
@@ -78,7 +92,10 @@
     `000000000000ABC` em vez de `null`; escrever esse caso e, se falhar,
     corrigir a validação para exigir 15 caracteres antes do padding (com
     `parseSku` pontuado continuando válido).
-- [ ] **3.2 Testar decisões de `processarVendaRegistro` com Prisma mockado.**
+- [x] **3.2 Testar decisões de `processarVendaRegistro` com Prisma mockado.** ✅ 2026-11-23
+  - 12 casos verdes: dead-letter, backoff futuro, lock fresco/stale,
+    idempotência por NF, doc. saída 200/201/409, título ignorado, enqueue
+    ignores/upsert por `eventId`. Nenhuma chamada de rede real.
   - Mockar `prisma.vendaRegistro`, `systextilRequest`, `blingRequest` e
     `listarParams` — nenhuma chamada de rede real.
   - Casos: `dead_letter` não processa; `proximaTentativaEm` no futuro não
@@ -86,7 +103,11 @@
     reagendada; NF já registrada não duplica; `documentoSaida` aceita 200/201/409;
     passo título é `ignorado` quando cliente **ou** pedido falharam.
   - **Critério:** ≥ 7 casos verdes; `npm run test:run` integral passa.
-- [ ] **3.3 Testar webhook e reprocesso manual.**
+- [x] **3.3 Testar webhook e reprocesso manual.** ✅ 2026-11-23
+  - 5 casos verdes: HMAC inválido → 401, payload sem `event` → 400, evento
+    válido → upsert com `update: {}` + enqueue, `bling.write` negado → 403 e
+    POST `{ id: 7 }` → `reprocessarVendaRegistro(7)`.
+  - **Total:** `npm run test:run` → 4 arquivos, 38 testes, exit 0.
   - `app/api/bling/webhook/route.ts`: assinatura HMAC inválida → 401;
     `eventId` repetido → não enfileira duas vezes; payload sem `event` → 400.
   - `app/api/bling/vendas/route.ts`: POST `{ id }` zera tentativas e chama o
@@ -95,18 +116,35 @@
 
 ## Fase 4 — CI (P1-6)
 
-- [ ] **4.1 Criar `.github/workflows/ci.yml`.**
-  - Job `verify` (sem banco): checkout → setup-node 20 com cache npm →
+- [x] **4.1 Criar `.github/workflows/ci.yml`.** ✅ 2026-11-23
+  - YAML validado com `yaml.safe_load` (jobs `verify` e `migrations`).
+  - Simulação local integral: `npm ci` (548 pacotes, 24 min), `prisma generate`,
+    `npm run lint` (0 erros, 1 aviso pré-existente), `tsc --noEmit` (0 erros),
+    `npm run test:run` (4 arquivos, 38 testes), `npm run build` (sucesso).
+  - Correção durante a validação: `data` tipado como `Record<string, unknown>`
+    no mock de `vendaRegistro.update` (TS2698 ao usar spread de `unknown`).
+  - Job `verify` (sem banco): checkout → setup-node com cache npm →
     `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` →
     `npm run test:run` → `npm run build`.
-  - Job `migrations` (somente quando `DATABASE_URL` de **staging** estiver
-    configurado como secret): `npx prisma migrate status`.
+  - Job `migrations` (somente quando a URL de **staging** estiver configurada
+    como secret): `npx prisma migrate status`.
+  - **Desvios registrados:** Node **22** em vez de 20 (Node 20 está EOL em
+    2026; Next 16 exige ≥20.9 e o Vitest 4.1.12 aceita 22); secrets chamados
+    `STAGING_DATABASE_URL`/`STAGING_DIRECT_URL` porque `prisma.config.ts`
+    exige `DIRECT_URL` — não reutilizar o `DATABASE_URL` da Vercel.
   - **Critério:** YAML válido; simulação local
     `npm ci && npx prisma generate && npm run lint && npx tsc --noEmit && npm run test:run && npm run build`
     termina com exit 0.
-- [ ] **4.2 Documentar a CI.**
-  - Badge no README + seção "CI" listando o secret `DATABASE_URL` (staging) e
-    que a variável é opcional para o job `verify`.
+- [x] **4.2 Documentar a CI.** ✅ 2026-11-23
+  - Badge no topo do README, seção "CI" com o pipeline e a tabela de secrets
+    `STAGING_DATABASE_URL` / `STAGING_DIRECT_URL` (opcionais, só no job
+    `migrations`).
+  - `npm ci` reportou 15 vulnerabilidades (1 critical, 7 high, 7 moderate).
+    **Decisão:** não adicionar `npm audit` como etapa bloqueante agora — isso
+    quebraria o merge na primeira execução. Registrado como próximo passo de
+    segurança, fora desta fatia.
+  - Badge no README + seção "CI" listando os secrets de staging e deixando
+    claro que são opcionais para o job `verify`.
   - **Critério:** README contém o badge e a lista de secrets.
 
 ## Fase 5 — Verificação final e handoff
@@ -143,6 +181,7 @@ Se houver worktrees, usar `git-worktrees` para 3.1/3.2/3.3.
 | Segredo vazado no commit | `.gitignore` já cobre `.env*`; conferir `git diff --cached` antes de 1.4 | `git reset --soft HEAD~1`; se vazou, rotacionar a credencial |
 | CI rodar `migrate status` contra produção | Usar secret `DATABASE_URL` de staging; job separado e condicionado | Desabilitar o job `migrations` |
 | Correção de `parseSku` mudar comportamento em produção | Teste de regressão cobrindo os 3 formatos válidos antes da correção | Reverter o commit da correção, manter os testes |
+| `npm audit` acusar vulnerabilidades e quebrar o merge | Não incluir audit como etapa bloqueante nesta fatia; triar separadamente | Remover a etapa do workflow |
 
 ## Fora de escopo desta fatia
 
