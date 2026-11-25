@@ -169,8 +169,9 @@
     título, baixa do `034` e não duplicação no retry.
   - **Critério:** doc atualizado; usuário confirmado como responsável pelo
     teste real.
-- [ ] **5.3 Push (somente após 5.1 e 5.2).** ⏸ aguardando a validação da NF-e
-  pelo usuário (decisão 2026-11-23)
+- [x] **5.3 Push (somente após 5.1 e 5.2).** ✅ 2026-11-25 —
+  `git push origin main` → `cd3852a..550f5ac`. A NF-e de homologação segue como
+  acompanhamento; se revelar ajustes, eles entram em commit/push separados.
   - `git push origin main`.
   - **Critério:** `git status --short` limpo e commit visível no remoto.
 
